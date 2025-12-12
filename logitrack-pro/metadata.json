@@ -1,0 +1,5 @@
+{
+  "name": "LogiTrack Pro",
+  "description": "A comprehensive logistics enquiry management system transforming static CSV data into a dynamic, reactive web application for tracking freight quotes, bookings, and cargo details.",
+  "requestFramePermissions": []
+}

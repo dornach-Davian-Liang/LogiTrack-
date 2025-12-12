@@ -1,0 +1,21 @@
+﻿Enquiry Received Date,Issue Date,Reference Number,Product,"Status
+(New/Quoted )",CN Pricing Admin,Sales Country, Sales office,Sales PIC,Assigned CN Offices,Cargo Type,Volume (CBM),Quantity,"Quantity
+(Unit)","Quantity
+(TEU)",Commodity,"Haz, Special Equipment 
+(if relevant)",POL,POD,POD Country,"CORE / NON CORE (formula locked, please just copy and past to the next record)","Category : 
+1. Freight
+2. Freight + Origin Charge/EXW
+3. Freight + Origin Charge/EXW+Dest. Charges
+4. Origin Charges/EXW
+5. LCL",Cargo Ready Date,Additional Requirement,1st Quotation Sent,"1st Offer:
+Ocean Frg","1st Offer:
+Air Frg/KG","Lastest Offer:
+Ocean Frg","Lastest Offer:
+Air Frg/KG","Booking Confirmed 
+(Yes/Rejected/Pending)",Remark,Rejected Reason,"Actual Reason 
+(to be discussed)"
+2-Jan-24,2-Jan-24,CN2401006-A,AIR,Quoted,Susana Wong,CHINA,ZIEGLER HONG KONG,PHILIP WONG,HONG KONG,AIR,0.27,116,KG,,RFID Sticker,,HKG,KHI,PAKISTAN,NON CORE,Origin charges/EXW,2-Jan-24,,2-Jan-24,,USD3.35 ALL IN,,,Yes,SO#750-12140009,,
+2-Jan-24,2-Jan-24,CN2401007-A,AIR,Quoted,Susana Wong,CHINA,ZIEGLER HONG KONG,PHILIP WONG,HONG KONG,AIR,2.76,408,KG,,Plastic Hangers,,HKG,LHE,PAKISTAN,NON CORE,Origin charges/EXW,2-Jan-24,,2-Jan-24,,USD3.35 ALL IN,,,Yes,SO#750-12140007,,
+2-Jan-24,2-Jan-24,CN2401008-A,AIR,Quoted,Susana Wong,UK,ZIEGLER COLNBROOK,STEWART BROOK,HONG KONG,AIR,17.203,"2,131.50",KG,,LED Masks,,HKG,LHE,PAKISTAN,NON CORE,Origin charges/EXW,3-Jan-24,,2-Jan-24,,USD4.57,,,Yes,,,
+2-Jan-24,2-Jan-24,CN2401009-A,AIR,Quoted,Susana Wong,FRANCE,ZIEGLER FRANCE,SANDRINE JUILLIEN,HONG KONG,AIR,0.219,69.5,KG,,Brand Reminder,,HKG,NTE,FRANCE,CORE,Origin charges/EXW,2-Jan-24,,2-Jan-24,,HKD44.52,,,Yes,,,
+2-Jan-24,2-Jan-24,CN2401010-A,AIR,Quoted,Susana Wong,NETHERLANDS,ZIEGLER NETHERLANDS,JACO VAN DIJK,SHANGHAI,AIR,0.49,39,KG,,TBA,,PVG,AMS,NETHERLANDS,CORE,Freight,TBA,,2-Jan-24,,USD3.38,,,Yes,,,
