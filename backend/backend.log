@@ -1,0 +1,377 @@
+nohup: ignoring input
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::                (v3.2.0)
+
+2025-12-23T06:48:00.951Z  INFO 24794 --- [logitrack-backend] [           main] c.l.backend.LogiTrackApplication         : Starting LogiTrackApplication v1.0.0 using Java 21.0.9 with PID 24794 (/workspaces/LogiTrack-/backend/target/logitrack-backend-1.0.0.jar started by codespace in /workspaces/LogiTrack-/backend)
+2025-12-23T06:48:00.957Z  INFO 24794 --- [logitrack-backend] [           main] c.l.backend.LogiTrackApplication         : No active profile set, falling back to 1 default profile: "default"
+2025-12-23T06:48:02.572Z  INFO 24794 --- [logitrack-backend] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-12-23T06:48:02.623Z  INFO 24794 --- [logitrack-backend] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 41 ms. Found 1 JPA repository interface.
+2025-12-23T06:48:03.366Z  INFO 24794 --- [logitrack-backend] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2025-12-23T06:48:03.381Z  INFO 24794 --- [logitrack-backend] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2025-12-23T06:48:03.381Z  INFO 24794 --- [logitrack-backend] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.16]
+2025-12-23T06:48:03.428Z  INFO 24794 --- [logitrack-backend] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2025-12-23T06:48:03.430Z  INFO 24794 --- [logitrack-backend] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 2343 ms
+2025-12-23T06:48:03.689Z  INFO 24794 --- [logitrack-backend] [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-12-23T06:48:03.789Z  INFO 24794 --- [logitrack-backend] [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.3.1.Final
+2025-12-23T06:48:03.851Z  INFO 24794 --- [logitrack-backend] [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2025-12-23T06:48:04.192Z  INFO 24794 --- [logitrack-backend] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-12-23T06:48:04.223Z  INFO 24794 --- [logitrack-backend] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2025-12-23T06:48:04.431Z  INFO 24794 --- [logitrack-backend] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@615b5480
+2025-12-23T06:48:04.433Z  INFO 24794 --- [logitrack-backend] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2025-12-23T06:48:04.503Z  WARN 24794 --- [logitrack-backend] [           main] org.hibernate.orm.deprecation            : HHH90000025: MySQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2025-12-23T06:48:05.555Z  INFO 24794 --- [logitrack-backend] [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2025-12-23T06:48:05.621Z DEBUG 24794 --- [logitrack-backend] [           main] org.hibernate.SQL                        : 
+    alter table enquiry_records 
+       modify column quantity float(53)
+Hibernate: 
+    alter table enquiry_records 
+       modify column quantity float(53)
+2025-12-23T06:48:05.690Z DEBUG 24794 --- [logitrack-backend] [           main] org.hibernate.SQL                        : 
+    alter table enquiry_records 
+       modify column quantity_teu float(53)
+Hibernate: 
+    alter table enquiry_records 
+       modify column quantity_teu float(53)
+2025-12-23T06:48:05.745Z DEBUG 24794 --- [logitrack-backend] [           main] org.hibernate.SQL                        : 
+    alter table enquiry_records 
+       modify column volume_cbm float(53)
+Hibernate: 
+    alter table enquiry_records 
+       modify column volume_cbm float(53)
+2025-12-23T06:48:05.867Z  INFO 24794 --- [logitrack-backend] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-12-23T06:48:06.546Z  WARN 24794 --- [logitrack-backend] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2025-12-23T06:48:07.098Z  INFO 24794 --- [logitrack-backend] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path ''
+2025-12-23T06:48:07.126Z  INFO 24794 --- [logitrack-backend] [           main] c.l.backend.LogiTrackApplication         : Started LogiTrackApplication in 7.039 seconds (process running for 7.949)
+2025-12-23T06:48:31.741Z  INFO 24794 --- [logitrack-backend] [nio-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-12-23T06:48:31.741Z  INFO 24794 --- [logitrack-backend] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2025-12-23T06:48:31.743Z  INFO 24794 --- [logitrack-backend] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 2 ms
+2025-12-23T06:48:49.117Z  INFO 24794 --- [logitrack-backend] [nio-8080-exec-2] c.l.b.controller.EnquiryController       : GET /api/enquiries - Fetching all enquiries
+2025-12-23T06:48:49.333Z DEBUG 24794 --- [logitrack-backend] [nio-8080-exec-2] org.hibernate.SQL                        : 
+    select
+        er1_0.id,
+        er1_0.actual_reason,
+        er1_0.additional_requirement,
+        er1_0.assigned_cn_offices,
+        er1_0.booking_confirmed,
+        er1_0.cargo_ready_date,
+        er1_0.cargo_type,
+        er1_0.category,
+        er1_0.cn_pricing_admin,
+        er1_0.commodity,
+        er1_0.core_non_core,
+        er1_0.created_at,
+        er1_0.enquiry_received_date,
+        er1_0.first_offer_air_frg_kg,
+        er1_0.first_offer_ocean_frg,
+        er1_0.first_quotation_sent,
+        er1_0.haz_special_equipment,
+        er1_0.issue_date,
+        er1_0.latest_offer_air_frg_kg,
+        er1_0.latest_offer_ocean_frg,
+        er1_0.pod,
+        er1_0.pod_country,
+        er1_0.pol,
+        er1_0.product,
+        er1_0.quantity,
+        er1_0.quantity_teu,
+        er1_0.quantity_unit,
+        er1_0.reference_number,
+        er1_0.rejected_reason,
+        er1_0.remark,
+        er1_0.sales_country,
+        er1_0.sales_office,
+        er1_0.sales_pic,
+        er1_0.status,
+        er1_0.updated_at,
+        er1_0.volume_cbm 
+    from
+        enquiry_records er1_0
+Hibernate: 
+    select
+        er1_0.id,
+        er1_0.actual_reason,
+        er1_0.additional_requirement,
+        er1_0.assigned_cn_offices,
+        er1_0.booking_confirmed,
+        er1_0.cargo_ready_date,
+        er1_0.cargo_type,
+        er1_0.category,
+        er1_0.cn_pricing_admin,
+        er1_0.commodity,
+        er1_0.core_non_core,
+        er1_0.created_at,
+        er1_0.enquiry_received_date,
+        er1_0.first_offer_air_frg_kg,
+        er1_0.first_offer_ocean_frg,
+        er1_0.first_quotation_sent,
+        er1_0.haz_special_equipment,
+        er1_0.issue_date,
+        er1_0.latest_offer_air_frg_kg,
+        er1_0.latest_offer_ocean_frg,
+        er1_0.pod,
+        er1_0.pod_country,
+        er1_0.pol,
+        er1_0.product,
+        er1_0.quantity,
+        er1_0.quantity_teu,
+        er1_0.quantity_unit,
+        er1_0.reference_number,
+        er1_0.rejected_reason,
+        er1_0.remark,
+        er1_0.sales_country,
+        er1_0.sales_office,
+        er1_0.sales_pic,
+        er1_0.status,
+        er1_0.updated_at,
+        er1_0.volume_cbm 
+    from
+        enquiry_records er1_0
+2025-12-23T06:48:49.514Z  INFO 24794 --- [logitrack-backend] [nio-8080-exec-3] c.l.b.controller.EnquiryController       : GET /api/enquiries - Fetching all enquiries
+2025-12-23T06:48:49.519Z DEBUG 24794 --- [logitrack-backend] [nio-8080-exec-3] org.hibernate.SQL                        : 
+    select
+        er1_0.id,
+        er1_0.actual_reason,
+        er1_0.additional_requirement,
+        er1_0.assigned_cn_offices,
+        er1_0.booking_confirmed,
+        er1_0.cargo_ready_date,
+        er1_0.cargo_type,
+        er1_0.category,
+        er1_0.cn_pricing_admin,
+        er1_0.commodity,
+        er1_0.core_non_core,
+        er1_0.created_at,
+        er1_0.enquiry_received_date,
+        er1_0.first_offer_air_frg_kg,
+        er1_0.first_offer_ocean_frg,
+        er1_0.first_quotation_sent,
+        er1_0.haz_special_equipment,
+        er1_0.issue_date,
+        er1_0.latest_offer_air_frg_kg,
+        er1_0.latest_offer_ocean_frg,
+        er1_0.pod,
+        er1_0.pod_country,
+        er1_0.pol,
+        er1_0.product,
+        er1_0.quantity,
+        er1_0.quantity_teu,
+        er1_0.quantity_unit,
+        er1_0.reference_number,
+        er1_0.rejected_reason,
+        er1_0.remark,
+        er1_0.sales_country,
+        er1_0.sales_office,
+        er1_0.sales_pic,
+        er1_0.status,
+        er1_0.updated_at,
+        er1_0.volume_cbm 
+    from
+        enquiry_records er1_0
+Hibernate: 
+    select
+        er1_0.id,
+        er1_0.actual_reason,
+        er1_0.additional_requirement,
+        er1_0.assigned_cn_offices,
+        er1_0.booking_confirmed,
+        er1_0.cargo_ready_date,
+        er1_0.cargo_type,
+        er1_0.category,
+        er1_0.cn_pricing_admin,
+        er1_0.commodity,
+        er1_0.core_non_core,
+        er1_0.created_at,
+        er1_0.enquiry_received_date,
+        er1_0.first_offer_air_frg_kg,
+        er1_0.first_offer_ocean_frg,
+        er1_0.first_quotation_sent,
+        er1_0.haz_special_equipment,
+        er1_0.issue_date,
+        er1_0.latest_offer_air_frg_kg,
+        er1_0.latest_offer_ocean_frg,
+        er1_0.pod,
+        er1_0.pod_country,
+        er1_0.pol,
+        er1_0.product,
+        er1_0.quantity,
+        er1_0.quantity_teu,
+        er1_0.quantity_unit,
+        er1_0.reference_number,
+        er1_0.rejected_reason,
+        er1_0.remark,
+        er1_0.sales_country,
+        er1_0.sales_office,
+        er1_0.sales_pic,
+        er1_0.status,
+        er1_0.updated_at,
+        er1_0.volume_cbm 
+    from
+        enquiry_records er1_0
+2025-12-23T06:48:58.713Z  INFO 24794 --- [logitrack-backend] [nio-8080-exec-5] c.l.b.controller.EnquiryController       : GET /api/enquiries - Fetching all enquiries
+2025-12-23T06:48:58.716Z DEBUG 24794 --- [logitrack-backend] [nio-8080-exec-5] org.hibernate.SQL                        : 
+    select
+        er1_0.id,
+        er1_0.actual_reason,
+        er1_0.additional_requirement,
+        er1_0.assigned_cn_offices,
+        er1_0.booking_confirmed,
+        er1_0.cargo_ready_date,
+        er1_0.cargo_type,
+        er1_0.category,
+        er1_0.cn_pricing_admin,
+        er1_0.commodity,
+        er1_0.core_non_core,
+        er1_0.created_at,
+        er1_0.enquiry_received_date,
+        er1_0.first_offer_air_frg_kg,
+        er1_0.first_offer_ocean_frg,
+        er1_0.first_quotation_sent,
+        er1_0.haz_special_equipment,
+        er1_0.issue_date,
+        er1_0.latest_offer_air_frg_kg,
+        er1_0.latest_offer_ocean_frg,
+        er1_0.pod,
+        er1_0.pod_country,
+        er1_0.pol,
+        er1_0.product,
+        er1_0.quantity,
+        er1_0.quantity_teu,
+        er1_0.quantity_unit,
+        er1_0.reference_number,
+        er1_0.rejected_reason,
+        er1_0.remark,
+        er1_0.sales_country,
+        er1_0.sales_office,
+        er1_0.sales_pic,
+        er1_0.status,
+        er1_0.updated_at,
+        er1_0.volume_cbm 
+    from
+        enquiry_records er1_0
+Hibernate: 
+    select
+        er1_0.id,
+        er1_0.actual_reason,
+        er1_0.additional_requirement,
+        er1_0.assigned_cn_offices,
+        er1_0.booking_confirmed,
+        er1_0.cargo_ready_date,
+        er1_0.cargo_type,
+        er1_0.category,
+        er1_0.cn_pricing_admin,
+        er1_0.commodity,
+        er1_0.core_non_core,
+        er1_0.created_at,
+        er1_0.enquiry_received_date,
+        er1_0.first_offer_air_frg_kg,
+        er1_0.first_offer_ocean_frg,
+        er1_0.first_quotation_sent,
+        er1_0.haz_special_equipment,
+        er1_0.issue_date,
+        er1_0.latest_offer_air_frg_kg,
+        er1_0.latest_offer_ocean_frg,
+        er1_0.pod,
+        er1_0.pod_country,
+        er1_0.pol,
+        er1_0.product,
+        er1_0.quantity,
+        er1_0.quantity_teu,
+        er1_0.quantity_unit,
+        er1_0.reference_number,
+        er1_0.rejected_reason,
+        er1_0.remark,
+        er1_0.sales_country,
+        er1_0.sales_office,
+        er1_0.sales_pic,
+        er1_0.status,
+        er1_0.updated_at,
+        er1_0.volume_cbm 
+    from
+        enquiry_records er1_0
+2025-12-23T06:49:06.372Z  INFO 24794 --- [logitrack-backend] [nio-8080-exec-7] c.l.b.controller.EnquiryController       : GET /api/enquiries - Fetching all enquiries
+2025-12-23T06:49:06.376Z DEBUG 24794 --- [logitrack-backend] [nio-8080-exec-7] org.hibernate.SQL                        : 
+    select
+        er1_0.id,
+        er1_0.actual_reason,
+        er1_0.additional_requirement,
+        er1_0.assigned_cn_offices,
+        er1_0.booking_confirmed,
+        er1_0.cargo_ready_date,
+        er1_0.cargo_type,
+        er1_0.category,
+        er1_0.cn_pricing_admin,
+        er1_0.commodity,
+        er1_0.core_non_core,
+        er1_0.created_at,
+        er1_0.enquiry_received_date,
+        er1_0.first_offer_air_frg_kg,
+        er1_0.first_offer_ocean_frg,
+        er1_0.first_quotation_sent,
+        er1_0.haz_special_equipment,
+        er1_0.issue_date,
+        er1_0.latest_offer_air_frg_kg,
+        er1_0.latest_offer_ocean_frg,
+        er1_0.pod,
+        er1_0.pod_country,
+        er1_0.pol,
+        er1_0.product,
+        er1_0.quantity,
+        er1_0.quantity_teu,
+        er1_0.quantity_unit,
+        er1_0.reference_number,
+        er1_0.rejected_reason,
+        er1_0.remark,
+        er1_0.sales_country,
+        er1_0.sales_office,
+        er1_0.sales_pic,
+        er1_0.status,
+        er1_0.updated_at,
+        er1_0.volume_cbm 
+    from
+        enquiry_records er1_0
+Hibernate: 
+    select
+        er1_0.id,
+        er1_0.actual_reason,
+        er1_0.additional_requirement,
+        er1_0.assigned_cn_offices,
+        er1_0.booking_confirmed,
+        er1_0.cargo_ready_date,
+        er1_0.cargo_type,
+        er1_0.category,
+        er1_0.cn_pricing_admin,
+        er1_0.commodity,
+        er1_0.core_non_core,
+        er1_0.created_at,
+        er1_0.enquiry_received_date,
+        er1_0.first_offer_air_frg_kg,
+        er1_0.first_offer_ocean_frg,
+        er1_0.first_quotation_sent,
+        er1_0.haz_special_equipment,
+        er1_0.issue_date,
+        er1_0.latest_offer_air_frg_kg,
+        er1_0.latest_offer_ocean_frg,
+        er1_0.pod,
+        er1_0.pod_country,
+        er1_0.pol,
+        er1_0.product,
+        er1_0.quantity,
+        er1_0.quantity_teu,
+        er1_0.quantity_unit,
+        er1_0.reference_number,
+        er1_0.rejected_reason,
+        er1_0.remark,
+        er1_0.sales_country,
+        er1_0.sales_office,
+        er1_0.sales_pic,
+        er1_0.status,
+        er1_0.updated_at,
+        er1_0.volume_cbm 
+    from
+        enquiry_records er1_0

@@ -4,7 +4,7 @@
 
 LogiTrack Pro 是一个现代化的物流询价管理系统，采用前后端分离架构：
 - **前端**: React + TypeScript + Vite
-- **后端**: Spring Boot + Java + H2 Database
+- **后端**: Spring Boot + Java + MySQL Database
 
 ## 📋 前置要求
 
@@ -15,12 +15,44 @@ LogiTrack Pro 是一个现代化的物流询价管理系统，采用前后端分
 ### 后端
 - Java 17+
 - Maven 3.6+
+- MySQL 8.0+ (或 Docker)
 
-## 🚀 快速启动（2步）
+## 🚀 快速启动（3步）
+
+> ⚠️ **重要**: 请确保在项目根目录 `/workspaces/LogiTrack-` 执行以下命令
+
+### 快捷方式: 一键检查系统状态
+
+```bash
+# 在项目根目录执行
+./quick-test.sh
+```
+
+这个脚本会自动检查MySQL、后端和前端的状态，并显示启动步骤。
+
+### 第 0 步: 准备MySQL数据库
+
+```bash
+# 如果使用Docker（推荐）
+cd database
+./start-mysql-docker.sh
+./setup-mysql.sh
+
+# MySQL连接信息:
+# 主机: localhost
+# 端口: 3306
+# 数据库: logitrack
+# 用户: root
+# 密码: ldf123
+```
 
 ### 第 1 步: 启动后端
 
 ```bash
+# 确保在项目根目录
+cd /workspaces/LogiTrack-
+
+# 启动后端
 cd backend
 chmod +x start-backend.sh
 ./start-backend.sh
@@ -35,6 +67,10 @@ chmod +x start-backend.sh
 **打开新终端窗口**，然后：
 
 ```bash
+# 确保在项目根目录
+cd /workspaces/LogiTrack-
+
+# 启动前端
 cd logitrack-pro
 npm install    # 仅首次需要
 npm run dev
@@ -123,14 +159,19 @@ curl -X POST http://localhost:8080/api/enquiries \
 
 ## 🛠️ 开发工具
 
-### H2 数据库控制台
+### MySQL 数据库
 
-访问: `http://localhost:8080/h2-console`
+使用Docker连接:
+```bash
+docker exec -it logitrack-mysql mysql -uroot -pldf123 logitrack
+```
 
 连接信息:
-- JDBC URL: `jdbc:h2:mem:logitrack`
-- 用户名: `sa`
-- 密码: (留空)
+- 主机: localhost
+- 端口: 3306
+- 数据库: logitrack
+- 用户名: root
+- 密码: ldf123
 
 ### 热重载
 
@@ -168,7 +209,8 @@ LogiTrack-/
 ✅ CRUD 完整功能  
 ✅ 实时数据同步  
 ✅ CORS 跨域支持  
-✅ H2 内存数据库（开发）  
+✅ MySQL 持久化存储  
+✅ Docker 容器化部署  
 
 ## 📖 详细文档
 
