@@ -18,8 +18,10 @@
 	- A quick-test.sh
 
 > 已把该条摘要写入本文件并在新分支提交；稍后会创建 PR 并把 PR 链接追加到本节。
+> 已把该条摘要写入本文件并在新分支提交；已创建 PR，链接如下：
 
----
+- PR: https://github.com/dornach-Davian-Liang/LogiTrack-/pull/1
+
 
 # ✅ LogiTrack Pro - MySQL 版本部署成功
 
