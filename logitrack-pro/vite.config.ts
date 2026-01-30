@@ -8,12 +8,14 @@ export default defineConfig(({ mode }) => {
       server: {
         port: 3000,
         host: '0.0.0.0',
+        strictPort: true,
         hmr: {
-          clientPort: 3000
+          clientPort: 443,
+          protocol: 'wss'
         },
         proxy: {
           '/api': {
-            target: 'http://localhost:8080',
+            target: 'http://localhost:8888',
             changeOrigin: true,
             secure: false,
           }

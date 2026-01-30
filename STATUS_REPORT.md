@@ -1,3 +1,28 @@
+````markdown
+## 🔔 最近提交（自动记录）
+
+- **提交(short)**: a89aaa6
+- **提交(full)**: a89aaa653f911213b686973ec86488493d01e394
+- **作者**: Davian Liang <davian.liang@zieglergroup.cn>
+- **时间**: Mon Jan 26 02:37:20 2026 +0000
+- **信息**: 保存当前修改 (2026-01-26 02:37:20 UTC)
+- **文件变更**:
+	- A China Pricing - Enquiry Record-working(Rate Enquiry Summary).csv
+	- A China Pricing - Enquiry Record-working.xlsx
+	- D PRODUCTION_DEPLOYMENT.md
+	- M QUICKSTART.md
+	- A backend/backend.log
+	- M backend/src/main/resources/application.properties
+	- M database/start-mysql-docker.sh
+	- M logitrack-pro/vite.config.ts
+	- A quick-test.sh
+
+> 已把该条摘要写入本文件并在新分支提交；稍后会创建 PR 并把 PR 链接追加到本节。
+> 已把该条摘要写入本文件并在新分支提交；已创建 PR，链接如下：
+
+- PR: https://github.com/dornach-Davian-Liang/LogiTrack-/pull/1
+
+
 # ✅ LogiTrack Pro - MySQL 版本部署成功
 
 ## 🎉 系统状态: 运行正常
@@ -83,3 +108,5 @@ docker exec logitrack-mysql mysqldump -uroot -pldf123 logitrack > backup.sql
 ---
 
 **系统已就绪，可以开始使用！** 🚀
+
+````

@@ -177,7 +177,6 @@ export const api = {
       });
       
       console.log('[dataService] Response status:', response.status);
-      console.log('[dataService] Response headers:', response.headers);
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -186,8 +185,49 @@ export const api = {
       }
       
       const data = await response.json();
-      console.log('[dataService] Data received:', data.length, 'records');
-      return data;
+      console.log('[dataService] Raw data received:', data);
+      
+      // Handle paginated response from Spring Boot backend
+      const records = data.content || data;
+      console.log('[dataService] Extracted records:', records.length, 'items');
+      
+      // Map backend entity fields to frontend EnquiryRecord format
+      const mappedRecords: EnquiryRecord[] = records.map((item: any) => ({
+        id: String(item.id),
+        enquiryReceivedDate: item.enquiryReceivedDate || '',
+        issueDate: item.issueDate || '',
+        referenceNumber: item.referenceNumber || '',
+        product: item.productCode || item.productAbbr || 'SEA',
+        status: item.status || 'New',
+        cnPricingAdmin: item.cnPricingAdmin || '',
+        salesCountry: item.salesCountryCode || '',
+        salesOffice: item.salesOfficeCode || String(item.salesOfficeId || ''),
+        salesPic: item.salesPicName || String(item.salesPicId || ''),
+        assignedCnOffices: item.assignedCnOfficeCode || '',
+        cargoType: item.cargoTypeCode || '',
+        volumeCbm: item.volumeCbm || 0,
+        quantity: item.quantity || 0,
+        quantityUnit: item.quantityUomCode || '',
+        quantityTeu: item.quantityTeu,
+        commodity: item.commodity || '',
+        hazSpecialEquipment: item.hazSpecialEquipment,
+        additionalRequirement: item.additionalRequirement,
+        pol: item.polCode || String(item.polId || ''),
+        pod: item.podCode || String(item.podId || ''),
+        podCountry: item.podCountryCode || '',
+        coreNonCore: item.coreFlag === 'CORE' ? 'CORE' : (item.coreFlag === 'NON_CORE' ? 'NON CORE' : ''),
+        category: item.categoryCode || '',
+        cargoReadyDate: item.cargoReadyDate,
+        firstQuotationSent: item.offers?.[0]?.sentDate,
+        firstOfferOceanFrg: item.offers?.find((o: any) => o.offerType === 'OCEAN')?.priceText,
+        firstOfferAirFrgKg: item.offers?.find((o: any) => o.offerType === 'AIR')?.priceText,
+        bookingConfirmed: item.bookingConfirmed || 'Pending',
+        remark: item.remark,
+        rejectedReason: item.rejectedReason,
+        actualReason: item.actualReason,
+      }));
+      
+      return mappedRecords;
     } catch (error) {
       console.error('[dataService] Fetch error:', error);
       throw error;
