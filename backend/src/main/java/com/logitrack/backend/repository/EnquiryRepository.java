@@ -32,4 +32,7 @@ public interface EnquiryRepository extends JpaRepository<Enquiry, Long>, JpaSpec
     
     @Query("SELECT COUNT(e) FROM Enquiry e WHERE e.status = :status")
     long countByStatus(@Param("status") Enquiry.EnquiryStatus status);
+
+    // Count enquiries by reference month (YYMM)
+    long countByReferenceMonth(String referenceMonth);
 }
