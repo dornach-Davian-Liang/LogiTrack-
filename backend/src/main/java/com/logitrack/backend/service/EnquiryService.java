@@ -1,9 +1,11 @@
 package com.logitrack.backend.service;
 
-import com.logitrack.backend.entity.EnquiryRecord;
+import com.logitrack.backend.entity.Enquiry;
 import com.logitrack.backend.repository.EnquiryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,15 +22,31 @@ public class EnquiryService {
     /**
      * Get all enquiry records
      */
-    public List<EnquiryRecord> getAllEnquiries() {
+    public List<Enquiry> getAllEnquiries() {
         log.debug("Fetching all enquiry records");
         return enquiryRepository.findAll();
     }
     
     /**
+     * Get enquiries with pagination
+     */
+    public Page<Enquiry> getEnquiries(Pageable pageable) {
+        log.debug("Fetching enquiries with pagination");
+        return enquiryRepository.findAll(pageable);
+    }
+    
+    /**
+     * Search enquiries with keyword
+     */
+    public Page<Enquiry> searchEnquiries(String keyword, Pageable pageable) {
+        log.debug("Searching enquiries with keyword: {}", keyword);
+        return enquiryRepository.searchEnquiries(keyword, pageable);
+    }
+    
+    /**
      * Get enquiry by ID
      */
-    public Optional<EnquiryRecord> getEnquiryById(String id) {
+    public Optional<Enquiry> getEnquiryById(Long id) {
         log.debug("Fetching enquiry with id: {}", id);
         return enquiryRepository.findById(id);
     }
@@ -36,7 +54,7 @@ public class EnquiryService {
     /**
      * Get enquiry by reference number
      */
-    public Optional<EnquiryRecord> getEnquiryByReferenceNumber(String referenceNumber) {
+    public Optional<Enquiry> getEnquiryByReferenceNumber(String referenceNumber) {
         log.debug("Fetching enquiry with reference number: {}", referenceNumber);
         return enquiryRepository.findByReferenceNumber(referenceNumber);
     }
@@ -45,23 +63,23 @@ public class EnquiryService {
      * Create new enquiry record
      */
     @Transactional
-    public EnquiryRecord createEnquiry(EnquiryRecord enquiryRecord) {
-        log.info("Creating new enquiry record: {}", enquiryRecord.getReferenceNumber());
-        enquiryRecord.setId(null); // Ensure new ID is generated
-        return enquiryRepository.save(enquiryRecord);
+    public Enquiry createEnquiry(Enquiry enquiry) {
+        log.info("Creating new enquiry record: {}", enquiry.getReferenceNumber());
+        enquiry.setId(null); // Ensure new ID is generated
+        return enquiryRepository.save(enquiry);
     }
     
     /**
      * Update existing enquiry record
      */
     @Transactional
-    public EnquiryRecord updateEnquiry(String id, EnquiryRecord enquiryRecord) {
+    public Enquiry updateEnquiry(Long id, Enquiry enquiry) {
         log.info("Updating enquiry record with id: {}", id);
         
         return enquiryRepository.findById(id)
             .map(existing -> {
-                enquiryRecord.setId(id); // Preserve the ID
-                return enquiryRepository.save(enquiryRecord);
+                enquiry.setId(id); // Preserve the ID
+                return enquiryRepository.save(enquiry);
             })
             .orElseThrow(() -> new RuntimeException("Enquiry record not found with id: " + id));
     }
@@ -70,7 +88,7 @@ public class EnquiryService {
      * Delete enquiry record
      */
     @Transactional
-    public void deleteEnquiry(String id) {
+    public void deleteEnquiry(Long id) {
         log.info("Deleting enquiry record with id: {}", id);
         
         if (!enquiryRepository.existsById(id)) {
@@ -83,16 +101,15 @@ public class EnquiryService {
     /**
      * Get enquiries by status
      */
-    public List<EnquiryRecord> getEnquiriesByStatus(String status) {
+    public List<Enquiry> getEnquiriesByStatus(Enquiry.EnquiryStatus status) {
         log.debug("Fetching enquiries with status: {}", status);
         return enquiryRepository.findByStatus(status);
     }
     
     /**
-     * Get enquiries by booking confirmation status
+     * Count enquiries by status
      */
-    public List<EnquiryRecord> getEnquiriesByBookingStatus(String bookingStatus) {
-        log.debug("Fetching enquiries with booking status: {}", bookingStatus);
-        return enquiryRepository.findByBookingConfirmed(bookingStatus);
+    public long countByStatus(Enquiry.EnquiryStatus status) {
+        return enquiryRepository.countByStatus(status);
     }
 }

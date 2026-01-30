@@ -1,24 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { LayoutDashboard, PlusCircle, FileSpreadsheet, Ship, Settings, Bell, Search, Menu, LogOut, Loader2, RefreshCw } from 'lucide-react';
-import { EnquiryRecord } from './types';
-import { api } from './services/dataService';
-import Table from './components/Table';
-import Form from './components/Form';
+import { Enquiry, EnquiryListItem, EnquiryFormData } from './types';
+import { enquiryApi } from './services/api';
+import EnquiryList from './components/enquiry/EnquiryList';
+import EnquiryForm from './components/enquiry/EnquiryForm';
+import EnquiryDetail from './components/enquiry/EnquiryDetail';
 import Login from './components/Login';
+
+type ViewType = 'dashboard' | 'enquiry-list' | 'enquiry-form' | 'enquiry-detail';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentView, setCurrentView] = useState<'dashboard' | 'form'>('dashboard');
+  const [currentView, setCurrentView] = useState<ViewType>('dashboard');
   
   // Data State
-  const [records, setRecords] = useState<EnquiryRecord[]>([]);
+  const [enquiries, setEnquiries] = useState<EnquiryListItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   // UI State
-  const [searchTerm, setSearchTerm] = useState('');
-  const [editingRecord, setEditingRecord] = useState<EnquiryRecord | null>(null);
+  const [editingEnquiry, setEditingEnquiry] = useState<Partial<Enquiry> | null>(null);
+  const [selectedEnquiryId, setSelectedEnquiryId] = useState<number | null>(null);
 
   // Initial Data Load
   useEffect(() => {
@@ -31,8 +33,8 @@ const App: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
-        const data = await api.getAll();
-        setRecords(data);
+        const response = await enquiryApi.list({ page: 1, pageSize: 10 });
+        setEnquiries(response.content);
     } catch (err) {
         console.error("Failed to fetch data", err);
         setError("Failed to load enquiries. Please try again.");
@@ -47,75 +49,237 @@ const App: React.FC = () => {
 
   const handleLogout = () => {
     setIsAuthenticated(false);
-    setRecords([]);
+    setEnquiries([]);
+    setCurrentView('dashboard');
   };
 
-  const handleSaveRecord = async (record: EnquiryRecord) => {
-    setIsSaving(true);
-    console.log('[App] Saving record:', record);
-    console.log('[App] Editing record:', editingRecord);
+  const handleSaveEnquiry = async (enquiry: Enquiry) => {
     try {
-        // Check if this is an update by seeing if the editingRecord has an id from the backend
-        // (not a temporary client-generated id)
-        const isUpdate = editingRecord && editingRecord.id && records.some(r => r.id === editingRecord.id);
-        
-        if (isUpdate) {
-            // Update existing
-            console.log('[App] Updating existing record:', record.id);
-            const updated = await api.update(record);
-            setRecords(prev => prev.map(r => r.id === updated.id ? updated : r));
+        if (enquiry.id) {
+            await enquiryApi.update(enquiry.id, enquiry);
         } else {
-            // Create new - remove any temporary ID
-            console.log('[App] Creating new record');
-            const { id, ...newRecordData } = record;
-            const created = await api.create(newRecordData as EnquiryRecord);
-            setRecords(prev => [created, ...prev]);
+            await enquiryApi.create(enquiry as unknown as EnquiryFormData);
         }
-        setEditingRecord(null);
-        setCurrentView('dashboard');
+        setEditingEnquiry(null);
+        setCurrentView('enquiry-list');
+        fetchData();
     } catch (err) {
-        alert("Failed to save record. See console for details.");
+        alert("Failed to save enquiry.");
         console.error('[App] Save error:', err);
-    } finally {
-        setIsSaving(false);
     }
   };
 
-  const handleEditClick = (record: EnquiryRecord) => {
-    setEditingRecord(record);
-    setCurrentView('form');
+  const handleViewDetail = (enquiry: Enquiry | EnquiryListItem) => {
+    setSelectedEnquiryId(enquiry.id!);
+    setCurrentView('enquiry-detail');
   };
 
-  const handleCopyRecord = (record: EnquiryRecord) => {
-    // Create a copy of the record but remove the ID to treat it as new
-    const { id, referenceNumber, ...rest } = record;
-    
-    const newRecord = {
-        ...rest,
-        referenceNumber: `${referenceNumber}-COPY`,
-        enquiryReceivedDate: new Date().toISOString().split('T')[0],
-        issueDate: new Date().toISOString().split('T')[0],
-        status: 'New' as const,
-        bookingConfirmed: 'Pending' as const
-    } as EnquiryRecord;
-
-    setEditingRecord(newRecord);
-    setCurrentView('form');
+  const handleEditEnquiry = (enquiry: Enquiry | EnquiryListItem) => {
+    setEditingEnquiry(enquiry as Enquiry);
+    setCurrentView('enquiry-form');
   };
 
-  const handleNewClick = () => {
-    setEditingRecord(null);
-    setCurrentView('form');
+  const handleNewEnquiry = () => {
+    setEditingEnquiry(null);
+    setCurrentView('enquiry-form');
   };
 
   if (!isAuthenticated) {
     return <Login onLogin={handleLogin} />;
   }
 
-  const filteredRecords = records.filter(r => 
-    (r.referenceNumber?.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
-    (r.salesCountry?.toLowerCase().includes(searchTerm.toLowerCase()) || '') ||
-    (r.status?.toLowerCase().includes(searchTerm.toLowerCase()) || '')
+  const renderContent = () => {
+    switch (currentView) {
+      case 'enquiry-list':
+        return (
+          <EnquiryList
+            onViewDetail={handleViewDetail}
+            onEdit={handleEditEnquiry}
+            onNewEnquiry={handleNewEnquiry}
+          />
+        );
+      case 'enquiry-form':
+        return (
+          <EnquiryForm
+            initialData={editingEnquiry}
+            onSubmit={handleSaveEnquiry}
+            onCancel={() => setCurrentView('enquiry-list')}
+          />
+        );
+      case 'enquiry-detail':
+        return selectedEnquiryId ? (
+          <EnquiryDetail
+            enquiryId={selectedEnquiryId}
+            onBack={() => setCurrentView('enquiry-list')}
+            onEdit={handleEditEnquiry}
+          />
+        ) : null;
+      case 'dashboard':
+      default:
+        return renderDashboard();
+    }
+  };
+
+  const renderDashboard = () => (
+    <div className="space-y-6 pb-10">
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="bg-white overflow-hidden shadow rounded-lg border-l-4 border-indigo-500">
+          <div className="p-5">
+            <div className="flex items-center">
+              <div className="flex-shrink-0 bg-indigo-50 rounded-md p-3">
+                <Ship className="h-6 w-6 text-indigo-600" />
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Total Enquiries</dt>
+                  <dd className="text-2xl font-bold text-gray-900">{enquiries.length}</dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white overflow-hidden shadow rounded-lg border-l-4 border-green-500">
+          <div className="p-5">
+            <div className="flex items-center">
+              <div className="flex-shrink-0 bg-green-50 rounded-md p-3">
+                <FileSpreadsheet className="h-6 w-6 text-green-600" />
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Quoted</dt>
+                  <dd className="text-2xl font-bold text-gray-900">
+                    {enquiries.filter(e => e.status === 'Quoted').length}
+                  </dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white overflow-hidden shadow rounded-lg border-l-4 border-yellow-500">
+          <div className="p-5">
+            <div className="flex items-center">
+              <div className="flex-shrink-0 bg-yellow-50 rounded-md p-3">
+                <Settings className="h-6 w-6 text-yellow-600" />
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Pending</dt>
+                  <dd className="text-2xl font-bold text-gray-900">
+                    {enquiries.filter(e => e.status === 'Pending').length}
+                  </dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white overflow-hidden shadow rounded-lg border-l-4 border-red-500">
+          <div className="p-5">
+            <div className="flex items-center">
+              <div className="flex-shrink-0 bg-red-50 rounded-md p-3">
+                <Bell className="h-6 w-6 text-red-600" />
+              </div>
+              <div className="ml-5 w-0 flex-1">
+                <dl>
+                  <dt className="text-sm font-medium text-gray-500 truncate">New</dt>
+                  <dd className="text-2xl font-bold text-gray-900">
+                    {enquiries.filter(e => e.status === 'New').length}
+                  </dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex justify-between items-center pt-4">
+        <h1 className="text-2xl font-bold text-gray-900">Recent Enquiries</h1>
+        <button 
+          onClick={handleNewEnquiry}
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
+        >
+          <PlusCircle className="w-4 h-4 mr-2" />
+          Add New Enquiry
+        </button>
+      </div>
+      
+      {isLoading ? (
+        <div className="flex items-center justify-center bg-white rounded-lg shadow p-8">
+          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+          <span className="text-sm text-gray-500 ml-2">Loading data...</span>
+        </div>
+      ) : error ? (
+        <div className="text-center text-red-500 bg-white rounded-lg shadow p-8">
+          <p>{error}</p>
+          <button onClick={fetchData} className="mt-2 text-indigo-600 hover:underline">Retry</button>
+        </div>
+      ) : enquiries.length === 0 ? (
+        <div className="text-center bg-white rounded-lg shadow p-8">
+          <p className="text-gray-500">No enquiries found. Create your first one!</p>
+          <button onClick={handleNewEnquiry} className="mt-4 text-indigo-600 hover:underline">
+            Create New Enquiry
+          </button>
+        </div>
+      ) : (
+        <div className="bg-white shadow rounded-lg overflow-hidden">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Reference
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Customer
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Date
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {enquiries.slice(0, 5).map((enquiry) => (
+                <tr 
+                  key={enquiry.id} 
+                  className="hover:bg-gray-50 cursor-pointer"
+                  onClick={() => handleViewDetail(enquiry)}
+                >
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {enquiry.referenceNumber}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {enquiry.customerCompanyName}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 py-1 text-xs font-semibold rounded ${
+                      enquiry.status === 'New' ? 'bg-blue-100 text-blue-800' :
+                      enquiry.status === 'Quoted' ? 'bg-green-100 text-green-800' :
+                      'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {enquiry.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {enquiry.receivedDate}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      
+      <div className="text-center pt-4">
+        <button
+          onClick={() => setCurrentView('enquiry-list')}
+          className="text-indigo-600 hover:text-indigo-900 font-medium"
+        >
+          View All Enquiries →
+        </button>
+      </div>
+    </div>
   );
 
   return (
@@ -139,8 +303,15 @@ const App: React.FC = () => {
                     Dashboard
                 </button>
                 <button 
-                  onClick={handleNewClick}
-                  className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full transition-colors ${currentView === 'form' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                  onClick={() => setCurrentView('enquiry-list')}
+                  className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full transition-colors ${currentView === 'enquiry-list' || currentView === 'enquiry-form' || currentView === 'enquiry-detail' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                >
+                    <Ship className="mr-3 flex-shrink-0 h-6 w-6" />
+                    Enquiries
+                </button>
+                <button 
+                  onClick={handleNewEnquiry}
+                  className="group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
                 >
                     <PlusCircle className="mr-3 flex-shrink-0 h-6 w-6" />
                     New Enquiry
@@ -181,20 +352,12 @@ const App: React.FC = () => {
             </button>
             <div className="flex-1 px-8 flex justify-between">
                 <div className="flex-1 flex items-center">
-                    {currentView === 'dashboard' && (
-                        <div className="w-full max-w-md relative">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <Search className="h-5 w-5 text-gray-400" />
-                            </div>
-                            <input 
-                                type="text" 
-                                className="block w-full pl-10 sm:text-sm border-gray-300 rounded-full focus:ring-indigo-500 focus:border-indigo-500 border p-2 bg-gray-50" 
-                                placeholder="Search reference, country or status..." 
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                        </div>
-                    )}
+                    <h2 className="text-xl font-semibold text-gray-900">
+                      {currentView === 'dashboard' && 'Dashboard'}
+                      {currentView === 'enquiry-list' && 'Enquiry Management'}
+                      {currentView === 'enquiry-form' && (editingEnquiry ? 'Edit Enquiry' : 'New Enquiry')}
+                      {currentView === 'enquiry-detail' && 'Enquiry Details'}
+                    </h2>
                 </div>
                 <div className="ml-4 flex items-center md:ml-6 gap-3">
                     <button 
@@ -212,129 +375,8 @@ const App: React.FC = () => {
         </div>
 
         <main className="flex-1 overflow-y-auto p-8 bg-gray-100">
-            <div className="max-w-8xl mx-auto h-full">
-                {currentView === 'dashboard' ? (
-                    <div className="space-y-6 pb-10 flex flex-col h-full">
-                        
-                        {/* KPI Cards */}
-                        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 flex-shrink-0">
-                            <div className="bg-white overflow-hidden shadow rounded-lg border-l-4 border-indigo-500">
-                                <div className="p-5">
-                                    <div className="flex items-center">
-                                        <div className="flex-shrink-0 bg-indigo-50 rounded-md p-3">
-                                            <Ship className="h-6 w-6 text-indigo-600" />
-                                        </div>
-                                        <div className="ml-5 w-0 flex-1">
-                                            <dl>
-                                                <dt className="text-sm font-medium text-gray-500 truncate">Total Enquiries</dt>
-                                                <dd className="text-2xl font-bold text-gray-900">{records.length}</dd>
-                                            </dl>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="bg-white overflow-hidden shadow rounded-lg border-l-4 border-green-500">
-                                <div className="p-5">
-                                    <div className="flex items-center">
-                                        <div className="flex-shrink-0 bg-green-50 rounded-md p-3">
-                                            <FileSpreadsheet className="h-6 w-6 text-green-600" />
-                                        </div>
-                                        <div className="ml-5 w-0 flex-1">
-                                            <dl>
-                                                <dt className="text-sm font-medium text-gray-500 truncate">Confirmed Bookings</dt>
-                                                <dd className="text-2xl font-bold text-gray-900">
-                                                    {records.filter(r => r.bookingConfirmed === 'Yes').length}
-                                                </dd>
-                                            </dl>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                             <div className="bg-white overflow-hidden shadow rounded-lg border-l-4 border-yellow-500">
-                                <div className="p-5">
-                                    <div className="flex items-center">
-                                        <div className="flex-shrink-0 bg-yellow-50 rounded-md p-3">
-                                            <Settings className="h-6 w-6 text-yellow-600" />
-                                        </div>
-                                        <div className="ml-5 w-0 flex-1">
-                                            <dl>
-                                                <dt className="text-sm font-medium text-gray-500 truncate">Pending Quotes</dt>
-                                                <dd className="text-2xl font-bold text-gray-900">
-                                                    {records.filter(r => r.status === 'Pending' || r.status === 'New').length}
-                                                </dd>
-                                            </dl>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                             <div className="bg-white overflow-hidden shadow rounded-lg border-l-4 border-red-500">
-                                <div className="p-5">
-                                    <div className="flex items-center">
-                                        <div className="flex-shrink-0 bg-red-50 rounded-md p-3">
-                                            <Bell className="h-6 w-6 text-red-600" />
-                                        </div>
-                                        <div className="ml-5 w-0 flex-1">
-                                            <dl>
-                                                <dt className="text-sm font-medium text-gray-500 truncate">Urgent / New</dt>
-                                                <dd className="text-2xl font-bold text-gray-900">
-                                                    {records.filter(r => r.status === 'New').length}
-                                                </dd>
-                                            </dl>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="flex justify-between items-center pt-4 flex-shrink-0">
-                            <h1 className="text-2xl font-bold text-gray-900">Recent Enquiries</h1>
-                            <button 
-                                onClick={handleNewClick}
-                                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none"
-                            >
-                                <PlusCircle className="w-4 h-4 mr-2" />
-                                Add New Record
-                            </button>
-                        </div>
-                        
-                        <div className="flex-1 min-h-0 relative">
-                            {isLoading ? (
-                                <div className="absolute inset-0 flex items-center justify-center bg-white/50 z-10">
-                                    <div className="flex flex-col items-center">
-                                        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
-                                        <span className="text-sm text-gray-500 mt-2">Loading data...</span>
-                                    </div>
-                                </div>
-                            ) : error ? (
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                    <div className="text-center text-red-500">
-                                        <p>{error}</p>
-                                        <button onClick={fetchData} className="mt-2 text-indigo-600 hover:underline">Retry</button>
-                                    </div>
-                                </div>
-                            ) : (
-                                <Table 
-                                    data={filteredRecords} 
-                                    onEdit={handleEditClick} 
-                                    onCopy={handleCopyRecord}
-                                />
-                            )}
-                        </div>
-                    </div>
-                ) : (
-                    <div className="relative">
-                        {isSaving && (
-                            <div className="absolute inset-0 bg-white/50 z-50 flex items-center justify-center">
-                                 <Loader2 className="h-10 w-10 animate-spin text-indigo-600" />
-                            </div>
-                        )}
-                        <Form 
-                            initialData={editingRecord} 
-                            onSubmit={handleSaveRecord} 
-                            onCancel={() => setCurrentView('dashboard')} 
-                        />
-                    </div>
-                )}
+            <div className="max-w-8xl mx-auto">
+                {renderContent()}
             </div>
         </main>
       </div>
