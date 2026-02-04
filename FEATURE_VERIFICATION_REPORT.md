@@ -63,7 +63,6 @@ server: {
     - product_abbr：由 product_code 映射缩写（dict_product.abbr），例如 AIR-RAIL-SEA => ARS
     - 拼装：
       - 不带 CN：{reference_month}{monthly_sequence}-{product_abbr}{serial_number_if_any}
-      - 带 CN：CN{reference_month}{monthly_sequence}-{product_abbr}{serial_number_if_any}
     - 建议：serial_number=0 不拼尾号；serial_number>0 拼尾号（ARS1/ARS2）
   - 级联选择: 国家 → 销售PIC → Office自动填充
   - 客户信息录入 (公司名/联系人/电话/邮箱)

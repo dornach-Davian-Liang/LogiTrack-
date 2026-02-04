@@ -1,5 +1,6 @@
 package com.logitrack.backend.controller;
 
+import com.logitrack.backend.dto.ReferencePreview;
 import com.logitrack.backend.entity.Enquiry;
 import com.logitrack.backend.service.EnquiryService;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -81,19 +83,43 @@ public class EnquiryController {
             .map(ResponseEntity::ok)
             .orElse(ResponseEntity.notFound().build());
     }
+
+    /**
+     * GET /api/enquiries/reference/next - Preview next reference number
+     */
+    @GetMapping("/reference/next")
+    public ResponseEntity<ReferencePreview> getNextReference(
+            @RequestParam(required = false) String issueDate,
+            @RequestParam(required = false) String productCode) {
+        LocalDate date = issueDate == null || issueDate.isBlank()
+                ? LocalDate.now()
+                : LocalDate.parse(issueDate);
+        return ResponseEntity.ok(enquiryService.getNextReference(date, productCode));
+    }
+
+    /**
+     * GET /api/enquiries/{id}/reference/increase - Preview increase reference number
+     */
+    @GetMapping("/{id}/reference/increase")
+    public ResponseEntity<ReferencePreview> getIncreaseReference(@PathVariable Long id) {
+        return ResponseEntity.ok(enquiryService.getNextIncreaseReference(id));
+    }
     
     /**
      * POST /api/enquiries - Create new enquiry record
      */
     @PostMapping
-    public ResponseEntity<Enquiry> createEnquiry(@RequestBody Enquiry enquiry) {
+    public ResponseEntity<?> createEnquiry(@RequestBody Enquiry enquiry) {
         log.info("POST /api/enquiries - Creating new enquiry: {}", enquiry.getReferenceNumber());
         try {
             Enquiry created = enquiryService.createEnquiry(enquiry);
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
         } catch (Exception e) {
-            log.error("Error creating enquiry: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            log.error("Error creating enquiry: {}", e.getMessage(), e);
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            error.put("type", e.getClass().getSimpleName());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
@@ -109,8 +135,11 @@ public class EnquiryController {
             Enquiry updated = enquiryService.updateEnquiry(id, enquiry);
             return ResponseEntity.ok(updated);
         } catch (RuntimeException e) {
-            log.error("Error updating enquiry: {}", e.getMessage());
-            return ResponseEntity.notFound().build();
+            log.error("Error updating enquiry: {}", e.getMessage(), e);
+            if (e.getMessage() != null && e.getMessage().contains("not found")) {
+                return ResponseEntity.notFound().build();
+            }
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
     

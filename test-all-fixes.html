@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>功能测试 - LogiTrack</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #666;
+            margin-top: 30px;
+        }
+        .test-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #4CAF50;
+            background: #f0f9ff;
+        }
+        .test-result.success {
+            border-left-color: #4CAF50;
+            background: #f0f9ff;
+        }
+        .test-result.error {
+            border-left-color: #f44336;
+            background: #fff0f0;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .status-pass {
+            background: #4CAF50;
+            color: white;
+        }
+        .status-fail {
+            background: #f44336;
+            color: white;
+        }
+        .code-block {
+            background: #f4f4f4;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        .port-list {
+            list-style: none;
+            padding: 0;
+        }
+        .port-list li {
+            padding: 8px;
+            margin: 4px 0;
+            background: #e8f5e9;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 LogiTrack 功能测试页面</h1>
+    
+    <div class="test-section">
+        <h2>📋 测试清单</h2>
+        <ul>
+            <li><strong>问题1:</strong> POL/POD字段显示具体港口名称而不是"2个港口已选择" <span id="test1-status" class="status-badge">待测试</span></li>
+            <li><strong>问题2:</strong> 下拉框高度增加，能看到更多港口选项 <span id="test2-status" class="status-badge">待测试</span></li>
+            <li><strong>问题3:</strong> 多个港口能正确保存到数据库 <span id="test3-status" class="status-badge">待测试</span></li>
+            <li><strong>问题4:</strong> Add Offer功能正常工作 <span id="test4-status" class="status-badge">待测试</span></li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>✅ 问题3: 多港口保存测试 (自动测试)</h2>
+        <button onclick="testMultiPortCreate()">测试创建 - 4个POL + 3个POD</button>
+        <button onclick="testMultiPortUpdate()">测试更新 - 2个POL + 4个POD</button>
+        <button onclick="testMultiPortRead()">验证数据</button>
+        <div id="test3-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>📝 问题1 & 2: UI测试指南 (需手动测试)</h2>
+        <div style="background: #fff3cd; padding: 15px; border-radius: 5px; border-left: 4px solid #ffc107;">
+            <p><strong>⚠️ 请手动在前端界面执行以下操作：</strong></p>
+            <ol>
+                <li>打开前端页面：<a href="https://congenial-rotary-phone-5g77qv55674g254w-3000.app.github.dev" target="_blank">https://congenial-rotary-phone-5g77qv55674g254w-3000.app.github.dev</a></li>
+                <li>登录后点击"New Enquiry"</li>
+                <li>在POL字段下拉选择多个港口（如Shanghai, Ningbo, Qingdao）</li>
+                <li><strong>✓ 验证问题1:</strong> 查看选择框是否显示具体港口名称（如"Shanghai (CNSHA), Ningbo (CNNGB)"）而不是"3个港口已选择"</li>
+                <li><strong>✓ 验证问题2:</strong> 点击下拉框，查看是否能同时看到多个港口（至少13个）而不需要频繁滚动</li>
+                <li>填写其他必填字段并点击Save</li>
+                <li>编辑刚创建的enquiry，修改港口数量</li>
+                <li>保存后刷新页面，验证数据是否正确显示</li>
+            </ol>
+        </div>
+        <button onclick="document.getElementById('test1-status').className='status-badge status-pass'; document.getElementById('test1-status').textContent='✓ 通过'; document.getElementById('test2-status').className='status-badge status-pass'; document.getElementById('test2-status').textContent='✓ 通过';">标记问题1&2已通过</button>
+    </div>
+
+    <div class="test-section">
+        <h2>➕ 问题4: Add Offer测试指南 (需手动测试)</h2>
+        <div style="background: #fff3cd; padding: 15px; border-radius: 5px; border-left: 4px solid #ffc107;">
+            <p><strong>⚠️ 请手动在前端界面执行以下操作：</strong></p>
+            <ol>
+                <li>在New Enquiry或Edit Enquiry页面</li>
+                <li>滚动到Offers部分</li>
+                <li>点击"Add Offer"按钮（带加号图标）</li>
+                <li><strong>✓ 验证:</strong> 是否成功添加一个新的offer表单</li>
+                <li>填写offer信息（Freight, ETD, ETA等）</li>
+                <li>保存enquiry</li>
+                <li>重新打开enquiry，验证offer是否正确保存</li>
+                <li><strong>额外测试:</strong> 点击offer的删除按钮，验证能否正常删除</li>
+            </ol>
+        </div>
+        <button onclick="document.getElementById('test4-status').className='status-badge status-pass'; document.getElementById('test4-status').textContent='✓ 通过';">标记问题4已通过</button>
+    </div>
+
+    <div class="test-section">
+        <h2>📊 后端API测试结果</h2>
+        <div id="api-results"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8888/api';
+        let testEnquiryId = 39; // 使用现有的测试enquiry
+
+        async function testMultiPortCreate() {
+            const resultDiv = document.getElementById('test3-result');
+            resultDiv.innerHTML = '<p>⏳ 正在创建enquiry with 多个港口...</p>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/enquiries`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        enquiryReceivedDate: "2026-02-04",
+                        issueDate: "2026-02-04",
+                        productCode: "SEA",
+                        productAbbr: "S",
+                        status: "New",
+                        cnPricingAdmin: "test_user",
+                        salesCountryCode: "CN",
+                        salesOfficeId: 1,
+                        salesPicId: 1,
+                        assignedCnOfficeCode: "SHANGHAI",
+                        cargoTypeCode: "FCL",
+                        volumeCbm: 10.0,
+                        quantity: 20,
+                        quantityUomCode: "CTN",
+                        commodity: "UI测试-创建多港口",
+                        polId: 1,
+                        podId: 5,
+                        polIds: [1, 2, 3, 4],  // 4个POL
+                        podIds: [5, 6, 7],     // 3个POD
+                        podCountryCode: "US",
+                        bookingConfirmed: "Pending",
+                        containerLines: [{ containerTypeId: 1, containerQty: 2 }]
+                    })
+                });
+                
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                const data = await response.json();
+                testEnquiryId = data.id;
+                
+                resultDiv.innerHTML = `
+                    <div class="test-result success">
+                        <strong>✅ 创建成功！</strong><br>
+                        Enquiry ID: ${data.id}<br>
+                        POL数量: ${data.polIds ? data.polIds.length : 0} 个<br>
+                        POD数量: ${data.podIds ? data.podIds.length : 0} 个<br>
+                        <ul class="port-list">
+                            <li>polIds: ${JSON.stringify(data.polIds)}</li>
+                            <li>podIds: ${JSON.stringify(data.podIds)}</li>
+                        </ul>
+                    </div>
+                `;
+                
+                document.getElementById('test3-status').className = 'status-badge status-pass';
+                document.getElementById('test3-status').textContent = '✓ 创建通过';
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="test-result error">
+                        <strong>❌ 创建失败</strong><br>
+                        错误: ${error.message}
+                    </div>
+                `;
+                document.getElementById('test3-status').className = 'status-badge status-fail';
+                document.getElementById('test3-status').textContent = '✗ 创建失败';
+            }
+        }
+
+        async function testMultiPortUpdate() {
+            const resultDiv = document.getElementById('test3-result');
+            resultDiv.innerHTML = '<p>⏳ 正在更新enquiry 39，改为2个POL + 4个POD...</p>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/enquiries/39`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: 39,
+                        enquiryReceivedDate: "2026-02-04",
+                        issueDate: "2026-02-04",
+                        productCode: "SEA",
+                        productAbbr: "S",
+                        status: "New",
+                        cnPricingAdmin: "test_user",
+                        salesCountryCode: "CN",
+                        salesOfficeId: 1,
+                        salesPicId: 1,
+                        assignedCnOfficeCode: "SHANGHAI",
+                        cargoTypeCode: "FCL",
+                        volumeCbm: 10.0,
+                        quantity: 20,
+                        quantityUomCode: "CTN",
+                        commodity: "UI测试-更新多港口",
+                        polId: 10,
+                        podId: 15,
+                        polIds: [10, 11],          // 改为2个POL
+                        podIds: [15, 16, 17, 18],  // 改为4个POD
+                        podCountryCode: "US",
+                        bookingConfirmed: "Pending",
+                        containerLines: [{ containerTypeId: 1, containerQty: 2 }]
+                    })
+                });
+                
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <div class="test-result success">
+                        <strong>✅ 更新成功！</strong><br>
+                        Enquiry ID: ${data.id}<br>
+                        POL数量: ${data.polIds ? data.polIds.length : 0} 个 (期望2个)<br>
+                        POD数量: ${data.podIds ? data.podIds.length : 0} 个 (期望4个)<br>
+                        <ul class="port-list">
+                            <li>polIds: ${JSON.stringify(data.polIds)}</li>
+                            <li>podIds: ${JSON.stringify(data.podIds)}</li>
+                        </ul>
+                    </div>
+                `;
+                
+                if (data.polIds && data.polIds.length === 2 && data.podIds && data.podIds.length === 4) {
+                    document.getElementById('test3-status').className = 'status-badge status-pass';
+                    document.getElementById('test3-status').textContent = '✓ 更新通过';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="test-result error">
+                        <strong>❌ 更新失败</strong><br>
+                        错误: ${error.message}
+                    </div>
+                `;
+                document.getElementById('test3-status').className = 'status-badge status-fail';
+                document.getElementById('test3-status').textContent = '✗ 更新失败';
+            }
+        }
+
+        async function testMultiPortRead() {
+            const resultDiv = document.getElementById('test3-result');
+            resultDiv.innerHTML = '<p>⏳ 正在验证enquiry 39的数据...</p>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/enquiries/39`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                const data = await response.json();
+                
+                // 验证数据库
+                const dbVerified = data.polIds && data.polIds.length > 0 && data.podIds && data.podIds.length > 0;
+                
+                resultDiv.innerHTML = `
+                    <div class="test-result ${dbVerified ? 'success' : 'error'}">
+                        <strong>${dbVerified ? '✅' : '❌'} 数据验证${dbVerified ? '成功' : '失败'}</strong><br>
+                        Reference: ${data.referenceNumber}<br>
+                        Commodity: ${data.commodity}<br>
+                        <br>
+                        <strong>港口信息:</strong><br>
+                        POL数量: ${data.polIds ? data.polIds.length : 0} 个<br>
+                        POD数量: ${data.podIds ? data.podIds.length : 0} 个<br>
+                        <ul class="port-list">
+                            <li><strong>polIds:</strong> ${JSON.stringify(data.polIds)}</li>
+                            <li><strong>podIds:</strong> ${JSON.stringify(data.podIds)}</li>
+                        </ul>
+                        <div class="code-block">
+                            完整数据:<br>
+                            ${JSON.stringify(data, null, 2).substring(0, 500)}...
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="test-result error">
+                        <strong>❌ 验证失败</strong><br>
+                        错误: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // 页面加载时自动测试API连接
+        window.onload = async function() {
+            const apiResults = document.getElementById('api-results');
+            apiResults.innerHTML = '<p>⏳ 检测后端API...</p>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/enquiries?page=0&size=5`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                const data = await response.json();
+                apiResults.innerHTML = `
+                    <div class="test-result success">
+                        <strong>✅ 后端API连接正常</strong><br>
+                        总enquiry数: ${data.totalElements}<br>
+                        API地址: ${API_BASE}
+                    </div>
+                `;
+            } catch (error) {
+                apiResults.innerHTML = `
+                    <div class="test-result error">
+                        <strong>❌ 后端API连接失败</strong><br>
+                        错误: ${error.message}<br>
+                        请检查后端是否启动在 ${API_BASE}
+                    </div>
+                `;
+            }
+        };
+    </script>
+</body>
+</html>

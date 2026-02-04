@@ -9,6 +9,7 @@ import {
   EnquiryFormData,
   EnquirySearchParams,
   EnquiryStatus,
+  ReferencePreview,
   Offer,
   OfferFormData,
   ContainerLine,
@@ -36,7 +37,7 @@ import {
 // ==========================================
 
 const API_BASE_URL = '/api';
-const USE_MOCK_DATA = true; // 开发时使用 mock 数据
+const USE_MOCK_DATA = false; // 关闭MOCK，使用真实数据库
 
 // ==========================================
 // 通用请求方法
@@ -318,6 +319,19 @@ let MOCK_OFFER_ID_COUNTER = 4;
 // ==========================================
 
 export const masterDataApi = {
+  /** 获取所有国家列表 (用于POD Country映射等) */
+  getAllCountries: async (): Promise<SelectOption[]> => {
+    if (USE_MOCK_DATA) {
+      return MOCK_COUNTRIES
+        .filter(c => c.isActive)
+        .map(c => ({
+          value: c.countryCode,
+          label: c.countryNameEn,
+        }));
+    }
+    return request<SelectOption[]>('/dict/countries');
+  },
+
   /** 获取销售国家列表 (用于级联选择第一层) */
   getSalesCountries: async (): Promise<SelectOption[]> => {
     if (USE_MOCK_DATA) {
@@ -331,7 +345,7 @@ export const masterDataApi = {
         };
       });
     }
-    return request<SelectOption[]>('/master/sales-countries');
+    return request<SelectOption[]>('/dict/sales-countries');
   },
 
   /** 获取销售 PIC 列表 (按国家过滤，用于级联选择第二层) */
@@ -348,7 +362,7 @@ export const masterDataApi = {
           officeCode: p.salesOfficeCode || '',
         }));
     }
-    return request<SalesPicSelectOption[]>(`/master/sales-pics?countryCode=${countryCode}`);
+    return request<SalesPicSelectOption[]>(`/dict/sales-pics/country/${countryCode}`);
   },
 
   /** 获取销售办公室信息 */
@@ -356,7 +370,7 @@ export const masterDataApi = {
     if (USE_MOCK_DATA) {
       return MOCK_SALES_OFFICES.find(o => o.id === id) || null;
     }
-    return request<SalesOffice>(`/master/sales-offices/${id}`);
+    return request<SalesOffice>(`/dict/sales-offices/${id}`);
   },
 
   /** 获取港口列表 (按类型过滤，支持搜索) */
@@ -378,7 +392,7 @@ export const masterDataApi = {
         countryCode: p.countryCode,
       }));
     }
-    return request<PortSelectOption[]>(`/master/ports?type=${portType}&keyword=${encodeURIComponent(keyword)}`);
+    return request<PortSelectOption[]>(`/dict/ports/search-v2?portType=${portType}&keyword=${encodeURIComponent(keyword)}`);
   },
 
   /** 获取港口详情 */
@@ -386,7 +400,7 @@ export const masterDataApi = {
     if (USE_MOCK_DATA) {
       return MOCK_PORTS.find(p => p.id === id) || null;
     }
-    return request<Port>(`/master/ports/${id}`);
+    return request<Port>(`/dict/ports/${id}`);
   },
 
   /** 获取箱型列表 */
@@ -401,7 +415,7 @@ export const masterDataApi = {
           isSpecial: c.isSpecial,
         }));
     }
-    return request<ContainerTypeSelectOption[]>('/master/container-types');
+    return request<ContainerTypeSelectOption[]>('/dict/container-types');
   },
 
   /** 获取 CN 办公室列表 */
@@ -411,7 +425,7 @@ export const masterDataApi = {
         .filter(o => o.isActive)
         .map(o => ({ value: o.code, label: o.name }));
     }
-    return request<SelectOption[]>('/master/cn-offices');
+    return request<SelectOption[]>('/dict/cn-offices');
   },
 
   /** 获取货物类型列表 */
@@ -419,7 +433,7 @@ export const masterDataApi = {
     if (USE_MOCK_DATA) {
       return MOCK_CARGO_TYPES.filter(c => c.isActive);
     }
-    return request<CargoTypeDict[]>('/master/cargo-types');
+    return request<CargoTypeDict[]>('/dict/cargo-types');
   },
 
   /** 获取产品类型列表 */
@@ -427,7 +441,7 @@ export const masterDataApi = {
     if (USE_MOCK_DATA) {
       return MOCK_PRODUCTS.filter(p => p.isActive);
     }
-    return request<ProductDict[]>('/master/products');
+    return request<ProductDict[]>('/dict/products');
   },
 
   /** 获取单位列表 */
@@ -437,7 +451,7 @@ export const masterDataApi = {
         .filter(u => u.isActive)
         .map(u => ({ value: u.code, label: u.name }));
     }
-    return request<SelectOption[]>('/master/uoms');
+    return request<SelectOption[]>('/dict/uoms');
   },
 
   /** 获取分类列表 */
@@ -447,7 +461,174 @@ export const masterDataApi = {
         .filter(c => c.isActive)
         .map(c => ({ value: c.code, label: c.name }));
     }
-    return request<SelectOption[]>('/master/categories');
+    return request<SelectOption[]>('/dict/categories');
+  },
+
+  // --- Management API Methods ---
+
+  getCountries: async (): Promise<Country[]> => {
+    if (USE_MOCK_DATA) {
+      await new Promise(r => setTimeout(r, 200));
+      return [...MOCK_COUNTRIES];
+    }
+    return request<Country[]>('/master/countries');
+  },
+  
+  saveCountry: async (country: Country): Promise<Country> => {
+    if (USE_MOCK_DATA) {
+      await new Promise(r => setTimeout(r, 300));
+      if (country.id) {
+        const index = MOCK_COUNTRIES.findIndex(c => c.id === country.id);
+        if (index !== -1) {
+          MOCK_COUNTRIES[index] = { ...country };
+          return MOCK_COUNTRIES[index];
+        }
+      } else {
+        // eslint-disable-next-line
+        const newCountry = { ...country, id: Math.max(...MOCK_COUNTRIES.map(c => c.id), 0) + 1 };
+        MOCK_COUNTRIES.push(newCountry);
+        return newCountry;
+      }
+      throw new Error('Country not saved');
+    }
+    const method = country.id ? 'PUT' : 'POST';
+    const url = country.id ? `/master/countries/${country.id}` : '/master/countries';
+    return request<Country>(url, { method, body: JSON.stringify(country) });
+  },
+
+  deleteCountry: async (id: number): Promise<void> => {
+    if (USE_MOCK_DATA) {
+        await new Promise(r => setTimeout(r, 300));
+        const index = MOCK_COUNTRIES.findIndex(c => c.id === id);
+        if (index !== -1) MOCK_COUNTRIES.splice(index, 1);
+        return;
+    }
+    return request<void>(`/master/countries/${id}`, { method: 'DELETE' });
+  },
+
+  getPorts: async (): Promise<Port[]> => {
+    if (USE_MOCK_DATA) {
+      await new Promise(r => setTimeout(r, 200));
+      return [...MOCK_PORTS];
+    }
+    return request<Port[]>('/master/ports');
+  },
+
+  savePort: async (port: Port): Promise<Port> => {
+    if (USE_MOCK_DATA) {
+      await new Promise(r => setTimeout(r, 300));
+      if (port.id) {
+        const index = MOCK_PORTS.findIndex(p => p.id === port.id);
+        if (index !== -1) {
+          MOCK_PORTS[index] = { ...port };
+          return MOCK_PORTS[index];
+        }
+      } else {
+        const newPort = { ...port, id: Math.max(...MOCK_PORTS.map(p => p.id), 0) + 1 };
+        MOCK_PORTS.push(newPort);
+        return newPort;
+      }
+      throw new Error('Port not saved');
+    }
+    const method = port.id ? 'PUT' : 'POST';
+    const url = port.id ? `/master/ports/${port.id}` : '/master/ports';
+    return request<Port>(url, { method, body: JSON.stringify(port) });
+  },
+
+  deletePort: async (id: number): Promise<void> => {
+    if (USE_MOCK_DATA) {
+        await new Promise(r => setTimeout(r, 300));
+        const index = MOCK_PORTS.findIndex(p => p.id === id);
+        if (index !== -1) MOCK_PORTS.splice(index, 1);
+        return;
+    }
+    return request<void>(`/master/ports/${id}`, { method: 'DELETE' });
+  },
+
+  getSalesPics: async (): Promise<SalesPic[]> => {
+    if (USE_MOCK_DATA) {
+      await new Promise(r => setTimeout(r, 200));
+      return [...MOCK_SALES_PICS];
+    }
+    return request<SalesPic[]>('/master/sales-pics');
+  },
+
+  saveSalesPic: async (pic: SalesPic): Promise<SalesPic> => {
+    if (USE_MOCK_DATA) {
+      await new Promise(r => setTimeout(r, 300));
+      if (pic.id) {
+        const index = MOCK_SALES_PICS.findIndex(p => p.id === pic.id);
+        if (index !== -1) {
+          MOCK_SALES_PICS[index] = { ...pic };
+          return MOCK_SALES_PICS[index];
+        }
+      } else {
+        const newPic = { ...pic, id: Math.max(...MOCK_SALES_PICS.map(p => p.id), 0) + 1 };
+        MOCK_SALES_PICS.push(newPic);
+        return newPic;
+      }
+      throw new Error('Sales Pic not saved');
+    }
+    const method = pic.id ? 'PUT' : 'POST';
+    const url = pic.id ? `/master/sales-pics/${pic.id}` : '/master/sales-pics';
+    return request<SalesPic>(url, { method, body: JSON.stringify(pic) });
+  },
+
+  deleteSalesPic: async (id: number): Promise<void> => {
+    if (USE_MOCK_DATA) {
+        await new Promise(r => setTimeout(r, 300));
+        const index = MOCK_SALES_PICS.findIndex(p => p.id === id);
+        if (index !== -1) MOCK_SALES_PICS.splice(index, 1);
+        return;
+    }
+    return request<void>(`/master/sales-pics/${id}`, { method: 'DELETE' });
+  },
+
+  getSalesOffices: async (): Promise<SalesOffice[]> => {
+     if (USE_MOCK_DATA) {
+      await new Promise(r => setTimeout(r, 200));
+      return [...MOCK_SALES_OFFICES];
+    }
+    return request<SalesOffice[]>('/master/sales-offices');
+  },
+
+  getContainerTypeList: async (): Promise<ContainerType[]> => {
+    if (USE_MOCK_DATA) {
+      await new Promise(r => setTimeout(r, 200));
+      return [...MOCK_CONTAINER_TYPES];
+    }
+    return request<ContainerType[]>('/master/container-types');
+  },
+
+  saveContainerType: async (ct: ContainerType): Promise<ContainerType> => {
+    if (USE_MOCK_DATA) {
+      await new Promise(r => setTimeout(r, 300));
+      if (ct.id) {
+        const index = MOCK_CONTAINER_TYPES.findIndex(c => c.id === ct.id);
+        if (index !== -1) {
+          MOCK_CONTAINER_TYPES[index] = { ...ct };
+          return MOCK_CONTAINER_TYPES[index];
+        }
+      } else {
+        const newCt = { ...ct, id: Math.max(...MOCK_CONTAINER_TYPES.map(c => c.id), 0) + 1 };
+        MOCK_CONTAINER_TYPES.push(newCt);
+        return newCt;
+      }
+       throw new Error('Container Type not saved');
+    }
+    const method = ct.id ? 'PUT' : 'POST';
+    const url = ct.id ? `/master/container-types/${ct.id}` : '/master/container-types';
+    return request<ContainerType>(url, { method, body: JSON.stringify(ct) });
+  },
+
+  deleteContainerType: async (id: number): Promise<void> => {
+    if (USE_MOCK_DATA) {
+        await new Promise(r => setTimeout(r, 300));
+        const index = MOCK_CONTAINER_TYPES.findIndex(c => c.id === id);
+        if (index !== -1) MOCK_CONTAINER_TYPES.splice(index, 1);
+        return;
+    }
+    return request<void>(`/master/container-types/${id}`, { method: 'DELETE' });
   },
 };
 
@@ -548,7 +729,7 @@ export const enquiryApi = {
     const queryParams = new URLSearchParams();
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
+        if (value !== undefined && value !== null && value !== '') {
           if (Array.isArray(value)) {
             value.forEach(v => queryParams.append(key, v));
           } else {
@@ -571,24 +752,89 @@ export const enquiryApi = {
     return request<Enquiry>(`/enquiries/${id}`);
   },
 
+  /** 预览下一个询价编号 */
+  getNextReference: async (params: { issueDate?: string; productCode?: string }): Promise<ReferencePreview> => {
+    if (USE_MOCK_DATA) {
+      const issueDate = params.issueDate || new Date().toISOString().split('T')[0];
+      const date = new Date(issueDate);
+      const yy = date.getFullYear().toString().slice(-2);
+      const mm = String(date.getMonth() + 1).padStart(2, '0');
+      const referenceMonth = `${yy}${mm}`;
+      const abbrMap: Record<string, string> = {
+        AIR: 'A',
+        SEA: 'S',
+        'AIR-RAIL-SEA': 'ARS',
+        RAIL: 'R',
+        'RAIL-SEA': 'RS',
+      };
+      const productAbbr = abbrMap[params.productCode || ''] || 'X';
+      const maxSeq = Math.max(0, ...MOCK_ENQUIRIES.filter(e => e.referenceMonth === referenceMonth).map(e => e.monthlySequence || 0));
+      const monthlySequence = maxSeq + 1;
+      const referenceNumber = `CN${referenceMonth}${String(monthlySequence).padStart(3, '0')}-${productAbbr}`;
+      return { referenceNumber, referenceMonth, monthlySequence, serialNumber: 0, productAbbr };
+    }
+
+    const query = new URLSearchParams();
+    if (params.issueDate) query.set('issueDate', params.issueDate);
+    if (params.productCode) query.set('productCode', params.productCode);
+    return request<ReferencePreview>(`/enquiries/reference/next?${query.toString()}`);
+  },
+
+  /** 预览递增编号（同月序 + serial +1） */
+  getIncreaseReference: async (id: number): Promise<ReferencePreview> => {
+    if (USE_MOCK_DATA) {
+      const original = MOCK_ENQUIRIES.find(e => e.id === id);
+      if (!original) throw new Error('Enquiry not found');
+      const referenceMonth = original.referenceMonth;
+      const monthlySequence = original.monthlySequence;
+      const productAbbr = original.productAbbr || 'X';
+      const maxSerial = Math.max(0, ...MOCK_ENQUIRIES.filter(e => e.referenceMonth === referenceMonth && e.monthlySequence === monthlySequence && (e.productAbbr || 'X') === productAbbr).map(e => e.serialNumber || 0));
+      const serialNumber = maxSerial + 1;
+      const referenceNumber = `CN${referenceMonth}${String(monthlySequence).padStart(3, '0')}-${productAbbr}${serialNumber}`;
+      return { referenceNumber, referenceMonth, monthlySequence, serialNumber, productAbbr };
+    }
+    return request<ReferencePreview>(`/enquiries/${id}/reference/increase`);
+  },
+
   /** 创建询价 */
   create: async (data: EnquiryFormData): Promise<Enquiry> => {
     if (USE_MOCK_DATA) {
       await new Promise(r => setTimeout(r, 500));
       
+      // 支持polIds/podIds数组，取第一个作为主要港口
+      const polId = data.polIds?.[0] || data.polId;
+      const podId = data.podIds?.[0] || data.podId;
+      
       // 获取关联数据
       const salesPic = MOCK_SALES_PICS.find(p => p.id === data.salesPicId);
       const salesOffice = salesPic ? MOCK_SALES_OFFICES.find(o => o.id === salesPic.salesOfficeId) : null;
-      const pol = MOCK_PORTS.find(p => p.id === data.polId);
-      const pod = MOCK_PORTS.find(p => p.id === data.podId);
+      const pol = MOCK_PORTS.find(p => p.id === polId);
+      const pod = MOCK_PORTS.find(p => p.id === podId);
       const podCountry = pod ? MOCK_COUNTRIES.find(c => c.countryCode === pod.countryCode) : null;
       const product = MOCK_PRODUCTS.find(p => p.code === data.productCode);
       
       // 生成编号
       const now = new Date();
-      const refMonth = now.toISOString().slice(2, 4) + now.toISOString().slice(5, 7);
-      const seq = MOCK_ENQUIRIES.filter(e => e.referenceMonth === refMonth).length + 1;
-      const refNumber = `CN${refMonth}${String(seq).padStart(3, '0')}-${product?.abbr || 'X'}`;
+      const refMonth = data.referenceMonth || (now.toISOString().slice(2, 4) + now.toISOString().slice(5, 7));
+      const abbr = product?.abbr || 'X';
+      const isIncrease = !!(data.serialNumber && data.serialNumber > 0 && data.monthlySequence);
+
+      let seq = 0;
+      let serial = 0;
+      if (isIncrease) {
+        seq = data.monthlySequence as number;
+        const maxSerial = Math.max(
+          0,
+          ...MOCK_ENQUIRIES
+            .filter(e => e.referenceMonth === refMonth && e.monthlySequence === seq && (e.productAbbr || 'X') === abbr)
+            .map(e => e.serialNumber || 0)
+        );
+        serial = maxSerial + 1;
+      } else {
+        seq = MOCK_ENQUIRIES.filter(e => e.referenceMonth === refMonth).length + 1;
+      }
+
+      const refNumber = `CN${refMonth}${String(seq).padStart(3, '0')}-${abbr}${serial > 0 ? serial : ''}`;
       
       // 计算 TEU
       let quantityTeu = 0;
@@ -601,12 +847,12 @@ export const enquiryApi = {
         id: MOCK_ID_COUNTER++,
         referenceNumber: refNumber,
         enquiryReceivedDate: data.enquiryReceivedDate,
-        issueDate: now.toISOString().split('T')[0],
+        issueDate: data.issueDate || now.toISOString().split('T')[0],
         referenceMonth: refMonth,
         monthlySequence: seq,
-        serialNumber: 0,
+        serialNumber: serial,
         productCode: data.productCode,
-        productAbbr: product?.abbr || 'X',
+        productAbbr: abbr,
         status: data.status || 'New',
         cnPricingAdmin: 'Susana Wong', // TODO: 从登录用户获取
         salesCountryCode: data.salesCountryCode,
@@ -623,14 +869,14 @@ export const enquiryApi = {
         quantityTeu,
         commodity: data.commodity,
         hazSpecialEquipment: data.hazSpecialEquipment,
-        polId: data.polId,
+        polId: polId,
         polName: pol?.portName,
         polCode: pol?.portCode,
-        podId: data.podId,
+        podId: podId,
         podName: pod?.portName,
         podCode: pod?.portCode,
         podCountryCode: pod?.countryCode,
-        podCountryName: podCountry?.countryNameEn,
+        podCountryName: data.podCountryName || podCountry?.countryNameEn,
         coreFlag: data.coreFlag,
         categoryCode: data.categoryCode,
         cargoReadyDate: data.cargoReadyDate,
@@ -676,11 +922,28 @@ export const enquiryApi = {
           sum + ((line.quantity || 0) * (line.teuValue || 0)), 0);
       }
       
+      // ✅ 编辑模式：确保必需字段都已包含，防止 NOT NULL 约束错误
       const updated: Enquiry = {
         ...existing,
         ...data,
+        // 保留必需字段的原值如果新值为空
+        referenceNumber: data.referenceNumber || existing.referenceNumber,
+        referenceMonth: data.referenceMonth || existing.referenceMonth,
+        monthlySequence: data.monthlySequence ?? existing.monthlySequence,
+        serialNumber: data.serialNumber ?? existing.serialNumber,
+        productCode: data.productCode || existing.productCode,
+        productAbbr: data.productAbbr || existing.productAbbr,
+        status: data.status || existing.status,
+        cnPricingAdmin: data.cnPricingAdmin || existing.cnPricingAdmin,
+        salesCountryCode: data.salesCountryCode || existing.salesCountryCode,
+        salesOfficeId: data.salesOfficeId || existing.salesOfficeId,
+        assignedCnOfficeCode: data.assignedCnOfficeCode || existing.assignedCnOfficeCode,
+        cargoTypeCode: data.cargoTypeCode || existing.cargoTypeCode,
+        enquiryReceivedDate: data.enquiryReceivedDate || existing.enquiryReceivedDate,
+        issueDate: data.issueDate || existing.issueDate,
+        bookingConfirmed: data.bookingConfirmed || existing.bookingConfirmed,
+        // 关联数据
         quantityTeu,
-        salesOfficeId: salesOffice?.id || existing.salesOfficeId,
         salesOfficeName: salesOffice?.name || existing.salesOfficeName,
         salesOfficeCode: salesOffice?.code || existing.salesOfficeCode,
         salesPicName: salesPic?.name || existing.salesPicName,
@@ -759,18 +1022,18 @@ export const enquiryApi = {
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
   }): Promise<PagedResponse<EnquiryListItem>> => {
-    // 转换参数格式
+    // 转换参数格式，过滤空值
     const convertedParams: EnquirySearchParams = {
       page: params?.page || 0,
       size: params?.pageSize || params?.size || 20,
-      keyword: params?.search || params?.keyword,
-      status: Array.isArray(params?.status) ? params.status[0] : params?.status,
+      keyword: params?.search || params?.keyword || undefined,
+      status: Array.isArray(params?.status) ? params.status[0] : (params?.status || undefined),
       cargoTypes: params?.cargoType ? [params.cargoType] : params?.cargoTypes,
-      salesCountryCode: params?.salesCountryCode,
+      salesCountryCode: params?.salesCountryCode || undefined,
       salesPicId: params?.salesPicId,
-      dateFrom: params?.startDate,
-      dateTo: params?.endDate,
-      sortBy: params?.sortBy,
+      dateFrom: params?.startDate || undefined,
+      dateTo: params?.endDate || undefined,
+      sortBy: params?.sortBy || undefined,
       sortDir: params?.sortOrder,
     };
     return enquiryApi.getList(convertedParams);
@@ -936,3 +1199,4 @@ export const statsApi = {
     return request<any>('/stats/dashboard');
   },
 };
+

@@ -185,6 +185,13 @@ public class Enquiry {
     @OneToMany(mappedBy = "enquiry", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<EnquiryContainerLine> containerLines = new ArrayList<>();
     
+    // 多港口支持（Transient 字段，不映射到数据库）
+    @Transient
+    private List<Integer> polIds = new ArrayList<>();  // 起运港ID列表
+    
+    @Transient
+    private List<Integer> podIds = new ArrayList<>();  // 目的港ID列表
+    
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

@@ -20,5 +20,8 @@ public interface SalesPicRepository extends JpaRepository<SalesPic, Integer> {
     @Query("SELECT sp FROM SalesPic sp WHERE sp.countryCode = :countryCode AND sp.isActive = true ORDER BY sp.name ASC")
     List<SalesPic> findActiveSalesPicsByCountry(@Param("countryCode") String countryCode);
     
+    @Query("SELECT DISTINCT sp.countryCode FROM SalesPic sp WHERE sp.isActive = true ORDER BY sp.countryCode ASC")
+    List<String> findDistinctCountryCodes();
+    
     List<SalesPic> findBySalesOfficeId(Integer salesOfficeId);
 }

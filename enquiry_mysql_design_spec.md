@@ -27,7 +27,7 @@
 - `product_abbr`：由 `product_code` 映射缩写（dict_product.abbr），例如 `AIR-RAIL-SEA => ARS`
 - `reference_number` 拼装建议：
   - 不带 CN：`{reference_month}{monthly_sequence}-{product_abbr}{serial_number_if_any}`
-  - 带 CN：`CN{reference_month}{monthly_sequence}-{product_abbr}{serial_number_if_any}`
+ 
 - 规则建议：`serial_number=0` 不拼尾号；`serial_number>0` 拼尾号（ARS1/ARS2）
 
 ### 1.3 数据输入/主数据约束（你确认）

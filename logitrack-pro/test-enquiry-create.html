@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>测试 New Enquiry 创建功能</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .test-section {
+      background: white;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h2 {
+      color: #4f46e5;
+      border-bottom: 2px solid #4f46e5;
+      padding-bottom: 10px;
+    }
+    .status {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-weight: bold;
+      margin-left: 10px;
+    }
+    .status.success { background: #10b981; color: white; }
+    .status.error { background: #ef4444; color: white; }
+    .status.pending { background: #f59e0b; color: white; }
+    .test-item {
+      margin: 15px 0;
+      padding: 15px;
+      background: #f9fafb;
+      border-left: 4px solid #6366f1;
+      border-radius: 4px;
+    }
+    button {
+      background: #4f46e5;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      margin: 5px;
+    }
+    button:hover {
+      background: #4338ca;
+    }
+    pre {
+      background: #1f2937;
+      color: #10b981;
+      padding: 15px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 12px;
+    }
+    .instructions {
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      padding: 15px;
+      margin: 20px 0;
+    }
+    .checklist {
+      list-style: none;
+      padding: 0;
+    }
+    .checklist li {
+      padding: 8px 0;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .checklist li:before {
+      content: "☐ ";
+      color: #6366f1;
+      font-weight: bold;
+      margin-right: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🧪 New Enquiry 功能测试</h1>
+  
+  <div class="instructions">
+    <h3>📋 测试说明</h3>
+    <p>本页面用于测试 New Enquiry 表单的以下功能：</p>
+    <ul class="checklist">
+      <li>多港口选择（POL/POD）支持数组格式 polIds/podIds</li>
+      <li>POD Country 自动映射功能</li>
+      <li>销售国家和销售负责人级联选择</li>
+      <li>Enquiry 数据成功提交到后端/Mock数据</li>
+      <li>新建的 Enquiry 出现在 Enquiry Management 列表</li>
+    </ul>
+  </div>
+
+  <div class="test-section">
+    <h2>1️⃣ 检查前端服务状态</h2>
+    <button onclick="checkFrontend()">检查前端服务</button>
+    <div id="frontend-status"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>2️⃣ 测试主数据加载</h2>
+    <button onclick="testMasterData()">测试主数据 API</button>
+    <div id="masterdata-result"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>3️⃣ 模拟创建 Enquiry</h2>
+    <button onclick="testCreateEnquiry()">创建测试 Enquiry</button>
+    <div id="create-result"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>4️⃣ 验证 Enquiry 列表</h2>
+    <button onclick="testEnquiryList()">获取 Enquiry 列表</button>
+    <div id="list-result"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>📖 手动测试步骤</h2>
+    <div class="instructions">
+      <ol>
+        <li>在浏览器中打开 <a href="http://localhost:3000" target="_blank">http://localhost:3000</a></li>
+        <li>点击 "New Enquiry" 按钮</li>
+        <li>填写表单并执行以下测试：</li>
+        <ul class="checklist">
+          <li><strong>Reference Number 显示：</strong>选择产品类型后，查看 Reference Number 是否自动生成</li>
+          <li><strong>CN定价管理员：</strong>验证是否为下拉框，包含选项（Admin, Manager等）</li>
+          <li><strong>销售级联：</strong>选择销售国家 → 自动加载对应的 Sales PIC → 显示 Sales Office</li>
+          <li><strong>多港口选择：</strong>在 POL 和 POD 下拉框中选择多个港口</li>
+          <li><strong>POD Country映射：</strong>选择 POD 后，查看"目的港国家"字段是否自动显示国家名称</li>
+          <li><strong>指派CN办公室：</strong>确认该字段在"销售信息"区块而非基础信息</li>
+        </ul>
+        <li>点击 "Save Enquiry" 提交</li>
+        <li>返回 Enquiry Management 列表，验证新建记录是否出现</li>
+      </ol>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'http://localhost:3000/api';
+
+    async function checkFrontend() {
+      const output = document.getElementById('frontend-status');
+      try {
+        const response = await fetch('http://localhost:3000');
+        if (response.ok) {
+          output.innerHTML = '<span class="status success">✓ 前端服务运行正常</span>';
+        } else {
+          output.innerHTML = '<span class="status error">✗ 前端服务响应异常</span>';
+        }
+      } catch (error) {
+        output.innerHTML = `<span class="status error">✗ 无法连接前端服务</span><pre>${error.message}</pre>`;
+      }
+    }
+
+    async function testMasterData() {
+      const output = document.getElementById('masterdata-result');
+      output.innerHTML = '<span class="status pending">测试中...</span>';
+      
+      try {
+        // 注意：实际应用中这些是通过 dataService 调用的
+        const tests = {
+          '销售国家': '/master/sales-countries',
+          'CN办公室': '/master/cn-offices',
+          '港口数据': '/master/ports?portType=SEA&keyword='
+        };
+
+        let results = '<h4>API 测试结果：</h4>';
+        for (const [name, endpoint] of Object.entries(tests)) {
+          try {
+            const response = await fetch(API_BASE + endpoint);
+            const data = await response.json();
+            results += `<div class="test-item">
+              <strong>${name}:</strong> 
+              <span class="status success">✓ 成功</span>
+              <br>返回 ${Array.isArray(data) ? data.length : 'N/A'} 条记录
+            </div>`;
+          } catch (err) {
+            results += `<div class="test-item">
+              <strong>${name}:</strong> 
+              <span class="status error">✗ 失败</span>
+              <pre>${err.message}</pre>
+            </div>`;
+          }
+        }
+        
+        output.innerHTML = results;
+      } catch (error) {
+        output.innerHTML = `<span class="status error">✗ 测试失败</span><pre>${error.message}</pre>`;
+      }
+    }
+
+    async function testCreateEnquiry() {
+      const output = document.getElementById('create-result');
+      output.innerHTML = '<span class="status pending">正在创建测试 Enquiry...</span>';
+      
+      const testData = {
+        enquiryReceivedDate: '2026-02-02',
+        issueDate: new Date().toISOString().split('T')[0],
+        productCode: 'SEA',
+        status: 'New',
+        cnPricingAdmin: 'admin',
+        salesCountryCode: 'FR',
+        salesPicId: 1,
+        salesOfficeId: 1,
+        assignedCnOfficeCode: 'SH',
+        cargoTypeCode: 'FCL',
+        volumeCbm: 50,
+        quantity: 2,
+        quantityUomCode: 'CBM',
+        commodity: '测试货物 - 电子产品',
+        polIds: [1, 2],  // 多港口测试
+        podIds: [3, 4],  // 多港口测试
+        bookingConfirmed: 'Pending',
+        containerLines: [
+          { containerTypeId: 1, containerQty: 2, quantity: 2 }
+        ]
+      };
+
+      try {
+        const response = await fetch(API_BASE + '/enquiries', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(testData)
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          output.innerHTML = `
+            <span class="status success">✓ Enquiry 创建成功</span>
+            <pre>${JSON.stringify(result, null, 2)}</pre>
+            <p><strong>验证点：</strong></p>
+            <ul>
+              <li>Reference Number: ${result.referenceNumber || 'N/A'}</li>
+              <li>POL ID: ${result.polId || 'N/A'} (应该是 ${testData.polIds[0]})</li>
+              <li>POD ID: ${result.podId || 'N/A'} (应该是 ${testData.podIds[0]})</li>
+              <li>POD Country: ${result.podCountryName || 'N/A'}</li>
+              <li>Sales PIC: ${result.salesPicName || 'N/A'}</li>
+            </ul>
+          `;
+        } else {
+          const errorText = await response.text();
+          output.innerHTML = `<span class="status error">✗ 创建失败</span><pre>${errorText}</pre>`;
+        }
+      } catch (error) {
+        output.innerHTML = `<span class="status error">✗ 请求失败</span><pre>${error.message}</pre>`;
+      }
+    }
+
+    async function testEnquiryList() {
+      const output = document.getElementById('list-result');
+      output.innerHTML = '<span class="status pending">获取列表中...</span>';
+      
+      try {
+        const response = await fetch(API_BASE + '/enquiries?page=1&pageSize=5');
+        
+        if (response.ok) {
+          const data = await response.json();
+          const enquiries = data.content || [];
+          
+          let table = `
+            <span class="status success">✓ 成功获取 ${data.totalElements || 0} 条记录</span>
+            <h4>最新的 ${enquiries.length} 条 Enquiry：</h4>
+            <table style="width:100%; border-collapse: collapse;">
+              <thead>
+                <tr style="background: #f3f4f6;">
+                  <th style="padding: 8px; border: 1px solid #e5e7eb;">Reference Number</th>
+                  <th style="padding: 8px; border: 1px solid #e5e7eb;">Status</th>
+                  <th style="padding: 8px; border: 1px solid #e5e7eb;">Sales PIC</th>
+                  <th style="padding: 8px; border: 1px solid #e5e7eb;">POL → POD</th>
+                  <th style="padding: 8px; border: 1px solid #e5e7eb;">POD Country</th>
+                </tr>
+              </thead>
+              <tbody>
+          `;
+          
+          enquiries.forEach(enq => {
+            table += `
+              <tr>
+                <td style="padding: 8px; border: 1px solid #e5e7eb;">${enq.referenceNumber}</td>
+                <td style="padding: 8px; border: 1px solid #e5e7eb;">${enq.status}</td>
+                <td style="padding: 8px; border: 1px solid #e5e7eb;">${enq.salesPicName || 'N/A'}</td>
+                <td style="padding: 8px; border: 1px solid #e5e7eb;">${enq.polName || 'N/A'} → ${enq.podName || 'N/A'}</td>
+                <td style="padding: 8px; border: 1px solid #e5e7eb;">${enq.podCountryName || 'N/A'}</td>
+              </tr>
+            `;
+          });
+          
+          table += '</tbody></table>';
+          output.innerHTML = table;
+        } else {
+          const errorText = await response.text();
+          output.innerHTML = `<span class="status error">✗ 获取失败</span><pre>${errorText}</pre>`;
+        }
+      } catch (error) {
+        output.innerHTML = `<span class="status error">✗ 请求失败</span><pre>${error.message}</pre>`;
+      }
+    }
+
+    // 页面加载时自动检查前端服务
+    window.onload = () => {
+      checkFrontend();
+    };
+  </script>
+</body>
+</html>

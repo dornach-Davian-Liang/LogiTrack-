@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Save, X, Plus, Trash2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Save, X, Plus, Trash2, ArrowRight } from 'lucide-react';
 import { 
   Enquiry, 
   ContainerLine, 
+  Offer,
   SalesPic, 
   Port, 
   Country, 
@@ -11,8 +12,13 @@ import {
   SalesPicSelectOption,
   PortSelectOption,
   ContainerTypeSelectOption,
+  OfferType,
+  ProductCode,
 } from '../../types';
 import { enquiryApi, masterDataApi } from '../../services/api';
+import { Accordion, AccordionItem } from '../Accordion';
+import { MultiSelect } from '../MultiSelect';
+import { VirtualizedMultiSelect } from '../VirtualizedMultiSelect';
 
 interface EnquiryFormProps {
   initialData?: Partial<Enquiry> | null;
@@ -22,60 +28,283 @@ interface EnquiryFormProps {
 
 // Extended form data type with all form fields
 interface FormData extends Partial<Enquiry> {
-  cargoType?: string;
-  receivedDate?: string;
-  salesCountry?: string;
-  customerCompanyName?: string;
-  customerContactPerson?: string;
-  customerPhone?: string;
-  customerEmail?: string;
-  assignedCnOffices?: string;
+  // 基础信息
+  productCode?: ProductCode;
+  
+  // 路线信息 - 支持多港口
+  polIds?: number[];
+  podIds?: number[];
+  
+  // Offer 信息
+  offers?: Offer[];
 }
 
 export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit, onCancel }) => {
   const [formData, setFormData] = useState<FormData>({
     status: 'New',
-    receivedDate: new Date().toISOString().split('T')[0],
+    enquiryReceivedDate: new Date().toISOString().split('T')[0],
     issueDate: new Date().toISOString().split('T')[0],
-    cargoType: 'FCL',
+    productCode: 'SEA',
     cargoTypeCode: 'FCL',
     containerLines: [],
+    offers: [],
+    polIds: [],
+    podIds: [],
     bookingConfirmed: 'Pending',
+    // 必需字段默认值
+    assignedCnOfficeCode: '',
+    cnPricingAdmin: '',
+    salesCountryCode: '',
+    salesOfficeId: 0,
+    salesPicId: 0,
     ...initialData,
   });
 
-  const [countries, setCountries] = useState<SelectOption[]>([]);
+  const [salesCountries, setSalesCountries] = useState<SelectOption[]>([]); // 销售国家（用于下拉框）
+  const [allCountries, setAllCountries] = useState<SelectOption[]>([]); // 所有国家（用于POD映射）
   const [salesPics, setSalesPics] = useState<SalesPicSelectOption[]>([]);
   const [ports, setPorts] = useState<PortSelectOption[]>([]);
-  const [products, setProducts] = useState<SelectOption[]>([]);
-  const [productsMap, setProductsMap] = useState<Record<string, string>>({});
   const [containerTypes, setContainerTypes] = useState<ContainerTypeSelectOption[]>([]);
   const [cnOffices, setCnOffices] = useState<SelectOption[]>([]);
+  const [products, setProducts] = useState<SelectOption[]>([]);
+  const [cargoTypes, setCargoTypes] = useState<SelectOption[]>([]);
+  const [cnPricingAdmins, setCnPricingAdmins] = useState<SelectOption[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [referencePreview, setReferencePreview] = useState('');
+  const [isReferenceLoading, setIsReferenceLoading] = useState(false);
+  
+  // 追踪需要补齐的港口IDs，避免ports重置时丢失数据
+  const pendingPortIdsRef = useRef<Set<number>>(new Set());
 
   useEffect(() => {
     loadMasterData();
   }, []);
 
+  useEffect(() => {
+    // ✅ 当ports加载完成后，补齐所有待补充的港口
+    if (ports.length > 0 && pendingPortIdsRef.current.size > 0) {
+      const pendingIds = Array.from(pendingPortIdsRef.current);
+      ensurePortsLoaded(pendingIds);
+      // 清空ref，避免重复补齐
+      pendingPortIdsRef.current.clear();
+    }
+  }, [ports]);
+
+  useEffect(() => {
+    if (initialData) {
+
+      const normalizedContainerLines = (initialData.containerLines || []).map(line => {
+        const qty = line.containerQty ?? line.quantity ?? 0;
+        const teuPerUnit = line.teuPerUnit ?? line.teuValue ?? 0;
+        return {
+          ...line,
+          quantity: qty,
+          teuValue: teuPerUnit,
+          lineTeu: qty * teuPerUnit,
+        };
+      });
+
+      setFormData(prev => ({
+        ...prev,
+        ...initialData,
+        containerLines: normalizedContainerLines,
+        // ✅ 修复：优先使用 polIds/podIds 数组，如果不存在则用单个值初始化
+        polIds: initialData.polIds && initialData.polIds.length > 0 
+          ? initialData.polIds 
+          : (initialData.polId ? [initialData.polId] : prev.polIds),
+        podIds: initialData.podIds && initialData.podIds.length > 0 
+          ? initialData.podIds 
+          : (initialData.podId ? [initialData.podId] : prev.podIds),
+      }));
+
+      if (initialData.salesCountryCode) {
+        handleCountryChange(initialData.salesCountryCode);
+      }
+
+      // ✅ 补齐已选港口，确保选择框能显示名称
+      const selectedPortIds = Array.from(new Set([
+        ...(initialData.polIds || []),
+        ...(initialData.podIds || []),
+        initialData.polId,
+        initialData.podId,
+      ].filter((v): v is number => v !== null && v !== undefined).map(Number)));
+
+      if (selectedPortIds.length > 0) {
+        // 保存需要补齐的港口IDs到ref
+        selectedPortIds.forEach(id => pendingPortIdsRef.current.add(id));
+        
+        // 如果ports已经加载，立即补齐；否则等待ports加载完后补齐
+        if (ports.length > 0) {
+          ensurePortsLoaded(selectedPortIds);
+        }
+      }
+    }
+  }, [initialData]);
+
+  useEffect(() => {
+    if (initialData?.salesPicId && salesPics.length > 0) {
+      handleSalesPicChange(initialData.salesPicId);
+    }
+  }, [salesPics, initialData?.salesPicId]);
+
+  useEffect(() => {
+    // ✅ 修复：使用完整的podIds数组而不是单个podId
+    const podIdsToUse = initialData?.podIds && initialData.podIds.length > 0 
+      ? initialData.podIds 
+      : (initialData?.podId ? [initialData.podId] : []);
+    
+    if (podIdsToUse.length > 0 && ports.length > 0 && allCountries.length > 0) {
+      updatePodCountries(podIdsToUse);
+    }
+  }, [ports, allCountries, initialData?.podIds, initialData?.podId]);
+
+  useEffect(() => {
+    // 如果是编辑模式，不获取预览
+    if (formData.id) return;
+    
+    // 如果已有保存的编号，显示该编号
+    if (formData.referenceNumber) {
+      setReferencePreview(formData.referenceNumber);
+      return;
+    }
+    
+    // 如果缺少必要信息，清空预览
+    if (!formData.issueDate || !formData.productCode) {
+      setReferencePreview('');
+      return;
+    }
+
+    // 从后端获取下一个编号预览
+    let active = true;
+    setIsReferenceLoading(true);
+    
+    const timer = setTimeout(() => {
+      enquiryApi.getNextReference({
+        issueDate: formData.issueDate,
+        productCode: formData.productCode,
+      })
+        .then(preview => {
+          if (!active) return;
+          setReferencePreview(preview.referenceNumber);
+          // 同时更新相关字段
+          setFormData(prev => ({
+            ...prev,
+            referenceMonth: preview.referenceMonth,
+            monthlySequence: preview.monthlySequence,
+            serialNumber: preview.serialNumber,
+            productAbbr: preview.productAbbr,
+          }));
+        })
+        .catch(err => {
+          if (!active) return;
+          console.error('Failed to preview reference number:', err);
+          setReferencePreview('');
+        })
+        .finally(() => {
+          if (active) setIsReferenceLoading(false);
+        });
+    }, 300); // 防抖 300ms
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [formData.issueDate, formData.productCode]);
+
+  const mapPortToOption = (port: Port): PortSelectOption => ({
+    value: port.id,
+    label: port.portName || port.portCode || String(port.id),
+    portCode: port.portCode,
+    portType: port.portType,
+    countryCode: port.countryCode || '',
+  });
+
+  // ✅ 补齐港口：确保已选港口在下拉框中显示
+  const ensurePortsLoaded = (selectedPortIds: number[], basePortsList?: PortSelectOption[]) => {
+    const currentPorts = basePortsList || ports;
+    if (!currentPorts || currentPorts.length === 0) return;
+    
+    // 找出还没加载的港口IDs
+    const portValueSet = new Set(currentPorts.map(p => String(p.value)));
+    const missingIds = selectedPortIds.filter(id => !portValueSet.has(String(id)));
+    
+    if (missingIds.length === 0) return;
+    
+    // 获取缺失的港口信息
+    Promise.all(missingIds.map(id => masterDataApi.getPortById(id)))
+      .then(results => {
+        const newPorts = results
+          .filter((p): p is Port => !!p)
+          .map(mapPortToOption);
+        
+        if (newPorts.length > 0) {
+          setPorts(prev => {
+            const merged = new Map(prev.map(p => [String(p.value), p]));
+            newPorts.forEach(p => merged.set(String(p.value), p));
+            return Array.from(merged.values());
+          });
+        }
+      })
+      .catch(err => console.error('Failed to load selected ports:', err));
+  };
+
   const loadMasterData = async () => {
     try {
-      const [countriesData, productsData, containerTypesData, cnOfficesData] = await Promise.all([
+      const [
+        salesCountriesData,
+        allCountriesData,
+        containerTypesData,
+        cnOfficesData,
+        seaPortsData,
+        airPortsData,
+      ] = await Promise.all([
         masterDataApi.getSalesCountries(),
-        masterDataApi.getProducts(),
+        masterDataApi.getAllCountries(),
         masterDataApi.getContainerTypes(),
         masterDataApi.getCnOffices(),
+        masterDataApi.searchPorts('SEA', ''),
+        masterDataApi.searchPorts('AIR', ''),
       ]);
-      setCountries(countriesData);
-      // Map products to select options and keep abbr map for reference number generation server-side
-      setProducts(productsData.map(p => ({ value: p.code, label: p.name })));
-      const pm: Record<string, string> = {};
-      productsData.forEach(p => { pm[p.code] = p.abbr; });
-      setProductsMap(pm);
+      setSalesCountries(salesCountriesData);
+      setAllCountries(allCountriesData);
       setContainerTypes(containerTypesData);
       setCnOffices(cnOfficesData);
-      // Load initial ports (SEA by default)
-      const portsData = await masterDataApi.searchPorts('SEA', '');
-      setPorts(portsData);
+      
+      // 合并海港和空港数据
+      const allPortsData = [...(seaPortsData || []), ...(airPortsData || [])];
+      setPorts(allPortsData);
+      
+      // ✅ 加载完master数据后，补齐待补充的港口
+      if (pendingPortIdsRef.current.size > 0) {
+        const pendingIds = Array.from(pendingPortIdsRef.current);
+        ensurePortsLoaded(pendingIds, allPortsData);
+      }
+      
+      // 设置产品类型选项
+      setProducts([
+        { value: 'AIR', label: 'AIR' },
+        { value: 'SEA', label: 'SEA' },
+        { value: 'AIR-RAIL-SEA', label: 'AIR-RAIL-SEA (ARS)' },
+        { value: 'RAIL', label: 'RAIL' },
+        { value: 'RAIL-SEA', label: 'RAIL-SEA' },
+      ]);
+      
+      // 设置货物类型选项
+      setCargoTypes([
+        { value: 'AIR', label: 'AIR' },
+        { value: 'FCL', label: 'FCL' },
+        { value: 'LCL', label: 'LCL' },
+        { value: 'RAIL', label: 'RAIL' },
+        { value: 'SEA', label: 'SEA' },
+      ]);
+      
+      // 设置CN定价管理员选项（模拟字典数据）
+      setCnPricingAdmins([
+        { value: 'admin', label: 'Admin' },
+        { value: 'manager', label: 'Manager' },
+        { value: 'supervisor', label: 'Supervisor' },
+        { value: 'analyst', label: 'Analyst' },
+      ]);
     } catch (error) {
       console.error('Failed to load master data:', error);
     }
@@ -123,6 +352,24 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
     }
   };
 
+  // Reference Number 预览（实时从后端获取）
+  const getReferenceDisplay = () => {
+    // 如果已保存，显示实际的 Reference
+    if (formData.referenceNumber) {
+      return formData.referenceNumber;
+    }
+    // 如果正在加载
+    if (isReferenceLoading) {
+      return 'Generating...';
+    }
+    // 如果已获取预览，显示预览编号
+    if (referencePreview) {
+      return referencePreview;
+    }
+    // 等待用户选择产品类型和日期
+    return 'Auto-generated on save';
+  };
+
   const addContainerLine = () => {
     const firstType = containerTypes[0];
     const newLine: ContainerLine = {
@@ -167,60 +414,203 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
     return (formData.containerLines || []).reduce((sum, line) => sum + (line.lineTeu || 0), 0);
   };
 
+  // Offer 管理函数
+  const addOffer = () => {
+    const newOffer: Offer = {
+      id: Date.now(),
+      enquiryId: formData.id || 0,
+      offerType: 'OCEAN',
+      sequenceNo: (formData.offers || []).length + 1,
+      sentDate: new Date().toISOString().split('T')[0],
+      priceText: '',
+      isLatest: true,
+    };
+    
+    // 将之前的 offer 设为非最新
+    const updatedOffers = (formData.offers || []).map(o => ({ ...o, isLatest: false }));
+    
+    setFormData(prev => ({
+      ...prev,
+      offers: [...updatedOffers, newOffer],
+    }));
+  };
+
+  const updateOffer = (index: number, field: keyof Offer, value: any) => {
+    const offers = [...(formData.offers || [])];
+    offers[index] = { ...offers[index], [field]: value };
+    setFormData(prev => ({ ...prev, offers }));
+  };
+
+  const removeOffer = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      offers: (prev.offers || []).filter((_, i) => i !== index),
+    }));
+  };
+
+  // POD Country 自动映射
+  const updatePodCountries = (podIds: (string | number)[]) => {
+    console.log('updatePodCountries called with:', podIds);
+    console.log('Available ports:', ports);
+    console.log('Available allCountries:', allCountries);
+    
+    // 将podIds转换为字符串以便比较（MultiSelect返回字符串）
+    const podIdStrings = podIds.map(id => String(id));
+    console.log('Pod IDs as strings:', podIdStrings);
+    
+    // 从选中的POD中获取国家代码
+    const selectedPods = ports.filter(p => {
+      const portValueStr = String(p.value);
+      const isSelected = podIdStrings.includes(portValueStr);
+      console.log(`Port ${portValueStr}: selected=${isSelected}`);
+      return isSelected;
+    });
+    console.log('Selected PODs:', selectedPods);
+    
+    const countryCodes = [...new Set(selectedPods.map(p => p.countryCode))];
+    console.log('Country codes:', countryCodes);
+    
+    // 根据国家代码查找国家名称（使用完整国家列表）
+    const countryNames = countryCodes
+      .map(code => {
+        const country = allCountries.find(c => String(c.value).toUpperCase() === String(code).toUpperCase());
+        console.log(`Looking for country ${code}, found:`, country);
+        return country?.label;
+      })
+      .filter(Boolean)
+      .join(', ');
+    
+    console.log('Final country names:', countryNames);
+    
+    setFormData(prev => ({
+      ...prev,
+      podIds: podIdStrings.map(id => parseInt(id, 10)), // 存储为数字数组
+      podCountryCode: countryCodes[0], // 存储第一个国家代码
+      podCountryName: countryNames || '未找到对应国家', // 显示所有国家名称
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      // Build payload mapped to backend/DB field names (EnquiryFormData)
-      const payload: any = {
-        enquiryReceivedDate: formData.receivedDate,
-        issueDate: formData.issueDate,
-        productCode: formData.productCode,
-        status: formData.status,
+      // 验证必需字段
+      if (!formData.salesCountryCode) {
+        alert('Please select Sales Country');
+        setIsLoading(false);
+        return;
+      }
+      if (!formData.salesOfficeId) {
+        alert('Please select Sales Office');
+        setIsLoading(false);
+        return;
+      }
+      if (!formData.cnPricingAdmin) {
+        alert('Please select CN Pricing Admin');
+        setIsLoading(false);
+        return;
+      }
+      if (!formData.assignedCnOfficeCode) {
+        alert('Please select Assigned CN Office');
+        setIsLoading(false);
+        return;
+      }
 
-        cnPricingAdmin: formData.cnPricingAdmin,
-        salesCountryCode: formData.salesCountryCode,
-        salesPicId: formData.salesPicId,
-        salesOfficeId: formData.salesOfficeId,
-        assignedCnOfficeCode: formData.assignedCnOfficeCode,
+      // 验证港口选择
+      if (!formData.polIds || formData.polIds.length === 0) {
+        alert('Please select Port of Loading (POL)');
+        setIsLoading(false);
+        return;
+      }
+      if (!formData.podIds || formData.podIds.length === 0) {
+        alert('Please select Port of Discharge (POD)');
+        setIsLoading(false);
+        return;
+      }
 
-        cargoTypeCode: formData.cargoTypeCode || formData.cargoType,
-        volumeCbm: formData.volumeCbm,
-        quantity: formData.quantity,
-        quantityUomCode: formData.quantityUomCode,
-        commodity: formData.commodity,
-        hazSpecialEquipment: formData.hazSpecialEquipment,
-
-        polId: formData.polId,
-        podId: formData.podId,
-
-        coreFlag: formData.coreFlag,
-        categoryCode: formData.categoryCode,
-        cargoReadyDate: formData.cargoReadyDate,
-        cargoReadyDateRawText: formData.cargoReadyDateRawText,
-
-        additionalRequirement: formData.additionalRequirement,
-        bookingConfirmed: formData.bookingConfirmed || 'Pending',
-        remark: formData.remark,
-        rejectedReason: formData.rejectedReason,
-        actualReason: formData.actualReason,
+      // 构建提交数据：保留 polIds 和 podIds 数组
+      let enquiryToSubmit: any = {
+        ...formData,
+        polId: formData.polIds?.[0],  // 兼容旧字段（保留第一个作为主港口）
+        podId: formData.podIds?.[0],  // 兼容旧字段（保留第一个作为主港口）
+        polIds: formData.polIds || [],  // ✅ 新增：发送完整的 POL ID 数组
+        podIds: formData.podIds || [],  // ✅ 新增：发送完整的 POD ID 数组
       };
 
-      // Map container lines to backend-friendly fields
-      if (formData.containerLines && formData.containerLines.length) {
-        payload.containerLines = formData.containerLines.map((line: any) => ({
+      // 清除containerLines的ID，防止后端detached entity异常，并映射字段名
+      if (enquiryToSubmit.containerLines && Array.isArray(enquiryToSubmit.containerLines)) {
+        enquiryToSubmit.containerLines = enquiryToSubmit.containerLines.map((line: any) => ({
           containerTypeId: line.containerTypeId,
-          // both legacy & normalized names
-          quantity: line.quantity || line.containerQty || 1,
-          containerQty: line.quantity || line.containerQty || 1,
-          teuValue: line.teuValue || line.teuPerUnit,
-          lineTeu: line.lineTeu || line.teuTotal || ((line.quantity || 0) * (line.teuValue || 0)),
+          containerQty: line.quantity || line.containerQty || 1, // 映射quantity -> containerQty
+          rawText: line.rawText || null,
+          // 不发送这些前端字段到后端
+          // id, enquiryId, teuValue, lineTeu等由后端处理
         }));
       }
 
-      // Product abbr is resolved server-side; front-end only sends productCode
-      onSubmit(payload as Enquiry);
+      // 处理offers：新建时发送必要字段，编辑时避免覆盖已有offers
+      if (enquiryToSubmit.offers && Array.isArray(enquiryToSubmit.offers)) {
+        if (formData.id) {
+          // 编辑模式：不通过Enquiry接口更新offers，避免覆盖与detached问题
+            // ✅ 编辑模式下也需要发送offers，后端会正确处理合并
+            enquiryToSubmit.offers = enquiryToSubmit.offers.map((offer: any) => ({
+              id: offer.id || undefined,  // 保留ID如果有（用于更新）
+              offerType: offer.offerType,
+              sequenceNo: offer.sequenceNo,
+              isLatest: offer.isLatest ?? false,
+              sentDate: offer.sentDate || null,
+              sentDateRawText: offer.sentDateRawText || null,
+              price: offer.price ?? null,
+              priceText: offer.priceText || null,
+              isRejectedPrice: offer.isRejectedPrice ?? false,
+            }));
+        } else {
+          // 新建模式：仅发送后端需要的字段（不带id/enquiryId）
+          enquiryToSubmit.offers = enquiryToSubmit.offers.map((offer: any) => ({
+            offerType: offer.offerType,
+            sequenceNo: offer.sequenceNo,
+            isLatest: offer.isLatest ?? false,
+            sentDate: offer.sentDate || null,
+            sentDateRawText: offer.sentDateRawText || null,
+            price: offer.price ?? null,
+            priceText: offer.priceText || null,
+            isRejectedPrice: offer.isRejectedPrice ?? false,
+          }));
+        }
+      }
+
+      // ✅ 保留 polIds 和 podIds（后端需要处理多港口）
+      // 不删除这些字段，让后端接收并处理
+
+      // 编辑模式：确保必需字段都已包含，防止 NOT NULL 约束错误
+      if (formData.id) {
+        // 保留原有的必需字段值（如果新值为空则使用旧值）
+        enquiryToSubmit.referenceNumber = enquiryToSubmit.referenceNumber || initialData?.referenceNumber;
+        enquiryToSubmit.referenceMonth = enquiryToSubmit.referenceMonth || initialData?.referenceMonth;
+        enquiryToSubmit.monthlySequence = enquiryToSubmit.monthlySequence ?? initialData?.monthlySequence;
+        enquiryToSubmit.serialNumber = enquiryToSubmit.serialNumber ?? initialData?.serialNumber ?? 0;
+        enquiryToSubmit.productCode = enquiryToSubmit.productCode || initialData?.productCode;
+        enquiryToSubmit.productAbbr = enquiryToSubmit.productAbbr || initialData?.productAbbr;
+        enquiryToSubmit.status = enquiryToSubmit.status || initialData?.status || 'New';
+        enquiryToSubmit.cnPricingAdmin = enquiryToSubmit.cnPricingAdmin || initialData?.cnPricingAdmin;
+        enquiryToSubmit.salesCountryCode = enquiryToSubmit.salesCountryCode || initialData?.salesCountryCode;
+        enquiryToSubmit.salesOfficeId = enquiryToSubmit.salesOfficeId || initialData?.salesOfficeId;
+        enquiryToSubmit.assignedCnOfficeCode = enquiryToSubmit.assignedCnOfficeCode || initialData?.assignedCnOfficeCode;
+        enquiryToSubmit.cargoTypeCode = enquiryToSubmit.cargoTypeCode || initialData?.cargoTypeCode;
+        enquiryToSubmit.issueDate = enquiryToSubmit.issueDate || initialData?.issueDate;
+        enquiryToSubmit.enquiryReceivedDate = enquiryToSubmit.enquiryReceivedDate || initialData?.enquiryReceivedDate;
+        enquiryToSubmit.bookingConfirmed = enquiryToSubmit.bookingConfirmed || initialData?.bookingConfirmed || 'Pending';
+      } else {
+        // 新建时由后端生成 Reference，避免并发冲突
+        delete enquiryToSubmit.referenceNumber;
+        if (!formData.serialNumber || !formData.monthlySequence || formData.serialNumber <= 0) {
+          delete enquiryToSubmit.serialNumber;
+          delete enquiryToSubmit.monthlySequence;
+        }
+      }
+
+      onSubmit(enquiryToSubmit as Enquiry);
     } catch (error) {
       console.error('Failed to save enquiry:', error);
       alert('Failed to save enquiry');
@@ -230,13 +620,14 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 bg-white shadow rounded-lg p-6">
-      <div className="flex justify-between items-center border-b pb-4">
+    <form onSubmit={handleSubmit} className="space-y-4 bg-gray-50 p-6">
+      {/* Header */}
+      <div className="flex justify-between items-center bg-white shadow rounded-lg p-4 mb-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">
-            {formData.id ? 'Edit Enquiry' : 'New Enquiry'}
+            {formData.id ? `Edit Enquiry #${formData.referenceNumber}` : 'New Enquiry'}
           </h2>
-          <p className="text-sm text-gray-500">Fill in the details below to create a new logistics record.</p>
+          <p className="text-sm text-gray-500">Please fill in the information below to create or update the enquiry.</p>
         </div>
         <div className="flex gap-2">
           <button
@@ -258,565 +649,614 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
         </div>
       </div>
 
-      {/* General Information */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium text-gray-900 flex items-center">
-          <span className="bg-indigo-100 rounded-full w-8 h-8 flex items-center justify-center text-indigo-600 font-bold mr-3">1</span>
-          General Information
-        </h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Reference Number *</label>
-            <input
-              type="text"
-              value={formData.referenceNumber || 'Auto-generated'}
-              disabled
-              className="mt-1 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Product *</label>
-            <select
-              value={formData.productCode || ''}
-              onChange={(e) => handleChange('productCode', e.target.value)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              required
-            >
-              <option value="">Select Product</option>
-              {products.map(p => (
-                <option key={String(p.value)} value={String(p.value)}>{p.label}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Cargo Type *</label>
-            <select
-              value={formData.cargoTypeCode || formData.cargoType}
-              onChange={(e) => handleChange('cargoTypeCode', e.target.value)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              required
-            >
-              <option value="AIR">AIR</option>
-              <option value="FCL">FCL</option>
-              <option value="LCL">LCL</option>
-              <option value="RAIL">RAIL</option>
-              <option value="SEA">SEA</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Status *</label>
-            <select
-              value={formData.status}
-              onChange={(e) => handleChange('status', e.target.value)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              required
-            >
-              <option value="New">New</option>
-              <option value="Quoted">Quoted</option>
-              <option value="Cancelled">Cancelled</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Received Date *</label>
-            <input
-              type="date"
-              value={formData.receivedDate}
-              onChange={(e) => handleChange('receivedDate', e.target.value)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Issue Date *</label>
-            <input
-              type="date"
-              value={formData.issueDate}
-              onChange={(e) => handleChange('issueDate', e.target.value)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              required
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Sales & Assignment */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium text-gray-900 flex items-center">
-          <span className="bg-indigo-100 rounded-full w-8 h-8 flex items-center justify-center text-indigo-600 font-bold mr-3">2</span>
-          Sales & Assignment
-        </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Sales Country *</label>
-            <select
-              value={formData.salesCountryCode || ''}
-              onChange={(e) => handleCountryChange(e.target.value)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              required
-            >
-              <option value="">Select Country</option>
-              {countries.map(country => (
-                <option key={String(country.value)} value={String(country.value)}>{country.label}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Sales PIC *</label>
-            <select
-              value={formData.salesPicId || ''}
-              onChange={(e) => handleSalesPicChange(Number(e.target.value))}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              required
-              disabled={!formData.salesCountryCode}
-            >
-              <option value="">Select Sales PIC</option>
-              {salesPics.map(pic => (
-                <option key={String(pic.value)} value={Number(pic.value)}>{pic.label} - {pic.officeName}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Sales Office</label>
-            <input
-              type="text"
-              value={formData.salesOfficeName || ''}
-              disabled
-              className="mt-1 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm"
-              placeholder="Auto-filled from Sales PIC"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Customer Information */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium text-gray-900 flex items-center">
-          <span className="bg-indigo-100 rounded-full w-8 h-8 flex items-center justify-center text-indigo-600 font-bold mr-3">3</span>
-          Customer Information
-        </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Company Name</label>
-            <input
-              type="text"
-              value={formData.customerCompanyName || ''}
-              onChange={(e) => handleChange('customerCompanyName', e.target.value)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Contact Person</label>
-            <input
-              type="text"
-              value={formData.customerContactPerson || ''}
-              onChange={(e) => handleChange('customerContactPerson', e.target.value)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Phone</label>
-            <input
-              type="text"
-              value={formData.customerPhone || ''}
-              onChange={(e) => handleChange('customerPhone', e.target.value)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Email</label>
-            <input
-              type="email"
-              value={formData.customerEmail || ''}
-              onChange={(e) => handleChange('customerEmail', e.target.value)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Container Lines */}
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-medium text-gray-900 flex items-center">
-            <span className="bg-indigo-100 rounded-full w-8 h-8 flex items-center justify-center text-indigo-600 font-bold mr-3">4</span>
-            Container Details
-          </h3>
-          <button
-            type="button"
-            onClick={addContainerLine}
-            className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200"
-          >
-            <Plus className="w-4 h-4 mr-1" />
-            Add Container
-          </button>
-        </div>
-
-        {(formData.containerLines || []).length === 0 ? (
-          <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
-            <p>No containers added yet. Click "Add Container" to start.</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {(formData.containerLines || []).map((line, index) => (
-              <div key={line.id} className="flex gap-2 items-center bg-gray-50 p-3 rounded-lg">
-                <div className="flex-1 grid grid-cols-4 gap-2">
-                  <select
-                    value={line.containerTypeId}
-                    onChange={(e) => updateContainerLine(index, 'containerTypeId', Number(e.target.value))}
-                    className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                    required
-                  >
-                    {containerTypes.map(ct => (
-                      <option key={String(ct.value)} value={Number(ct.value)}>{ct.label} ({ct.teuValue} TEU)</option>
-                    ))}
-                  </select>
-
-                  <input
-                    type="number"
-                    value={line.quantity || 1}
-                    onChange={(e) => updateContainerLine(index, 'quantity', Number(e.target.value))}
-                    min="1"
-                    placeholder="Quantity"
-                    className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                    required
-                  />
-
-                  <input
-                    type="number"
-                    value={line.teuValue || 0}
-                    disabled
-                    className="rounded-md border-gray-300 bg-gray-100 shadow-sm"
-                    placeholder="TEU per unit"
-                  />
-
-                  <input
-                    type="number"
-                    value={line.lineTeu || 0}
-                    disabled
-                    className="rounded-md border-gray-300 bg-gray-100 shadow-sm font-semibold"
-                    placeholder="Total TEU"
-                  />
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => removeContainerLine(index)}
-                  className="text-red-600 hover:text-red-900"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            ))}
-
-            <div className="flex justify-end text-sm font-medium text-gray-700 pt-2 border-t">
-              <span>Total TEU: <span className="text-indigo-600 text-lg font-bold">{calculateTotalTeu().toFixed(2)}</span></span>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Route Information */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium text-gray-900 flex items-center">
-          <span className="bg-indigo-100 rounded-full w-8 h-8 flex items-center justify-center text-indigo-600 font-bold mr-3">5</span>
-          Route Information
-        </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Port of Loading (POL) *</label>
-            <select
-              value={formData.polId || ''}
-              onChange={(e) => {
-                const port = ports.find(p => Number(p.value) === Number(e.target.value));
-                handleChange('polId', Number(e.target.value));
-                handleChange('polName', port?.label);
-                handleChange('polCode', port?.portCode);
-              }}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              required
-            >
-              <option value="">Select POL</option>
-              {ports
-                .filter(p => formData.cargoType === 'AIR' ? p.portType === 'AIR' : p.portType === 'SEA')
-                .map(port => (
-                  <option key={String(port.value)} value={Number(port.value)}>{port.label}</option>
-                ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Port of Discharge (POD) *</label>
-            <select
-              value={formData.podId || ''}
-              onChange={(e) => {
-                const port = ports.find(p => Number(p.value) === Number(e.target.value));
-                handleChange('podId', Number(e.target.value));
-                handleChange('podName', port?.label);
-                handleChange('podCode', port?.portCode);
-                handleChange('podCountryCode', port?.countryCode);
-              }}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              required
-            >
-              <option value="">Select POD</option>
-              {ports
-                .filter(p => formData.cargoType === 'AIR' ? p.portType === 'AIR' : p.portType === 'SEA')
-                .map(port => (
-                  <option key={String(port.value)} value={Number(port.value)}>{port.label}</option>
-                ))}
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* Cargo Information */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium text-gray-900 flex items-center">
-          <span className="bg-indigo-100 rounded-full w-8 h-8 flex items-center justify-center text-indigo-600 font-bold mr-3">6</span>
-          Cargo Information
-        </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Volume (CBM)</label>
-            <input
-              type="number"
-              step="0.01"
-              value={formData.volumeCbm || ''}
-              onChange={(e) => handleChange('volumeCbm', e.target.value ? Number(e.target.value) : null)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              placeholder="e.g., 120.5"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Quantity</label>
-            <input
-              type="number"
-              step="0.01"
-              value={formData.quantity || ''}
-              onChange={(e) => handleChange('quantity', e.target.value ? Number(e.target.value) : null)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              placeholder="e.g., 100"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Unit</label>
-            <select
-              value={formData.quantityUomCode || ''}
-              onChange={(e) => handleChange('quantityUomCode', e.target.value)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            >
-              <option value="">Select Unit</option>
-              <option value="KG">KG</option>
-              <option value="PCS">PCS</option>
-              <option value="CTN">CTN</option>
-              <option value="PLT">PLT</option>
-              <option value="SET">SET</option>
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Commodity / Goods Description</label>
-          <textarea
-            value={formData.commodity || ''}
-            onChange={(e) => handleChange('commodity', e.target.value)}
-            rows={3}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            placeholder="Describe the goods being shipped..."
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Hazardous / Special Equipment</label>
-          <textarea
-            value={formData.hazSpecialEquipment || ''}
-            onChange={(e) => handleChange('hazSpecialEquipment', e.target.value)}
-            rows={2}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            placeholder="DG class, UN number, special equipment requirements..."
-          />
-        </div>
-      </div>
-
-      {/* Business Classification */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium text-gray-900 flex items-center">
-          <span className="bg-indigo-100 rounded-full w-8 h-8 flex items-center justify-center text-indigo-600 font-bold mr-3">7</span>
-          Business Classification
-        </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">CORE / NON-CORE</label>
-            <select
-              value={formData.coreFlag || ''}
-              onChange={(e) => handleChange('coreFlag', e.target.value)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            >
-              <option value="">Select...</option>
-              <option value="CORE">CORE</option>
-              <option value="NON_CORE">NON-CORE</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Category</label>
-            <select
-              value={formData.categoryCode || ''}
-              onChange={(e) => handleChange('categoryCode', e.target.value)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            >
-              <option value="">Select Category</option>
-              <option value="OCEAN_FREIGHT">Ocean Freight</option>
-              <option value="AIR_FREIGHT">Air Freight</option>
-              <option value="RAIL_FREIGHT">Rail Freight</option>
-              <option value="MULTIMODAL">Multimodal</option>
-              <option value="PROJECT">Project Cargo</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Assigned CN Office *</label>
-            <select
-              value={formData.assignedCnOfficeCode || ''}
-              onChange={(e) => handleChange('assignedCnOfficeCode', e.target.value)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              required
-            >
-              <option value="">Select Office</option>
-              {cnOffices.map(office => (
-                <option key={String(office.value)} value={String(office.value)}>{office.label}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Cargo Ready Date</label>
-            <input
-              type="date"
-              value={formData.cargoReadyDate || ''}
-              onChange={(e) => handleChange('cargoReadyDate', e.target.value)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Or Cargo Ready Text (TBA/Week...)</label>
-            <input
-              type="text"
-              value={formData.cargoReadyDateRawText || ''}
-              onChange={(e) => handleChange('cargoReadyDateRawText', e.target.value)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              placeholder="e.g., TBA, Week 5, End of Feb"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Additional Information */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium text-gray-900 flex items-center">
-          <span className="bg-indigo-100 rounded-full w-8 h-8 flex items-center justify-center text-indigo-600 font-bold mr-3">8</span>
-          Additional Information
-        </h3>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Additional Requirement</label>
-          <textarea
-            value={formData.additionalRequirement || ''}
-            onChange={(e) => handleChange('additionalRequirement', e.target.value)}
-            rows={3}
-            maxLength={2000}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            placeholder="Special requirements, delivery instructions, etc."
-          />
-          <p className="mt-1 text-xs text-gray-500">Max 2000 characters</p>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Remark</label>
-          <textarea
-            value={formData.remark || ''}
-            onChange={(e) => handleChange('remark', e.target.value)}
-            rows={3}
-            maxLength={2000}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            placeholder="Internal notes or remarks..."
-          />
-        </div>
-      </div>
-
-      {/* Status & Result (Show when editing) */}
-      {formData.id && (
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium text-gray-900 flex items-center">
-            <span className="bg-indigo-100 rounded-full w-8 h-8 flex items-center justify-center text-indigo-600 font-bold mr-3">9</span>
-            Status & Result
-          </h3>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <Accordion>
+        {/* 1. 基础信息 */}
+        <AccordionItem title="Basic Information" defaultExpanded={true} required>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">Booking Confirmed</label>
-              <select
-                value={formData.bookingConfirmed || 'Pending'}
-                onChange={(e) => handleChange('bookingConfirmed', e.target.value)}
+              <label className="block text-sm font-medium text-gray-700">Enquiry Reference</label>
+              <input
+                type="text"
+                value={getReferenceDisplay()}
+                disabled
+                className="mt-1 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm font-semibold text-indigo-600"
+                title="Auto-generated based on product type and date"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                {!formData.referenceNumber && (referencePreview ? 'Auto-generated in real-time' : 'Auto-generated after selecting Product Type')}
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Enquiry Received Date *</label>
+              <input
+                type="date"
+                value={formData.enquiryReceivedDate}
+                onChange={(e) => handleChange('enquiryReceivedDate', e.target.value)}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Issue Date</label>
+              <input
+                type="date"
+                value={formData.issueDate}
+                disabled
+                className="mt-1 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Product Type *</label>
+              <select
+                value={formData.productCode}
+                onChange={(e) => handleChange('productCode', e.target.value)}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                required
               >
-                <option value="Pending">Pending</option>
-                <option value="Yes">Yes</option>
-                <option value="Rejected">Rejected</option>
-                <option value="Invalid">Invalid</option>
+                {products.map(product => (
+                  <option key={String(product.value)} value={String(product.value)}>{product.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Status *</label>
+              <select
+                value={formData.status}
+                onChange={(e) => handleChange('status', e.target.value)}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                required
+              >
+                <option value="New">New</option>
+                <option value="Quoted">Quoted</option>
+                <option value="Cancelled">Cancelled</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">CN Pricing Admin *</label>
+              <select
+                value={formData.cnPricingAdmin || ''}
+                onChange={(e) => handleChange('cnPricingAdmin', e.target.value)}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                required
+              >
+                <option value="">Select admin</option>
+                {cnPricingAdmins.map(admin => (
+                  <option key={String(admin.value)} value={String(admin.value)}>{admin.label}</option>
+                ))}
               </select>
             </div>
           </div>
+        </AccordionItem>
 
-          {formData.bookingConfirmed === 'Rejected' && (
+        {/* 2. Sales Information */}
+        <AccordionItem title="Sales Information ⭐" defaultExpanded={true} badge="Cascade" required>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Sales Country *</label>
+                <select
+                  value={formData.salesCountryCode || ''}
+                  onChange={(e) => handleCountryChange(e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  required
+                >
+                  <option value="">Select country</option>
+                  {salesCountries.map(country => (
+                    <option key={String(country.value)} value={String(country.value)}>{country.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center justify-center pb-2">
+                <ArrowRight className="w-6 h-6 text-indigo-600" />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Sales PIC *</label>
+                <select
+                  value={formData.salesPicId || ''}
+                  onChange={(e) => handleSalesPicChange(Number(e.target.value))}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  required
+                  disabled={!formData.salesCountryCode}
+                >
+                  <option value="">Select Sales PIC</option>
+                  {salesPics.map(pic => (
+                    <option key={String(pic.value)} value={Number(pic.value)}>
+                      {pic.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 text-sm text-gray-600 bg-indigo-50 p-3 rounded-md">
+              <ArrowRight className="w-4 h-4 text-indigo-600" />
+              <span>Auto-map Sales Office and Assigned CN Office</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Sales Office (Auto-filled)</label>
+                <input
+                  type="text"
+                  value={formData.salesOfficeName || ''}
+                  disabled
+                  className="mt-1 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm"
+                  placeholder="Auto-filled after selecting Sales PIC"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Assigned CN Office *</label>
+                <select
+                  value={formData.assignedCnOfficeCode || ''}
+                  onChange={(e) => handleChange('assignedCnOfficeCode', e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  required
+                >
+                  <option value="">Select office</option>
+                  {cnOffices.map(office => (
+                    <option key={String(office.value)} value={String(office.value)}>{office.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+        </AccordionItem>
+
+        {/* 3. Cargo Information */}
+        <AccordionItem title="Cargo Information" defaultExpanded={true}>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Cargo Type *</label>
+                <select
+                  value={formData.cargoTypeCode}
+                  onChange={(e) => handleChange('cargoTypeCode', e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  required
+                >
+                  {cargoTypes.map(type => (
+                    <option key={String(type.value)} value={String(type.value)}>{type.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Volume (CBM)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.volumeCbm || ''}
+                  onChange={(e) => handleChange('volumeCbm', e.target.value ? Number(e.target.value) : null)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  placeholder="e.g. 120.5"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Quantity</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.quantity || ''}
+                  onChange={(e) => handleChange('quantity', e.target.value ? Number(e.target.value) : null)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  placeholder="e.g. 100"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">UOM</label>
+                <select
+                  value={formData.quantityUomCode || ''}
+                  onChange={(e) => handleChange('quantityUomCode', e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                >
+                  <option value="">Select UOM</option>
+                  <option value="KG">KG</option>
+                  <option value="PCS">PCS</option>
+                  <option value="CTN">CTN</option>
+                  <option value="PLT">PLT</option>
+                  <option value="SET">SET</option>
+                </select>
+              </div>
+            </div>
+
             <div>
-              <label className="block text-sm font-medium text-gray-700">Rejected Reason</label>
+              <label className="block text-sm font-medium text-gray-700">Commodity / Description</label>
               <textarea
-                value={formData.rejectedReason || ''}
-                onChange={(e) => handleChange('rejectedReason', e.target.value)}
-                rows={2}
+                value={formData.commodity || ''}
+                onChange={(e) => handleChange('commodity', e.target.value)}
+                rows={3}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                placeholder="Reason for rejection..."
+                placeholder="Describe the cargo..."
               />
             </div>
-          )}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Actual Reason</label>
-            <textarea
-              value={formData.actualReason || ''}
-              onChange={(e) => handleChange('actualReason', e.target.value)}
-              rows={2}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              placeholder="Actual reason for booking status..."
-            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Hazardous / Special Equipment</label>
+              <textarea
+                value={formData.hazSpecialEquipment || ''}
+                onChange={(e) => handleChange('hazSpecialEquipment', e.target.value)}
+                rows={2}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                placeholder="DG class, UN No., special equipment..."
+              />
+            </div>
           </div>
-        </div>
-      )}
+        </AccordionItem>
+
+        {/* 4. Container Lines */}
+        <AccordionItem title="Container Lines">
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <p className="text-sm text-gray-600">Configure container types and quantities</p>
+              <button
+                type="button"
+                onClick={addContainerLine}
+                className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Add Container
+              </button>
+            </div>
+
+            {(formData.containerLines || []).length === 0 ? (
+              <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
+                <p>No container lines yet. Click "Add Container" to start.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {(formData.containerLines || []).map((line, index) => (
+                  <div key={line.id} className="flex gap-2 items-center bg-gray-50 p-3 rounded-lg">
+                    <div className="flex-1 grid grid-cols-4 gap-2">
+                      <select
+                        value={line.containerTypeId}
+                        onChange={(e) => updateContainerLine(index, 'containerTypeId', Number(e.target.value))}
+                        className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        required
+                      >
+                        {containerTypes.map(ct => (
+                          <option key={String(ct.value)} value={Number(ct.value)}>
+                            {ct.label} ({ct.teuValue} TEU)
+                          </option>
+                        ))}
+                      </select>
+
+                      <input
+                        type="number"
+                        value={line.quantity || 1}
+                        onChange={(e) => updateContainerLine(index, 'quantity', Number(e.target.value))}
+                        min="1"
+                        placeholder="Quantity"
+                        className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        required
+                      />
+
+                      <input
+                        type="number"
+                        value={line.teuValue || 0}
+                        disabled
+                        className="rounded-md border-gray-300 bg-gray-100 shadow-sm"
+                        placeholder="TEU/Unit"
+                      />
+
+                      <input
+                        type="number"
+                        value={line.lineTeu || 0}
+                        disabled
+                        className="rounded-md border-gray-300 bg-gray-100 shadow-sm font-semibold"
+                        placeholder="Line TEU"
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => removeContainerLine(index)}
+                      className="text-red-600 hover:text-red-900"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+
+                <div className="flex justify-end text-sm font-medium text-gray-700 pt-2 border-t">
+                  <span>Total TEU: <span className="text-indigo-600 text-lg font-bold">{calculateTotalTeu().toFixed(2)}</span></span>
+                </div>
+              </div>
+            )}
+          </div>
+        </AccordionItem>
+
+        {/* 5. Route Information */}
+        <AccordionItem title="Route Information" defaultExpanded={true} required>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <VirtualizedMultiSelect
+                label="Port of Loading (POL)"
+                options={ports.map(p => ({
+                  value: p.value,
+                  label: p.label,
+                  searchText: p.label // 支持搜索
+                }))}
+                value={formData.polIds || []}
+                onChange={(values) => handleChange('polIds', values.map(v => Number(v)))}
+                placeholder="Search and select ports of loading..."
+                required
+                maxSelections={10}  // 最多选择10个港口
+                itemHeight={36}
+                  listHeight={600}
+                  showCount={false}
+              />
+
+              <VirtualizedMultiSelect
+                label="Port of Discharge (POD)"
+                options={ports.map(p => ({
+                  value: p.value,
+                  label: p.label,
+                  searchText: p.label // 支持搜索
+                }))}
+                value={formData.podIds || []}
+                onChange={(values) => {
+                  const podIds = values.map(v => Number(v));
+                  handleChange('podIds', podIds);
+                  if (podIds.length > 0) {
+                    updatePodCountries(podIds);
+                  }
+                }}
+                placeholder="Search and select ports of discharge..."
+                required
+                maxSelections={10}  // 最多选择10个港口
+                itemHeight={36}
+                  listHeight={600}
+                  showCount={false}
+              />
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+              <div className="flex items-start gap-2">
+                <div className="flex-shrink-0 mt-0.5">
+                  <ArrowRight className="w-4 h-4 text-blue-600" />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-blue-900">
+                    POD Country - Auto Mapped
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.podCountryName || 'Please select POD first'}
+                    disabled
+                    className="mt-1 block w-full rounded-md border-blue-300 bg-blue-100 text-blue-900 shadow-sm font-medium"
+                    placeholder="Auto-filled based on selected POD"
+                  />
+                  <p className="mt-1 text-xs text-blue-700">
+                    💡 This field auto-maps country from selected POD.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </AccordionItem>
+
+        {/* 6. Offer Information */}
+        <AccordionItem title="Offer Information" badge={formData.offers?.length}>
+          <div className="space-y-4">
+            <button
+              type="button"
+              onClick={addOffer}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
+            >
+              <Plus className="w-4 h-4" />
+              Add Offer
+            </button>
+
+            {(formData.offers || []).length === 0 ? (
+              <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
+                <p>No offers yet. Click "Add Offer" to start.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {(formData.offers || []).map((offer, index) => (
+                  <div key={offer.id} className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <div className="flex justify-between items-start mb-3">
+                      <span className="text-sm font-semibold text-gray-700">
+                        Offer #{index + 1}
+                        {offer.isLatest && (
+                          <span className="ml-2 px-2 py-0.5 text-xs bg-green-100 text-green-800 rounded">Latest</span>
+                        )}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeOffer(index)}
+                        className="text-red-600 hover:text-red-900"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Offer Type *</label>
+                        <select
+                          value={offer.offerType}
+                          onChange={(e) => updateOffer(index, 'offerType', e.target.value)}
+                          className="block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                          required
+                        >
+                          <option value="OCEAN">OCEAN</option>
+                          <option value="AIR">AIR</option>
+                          <option value="OTHER">OTHER</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Offer Date *</label>
+                        <input
+                          type="date"
+                          value={offer.sentDate}
+                          onChange={(e) => updateOffer(index, 'sentDate', e.target.value)}
+                          className="block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                          required
+                        />
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Offer Details</label>
+                        <textarea
+                          value={offer.priceText || ''}
+                          onChange={(e) => updateOffer(index, 'priceText', e.target.value)}
+                          rows={2}
+                          className="block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                          placeholder="例如: USD 2,500.00 all-in"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </AccordionItem>
+
+        {/* 7. Business Classification */}
+        <AccordionItem title="Business Classification">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">CORE / NON-CORE</label>
+              <select
+                value={formData.coreFlag || ''}
+                onChange={(e) => handleChange('coreFlag', e.target.value)}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              >
+                <option value="">Select...</option>
+                <option value="CORE">CORE</option>
+                <option value="NON_CORE">NON-CORE</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Category</label>
+              <select
+                value={formData.categoryCode || ''}
+                onChange={(e) => handleChange('categoryCode', e.target.value)}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              >
+                <option value="">Select category</option>
+                <option value="OCEAN_FREIGHT">Ocean Freight</option>
+                <option value="AIR_FREIGHT">Air Freight</option>
+                <option value="RAIL_FREIGHT">Rail Freight</option>
+                <option value="MULTIMODAL">Multimodal</option>
+                <option value="PROJECT">Project Cargo</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Cargo Ready Date</label>
+              <input
+                type="date"
+                value={formData.cargoReadyDate || ''}
+                onChange={(e) => handleChange('cargoReadyDate', e.target.value)}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              />
+            </div>
+
+            <div className="md:col-span-3">
+              <label className="block text-sm font-medium text-gray-700">Cargo Ready Date Text (TBA/Week...)</label>
+              <input
+                type="text"
+                value={formData.cargoReadyDateRawText || ''}
+                onChange={(e) => handleChange('cargoReadyDateRawText', e.target.value)}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                placeholder="例如: TBA, Week 5, End of Feb"
+              />
+            </div>
+          </div>
+        </AccordionItem>
+
+        {/* 8. Additional Information */}
+        <AccordionItem title="Additional Information">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Additional Requirements</label>
+              <textarea
+                value={formData.additionalRequirement || ''}
+                onChange={(e) => handleChange('additionalRequirement', e.target.value)}
+                rows={3}
+                maxLength={2000}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                placeholder="Special requirements, delivery notes, etc."
+              />
+              <p className="mt-1 text-xs text-gray-500">Max 2000 characters</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Remark</label>
+              <textarea
+                value={formData.remark || ''}
+                onChange={(e) => handleChange('remark', e.target.value)}
+                rows={3}
+                maxLength={2000}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                placeholder="Internal notes or remarks..."
+              />
+            </div>
+          </div>
+        </AccordionItem>
+
+        {/* 9. Status & Result */}
+        <AccordionItem title="Status & Result">
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Booking Confirmed</label>
+                <select
+                  value={formData.bookingConfirmed || 'Pending'}
+                  onChange={(e) => handleChange('bookingConfirmed', e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                >
+                  <option value="Pending">Pending</option>
+                  <option value="Yes">Yes</option>
+                  <option value="Rejected">Rejected</option>
+                  <option value="Invalid">Invalid</option>
+                </select>
+              </div>
+            </div>
+
+            {formData.bookingConfirmed === 'Rejected' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Rejected Reason</label>
+                <textarea
+                  value={formData.rejectedReason || ''}
+                  onChange={(e) => handleChange('rejectedReason', e.target.value)}
+                  rows={2}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  placeholder="Reason for rejection..."
+                />
+              </div>
+            )}
+
+            {formData.id && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Actual Reason</label>
+                <textarea
+                  value={formData.actualReason || ''}
+                  onChange={(e) => handleChange('actualReason', e.target.value)}
+                  rows={2}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  placeholder="Actual reason for booking status..."
+                />
+              </div>
+            )}
+          </div>
+        </AccordionItem>
+      </Accordion>
     </form>
   );
 };

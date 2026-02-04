@@ -235,16 +235,18 @@ export interface Enquiry {
   hazSpecialEquipment?: string;
   additionalRequirement?: string;
   
-  // 路线信息
-  polId?: number;
+  // 路线信息 (支持多港口)
+  polIds?: number[];  // 多个起运港ID
+  polId?: number;  // 兼容单港口
   polCode?: string;
   polName?: string;
   polPortType?: string;
-  podId?: number;
+  podIds?: number[];  // 多个目的港ID
+  podId?: number;  // 兼容单港口
   podCode?: string;
   podName?: string;
   podCountryCode?: string;
-  podCountryName?: string;  // 添加缺失字段
+  podCountryName?: string;
   podPortType?: string;
   
   // 业务逻辑
@@ -275,6 +277,14 @@ export interface Enquiry {
   // 时间戳
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface ReferencePreview {
+  referenceNumber: string;
+  referenceMonth: string;
+  monthlySequence: number;
+  serialNumber: number;
+  productAbbr: string;
 }
 
 // ==========================================
@@ -330,16 +340,19 @@ export interface EnquiryFormData {
   quantityUomCode?: string;  // 兼容旧代码
   commodity?: string;
   hazSpecialEquipment?: string;
-  additionalRequirement?: string;
-  
-  polId?: number;
-  podId?: number;
+  polIds?: number[];  // 多个起运港ID
+  polId?: number;  // 兼容单港口（后端可能需要）
+  podIds?: number[];  // 多个目的港ID
+  podId?: number;  // 兼容单港口（后端可能需要）
+  podCountryCode?: string;  // POD国家代码
+  podCountryName?: string;  // POD国家名称（自动映射）
   
   coreNonCore?: CoreStatus;
   coreFlag?: string;  // 兼容旧代码
   categoryCode?: string;
   cargoReadyDate?: string;
   cargoReadyDateRawText?: string;  // 兼容旧代码
+  additionalRequirement?: string;  // 附加要求
   
   bookingConfirmed: BookingStatus;
   remark?: string;

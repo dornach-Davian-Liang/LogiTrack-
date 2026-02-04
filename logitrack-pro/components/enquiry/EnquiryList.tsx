@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Eye, Edit, Copy, Trash2, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Enquiry, EnquiryStatus } from '../../types';
+import { Search, Filter, Eye, Edit, Copy, Trash2, Plus, ChevronLeft, ChevronRight, TrendingUp } from 'lucide-react';
+import { Enquiry, EnquiryListItem, EnquiryStatus } from '../../types';
 import { enquiryApi } from '../../services/api';
 
 interface EnquiryListProps {
@@ -10,7 +10,7 @@ interface EnquiryListProps {
 }
 
 export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, onNewEnquiry }) => {
-  const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
+  const [enquiries, setEnquiries] = useState<EnquiryListItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -33,17 +33,23 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
     setError(null);
     try {
       const response = await enquiryApi.list({
-        page: currentPage,
+        page: Math.max(0, currentPage - 1),
         pageSize,
         search: searchTerm || undefined,
         status: statusFilter || undefined,
         cargoType: cargoTypeFilter || undefined,
       });
+      console.log('[EnquiryList] API response:', {
+        totalElements: response.totalElements,
+        totalPages: response.totalPages,
+        contentLength: response.content?.length,
+        firstItem: response.content?.[0]
+      });
       setEnquiries(response.content);
       setTotalPages(response.totalPages);
     } catch (err) {
       setError('Failed to load enquiries');
-      console.error(err);
+      console.error('[EnquiryList] Error loading enquiries:', err);
     } finally {
       setIsLoading(false);
     }
@@ -61,16 +67,65 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
     }
   };
 
-  const handleCopy = (enquiry: Enquiry) => {
-    const copied = {
-      ...enquiry,
-      id: undefined,
-      referenceNumber: `${enquiry.referenceNumber}-COPY`,
-      status: 'New' as EnquiryStatus,
-      receivedDate: new Date().toISOString().split('T')[0],
-      issueDate: new Date().toISOString().split('T')[0],
-    };
-    onEdit(copied as Enquiry);
+  const handleCopy = async (enquiry: EnquiryListItem) => {
+    try {
+      console.log('[handleCopy] enquiry:', enquiry);
+      if (!enquiry.id) {
+        alert('Invalid enquiry: missing ID');
+        console.error('[handleCopy] enquiry missing id:', enquiry);
+        return;
+      }
+      
+      // ✅ 先加载完整的Enquiry数据（包含polIds/podIds等）
+      const fullEnquiry = await enquiryApi.getById(enquiry.id);
+      
+      const today = new Date().toISOString().split('T')[0];
+      const copied = {
+        ...fullEnquiry,
+        id: undefined,
+        referenceNumber: undefined,
+        referenceMonth: undefined,
+        monthlySequence: undefined,
+        serialNumber: 0,
+        status: 'New' as EnquiryStatus,
+        enquiryReceivedDate: today,
+        issueDate: today,
+      };
+      onEdit(copied as Enquiry);
+    } catch (err) {
+      alert('Failed to copy enquiry');
+      console.error('[handleCopy] error:', err);
+    }
+  };
+
+  const handleIncrease = async (enquiry: EnquiryListItem) => {
+    try {
+      console.log('[handleIncrease] enquiry:', enquiry);
+      if (!enquiry.id) {
+        alert('Invalid enquiry: missing ID');
+        console.error('[handleIncrease] enquiry missing id:', enquiry);
+        return;
+      }
+      
+      // ✅ 先加载完整的Enquiry数据（包含polIds/podIds等）
+      const fullEnquiry = await enquiryApi.getById(enquiry.id);
+      const preview = await enquiryApi.getIncreaseReference(enquiry.id);
+      const copied = {
+        ...fullEnquiry,
+        id: undefined,
+        referenceNumber: preview.referenceNumber,
+        referenceMonth: preview.referenceMonth,
+        monthlySequence: preview.monthlySequence,
+        serialNumber: preview.serialNumber,
+        status: 'New' as EnquiryStatus,
+        enquiryReceivedDate: new Date().toISOString().split('T')[0],
+        issueDate: fullEnquiry.issueDate,
+      };
+      onEdit(copied as Enquiry);
+    } catch (err) {
+      alert('Failed to generate increase reference');
+      console.error('[handleIncrease] error:', err);
+    }
   };
 
   const getStatusColor = (status: EnquiryStatus) => {
@@ -200,13 +255,13 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
                       {enquiry.referenceNumber}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {enquiry.customerCompanyName}
+                      {enquiry.salesPicName || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {enquiry.polName} → {enquiry.podName}
+                      {enquiry.polName || enquiry.polCode || '-'} → {enquiry.podName || enquiry.podCode || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {enquiry.cargoType}
+                      {enquiry.cargoTypeCode}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(enquiry.status)}`}>
@@ -214,7 +269,7 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {enquiry.receivedDate}
+                      {enquiry.enquiryReceivedDate}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end gap-2">
@@ -238,6 +293,13 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
                           title="Copy"
                         >
                           <Copy className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleIncrease(enquiry)}
+                          className="text-teal-600 hover:text-teal-900"
+                          title="Increase"
+                        >
+                          <TrendingUp className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(enquiry.id!)}

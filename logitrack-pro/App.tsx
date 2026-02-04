@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, PlusCircle, FileSpreadsheet, Ship, Settings, Bell, Search, Menu, LogOut, Loader2, RefreshCw } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, FileSpreadsheet, Ship, Settings, Bell, Search, Menu, LogOut, Loader2, RefreshCw, Globe, Anchor, Users, Box } from 'lucide-react';
 import { Enquiry, EnquiryListItem, EnquiryFormData } from './types';
 import { enquiryApi } from './services/api';
 import EnquiryList from './components/enquiry/EnquiryList';
 import EnquiryForm from './components/enquiry/EnquiryForm';
 import EnquiryDetail from './components/enquiry/EnquiryDetail';
+import CountryList from './components/master-data/CountryList';
+import PortList from './components/master-data/PortList';
+import SalesPicList from './components/master-data/SalesPicList';
+import ContainerTypeList from './components/master-data/ContainerTypeList';
 import Login from './components/Login';
 
-type ViewType = 'dashboard' | 'enquiry-list' | 'enquiry-form' | 'enquiry-detail';
+type ViewType = 'dashboard' | 'enquiry-list' | 'enquiry-form' | 'enquiry-detail' | 'master-countries' | 'master-ports' | 'master-sales-pics' | 'master-container-types';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -33,7 +37,7 @@ const App: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
-        const response = await enquiryApi.list({ page: 1, pageSize: 10 });
+        const response = await enquiryApi.list({ page: 0, pageSize: 10 });
         setEnquiries(response.content);
     } catch (err) {
         console.error("Failed to fetch data", err);
@@ -74,9 +78,32 @@ const App: React.FC = () => {
     setCurrentView('enquiry-detail');
   };
 
-  const handleEditEnquiry = (enquiry: Enquiry | EnquiryListItem) => {
-    setEditingEnquiry(enquiry as Enquiry);
-    setCurrentView('enquiry-form');
+  const handleEditEnquiry = async (enquiry: Enquiry | EnquiryListItem) => {
+    try {
+      // ✅ 如果没有id，说明是Copy/Increase场景，数据已准备好，直接使用
+      if (!enquiry.id) {
+        console.log('📝 New enquiry (Copy/Increase), using provided data');
+        setEditingEnquiry(enquiry as Enquiry);
+        setCurrentView('enquiry-form');
+        return;
+      }
+      
+      // ✅ 如果有id，从getById获取完整数据（确保polIds/podIds完整）
+      console.log('📥 Loading full enquiry data for edit:', enquiry.id);
+      const fullEnquiry = await enquiryApi.getById(enquiry.id);
+      console.log('✅ Full enquiry data loaded:', { 
+        polIds: fullEnquiry.polIds, 
+        podIds: fullEnquiry.podIds,
+        polId: fullEnquiry.polId,
+        podId: fullEnquiry.podId,
+      });
+      
+      setEditingEnquiry(fullEnquiry);
+      setCurrentView('enquiry-form');
+    } catch (err) {
+      console.error('Failed to load enquiry for edit:', err);
+      alert('Failed to load enquiry details. Please try again.');
+    }
   };
 
   const handleNewEnquiry = () => {
@@ -114,6 +141,14 @@ const App: React.FC = () => {
             onEdit={handleEditEnquiry}
           />
         ) : null;
+      case 'master-countries':
+        return <CountryList />;
+      case 'master-ports':
+        return <PortList />;
+      case 'master-sales-pics':
+        return <SalesPicList />;
+      case 'master-container-types':
+        return <ContainerTypeList />;
       case 'dashboard':
       default:
         return renderDashboard();
@@ -309,13 +344,46 @@ const App: React.FC = () => {
                     <Ship className="mr-3 flex-shrink-0 h-6 w-6" />
                     Enquiries
                 </button>
+                <div className="pt-4 pb-2">
+                    <p className="px-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Master Data</p>
+                </div>
                 <button 
-                  onClick={handleNewEnquiry}
-                  className="group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                  onClick={() => setCurrentView('master-countries')}
+                  className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full transition-colors ${currentView === 'master-countries' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
                 >
+                    <Globe className="mr-3 flex-shrink-0 h-5 w-5" />
+                    Countries
+                </button>
+                <button 
+                  onClick={() => setCurrentView('master-ports')}
+                  className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full transition-colors ${currentView === 'master-ports' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                >
+                    <Anchor className="mr-3 flex-shrink-0 h-5 w-5" />
+                    Ports
+                </button>
+                <button 
+                  onClick={() => setCurrentView('master-sales-pics')}
+                  className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full transition-colors ${currentView === 'master-sales-pics' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                >
+                    <Users className="mr-3 flex-shrink-0 h-5 w-5" />
+                    Sales PICs
+                </button>
+                <button 
+                  onClick={() => setCurrentView('master-container-types')}
+                  className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full transition-colors ${currentView === 'master-container-types' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                >
+                    <Box className="mr-3 flex-shrink-0 h-5 w-5" />
+                    Container Types
+                </button>
+                <div className="pt-4 border-t border-slate-800 mt-4">
+                  <button 
+                    onClick={handleNewEnquiry}
+                    className="group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full text-emerald-300 hover:bg-emerald-700 hover:text-white transition-colors"
+                  >
                     <PlusCircle className="mr-3 flex-shrink-0 h-6 w-6" />
                     New Enquiry
-                </button>
+                  </button>
+                </div>
                 <button className="group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full text-slate-300 hover:bg-slate-800 hover:text-white transition-colors">
                     <FileSpreadsheet className="mr-3 flex-shrink-0 h-6 w-6" />
                     Reports
@@ -357,6 +425,10 @@ const App: React.FC = () => {
                       {currentView === 'enquiry-list' && 'Enquiry Management'}
                       {currentView === 'enquiry-form' && (editingEnquiry ? 'Edit Enquiry' : 'New Enquiry')}
                       {currentView === 'enquiry-detail' && 'Enquiry Details'}
+                      {currentView === 'master-countries' && 'Country Management'}
+                      {currentView === 'master-ports' && 'Port Management'}
+                      {currentView === 'master-sales-pics' && 'Sales PIC Management'}
+                      {currentView === 'master-container-types' && 'Container Type Management'}
                     </h2>
                 </div>
                 <div className="ml-4 flex items-center md:ml-6 gap-3">

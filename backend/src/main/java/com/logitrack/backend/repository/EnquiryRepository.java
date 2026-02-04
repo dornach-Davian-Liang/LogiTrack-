@@ -5,9 +5,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
+import jakarta.persistence.LockModeType;
 
 import java.util.List;
 import java.util.Optional;
@@ -35,4 +38,22 @@ public interface EnquiryRepository extends JpaRepository<Enquiry, Long>, JpaSpec
 
     // Count enquiries by reference month (YYMM)
     long countByReferenceMonth(String referenceMonth);
+
+    @Query("SELECT COALESCE(MAX(e.monthlySequence), 0) FROM Enquiry e WHERE e.referenceMonth = :referenceMonth")
+    Integer findMaxMonthlySequence(@Param("referenceMonth") String referenceMonth);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT e FROM Enquiry e WHERE e.referenceMonth = :referenceMonth ORDER BY e.monthlySequence DESC LIMIT 1")
+    Optional<Enquiry> findLatestEnquiryByMonth(@Param("referenceMonth") String referenceMonth);
+
+    @Query("SELECT COALESCE(MAX(e.serialNumber), 0) FROM Enquiry e WHERE e.referenceMonth = :referenceMonth AND e.monthlySequence = :monthlySequence AND e.productAbbr = :productAbbr")
+    Integer findMaxSerialNumber(@Param("referenceMonth") String referenceMonth,
+                               @Param("monthlySequence") Integer monthlySequence,
+                               @Param("productAbbr") String productAbbr);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT e FROM Enquiry e WHERE e.referenceMonth = :referenceMonth AND e.monthlySequence = :monthlySequence AND e.productAbbr = :productAbbr ORDER BY e.serialNumber DESC LIMIT 1")
+    Optional<Enquiry> findLatestEnquiryByMonthSequenceProduct(@Param("referenceMonth") String referenceMonth,
+                                                               @Param("monthlySequence") Integer monthlySequence,
+                                                               @Param("productAbbr") String productAbbr);
 }
