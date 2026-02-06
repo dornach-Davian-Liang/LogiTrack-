@@ -10,11 +10,13 @@ export default defineConfig(({ mode }) => {
         host: '0.0.0.0',
         strictPort: true,
         hmr: {
-          clientPort: 443,
-          protocol: 'wss'
+          host: 'localhost',
+          port: 3000,
+          protocol: 'ws'
         },
         proxy: {
           '/api': {
+            // Backend (MySQL profile) listens on 8888 in this project (see backend/application-mysql.properties)
             target: 'http://localhost:8888',
             changeOrigin: true,
             secure: false,
