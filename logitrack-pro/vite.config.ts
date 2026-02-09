@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
+    const apiTarget = env.VITE_API_TARGET || 'http://localhost:8080';
     return {
       server: {
         port: 3000,
@@ -16,8 +17,8 @@ export default defineConfig(({ mode }) => {
         },
         proxy: {
           '/api': {
-            // Backend (MySQL profile) listens on 8888 in this project (see backend/application-mysql.properties)
-            target: 'http://localhost:8888',
+            // Backend default: 8080 (override with VITE_API_TARGET)
+            target: apiTarget,
             changeOrigin: true,
             secure: false,
           }

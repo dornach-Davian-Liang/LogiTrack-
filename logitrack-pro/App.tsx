@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, PlusCircle, FileSpreadsheet, Ship, Settings, Bell, Search, Menu, LogOut, Loader2, RefreshCw, Globe, Anchor, Users, Box } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, FileSpreadsheet, Ship, Settings, Bell, Search, Menu, LogOut, Loader2, RefreshCw, Globe, Anchor, Users, Box, BarChart3 } from 'lucide-react';
 import { Enquiry, EnquiryListItem, EnquiryFormData } from './types';
 import { enquiryApi } from './services/api';
 import EnquiryList from './components/enquiry/EnquiryList';
@@ -10,8 +10,9 @@ import PortList from './components/master-data/PortList';
 import SalesPicList from './components/master-data/SalesPicList';
 import ContainerTypeList from './components/master-data/ContainerTypeList';
 import Login from './components/Login';
+import Dashboard from './components/report/Dashboard';
 
-type ViewType = 'dashboard' | 'enquiry-list' | 'enquiry-form' | 'enquiry-detail' | 'master-countries' | 'master-ports' | 'master-sales-pics' | 'master-container-types';
+type ViewType = 'dashboard' | 'enquiry-list' | 'enquiry-form' | 'enquiry-detail' | 'master-countries' | 'master-ports' | 'master-sales-pics' | 'master-container-types' | 'report-dashboard';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -149,6 +150,8 @@ const App: React.FC = () => {
         return <SalesPicList />;
       case 'master-container-types':
         return <ContainerTypeList />;
+      case 'report-dashboard':
+        return <Dashboard />;
       case 'dashboard':
       default:
         return renderDashboard();
@@ -384,8 +387,11 @@ const App: React.FC = () => {
                     New Enquiry
                   </button>
                 </div>
-                <button className="group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full text-slate-300 hover:bg-slate-800 hover:text-white transition-colors">
-                    <FileSpreadsheet className="mr-3 flex-shrink-0 h-6 w-6" />
+                <button 
+                  onClick={() => setCurrentView('report-dashboard')}
+                  className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full transition-colors ${currentView === 'report-dashboard' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                >
+                    <BarChart3 className="mr-3 flex-shrink-0 h-6 w-6" />
                     Reports
                 </button>
                  <button className="group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full text-slate-300 hover:bg-slate-800 hover:text-white transition-colors">
@@ -429,6 +435,7 @@ const App: React.FC = () => {
                       {currentView === 'master-ports' && 'Port Management'}
                       {currentView === 'master-sales-pics' && 'Sales PIC Management'}
                       {currentView === 'master-container-types' && 'Container Type Management'}
+                      {currentView === 'report-dashboard' && 'Report Dashboard'}
                     </h2>
                 </div>
                 <div className="ml-4 flex items-center md:ml-6 gap-3">

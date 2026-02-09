@@ -229,10 +229,10 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
                     Reference
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Customer
+                    CN Pricing Admin
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Route
+                    Product Type
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Cargo Type
@@ -255,10 +255,10 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
                       {enquiry.referenceNumber}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {enquiry.salesPicName || '-'}
+                      {enquiry.cnPricingAdmin || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {enquiry.polName || enquiry.polCode || '-'} → {enquiry.podName || enquiry.podCode || '-'}
+                      {enquiry.productCode || enquiry.productAbbr || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {enquiry.cargoTypeCode}

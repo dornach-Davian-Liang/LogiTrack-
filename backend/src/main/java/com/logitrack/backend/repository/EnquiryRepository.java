@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 
 import jakarta.persistence.LockModeType;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -56,4 +57,7 @@ public interface EnquiryRepository extends JpaRepository<Enquiry, Long>, JpaSpec
     Optional<Enquiry> findLatestEnquiryByMonthSequenceProduct(@Param("referenceMonth") String referenceMonth,
                                                                @Param("monthlySequence") Integer monthlySequence,
                                                                @Param("productAbbr") String productAbbr);
+    
+    // For statistics - find enquiries by date range
+    List<Enquiry> findByEnquiryReceivedDateBetween(LocalDate startDate, LocalDate endDate);
 }

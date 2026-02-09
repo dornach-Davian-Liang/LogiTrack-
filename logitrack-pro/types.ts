@@ -439,3 +439,130 @@ export interface EnquiryRecord {
   rejectedReason?: string;
   actualReason?: string;
 }
+
+// ==========================================
+// Report 统计类型
+// ==========================================
+// Report Module Types
+// ==========================================
+
+export interface DashboardOverview {
+  totalEnquiries: number;
+  quoted: number;
+  pending: number;
+  confirmed: number;
+  totalEnquiriesChange: number;
+  quotedChange: number;
+  confirmedChange: number;
+}
+
+export interface StatusBreakdown {
+  count: number;
+  percentage: string;
+}
+
+export interface MonthlyTrend {
+  month: string;
+  count: number;
+  change?: number;
+}
+
+export interface LocationStat {
+  name?: string;
+  country?: string;
+  port?: string;
+  type?: string;
+  count: number;
+  percentage?: string;
+}
+
+export interface DashboardStats {
+  overview: DashboardOverview;
+  statusBreakdown: { [status: string]: StatusBreakdown };
+  monthlyTrend: MonthlyTrend[];
+  topCountries: LocationStat[];
+  topOrigins: LocationStat[];
+  topDestinations: LocationStat[];
+  cargoTypes: LocationStat[];
+}
+
+export interface MonthlyReportData {
+  month: string;
+  summary: {
+    totalEnquiries: number;
+    quotedCount: number;
+    bookingConfirmedCount: number;
+    rejectionCount: number;
+    bookingRate: string;
+    quoteRate: string;
+  };
+  byCountry: Array<{
+    countryCode: string;
+    countryName: string;
+    enquiryCount: number;
+    quotedCount: number;
+    bookedCount: number;
+    conversionRate: string;
+  }>;
+  byCargoType: Array<{
+    cargoType: string;
+    enquiryCount: number;
+    percentage: string;
+    quotedCount: number;
+    bookedCount: number;
+  }>;
+  bySalesOffice: Array<{
+    officeId: number;
+    officeName: string;
+    enquiryCount: number;
+    quotedCount: number;
+    conversionRate: string;
+  }>;
+  bookingStatus: Array<{
+    status: string;
+    count: number;
+    percentage: string;
+  }>;
+}
+
+export interface CountryReportData {
+  countryCode: string;
+  countryName: string;
+  summary: {
+    totalEnquiries: number;
+    quotedCount: number;
+    bookedCount: number;
+    conversionRate: string;
+  };
+  cargoDistribution: Array<{
+    type: string;
+    percentage: number;
+    count: number;
+  }>;
+  bookingStatusDistribution: Array<{
+    status: string;
+    percentage: number;
+    count: number;
+  }>;
+  topPics: Array<{
+    picId: number;
+    picName: string;
+    enquiryCount: number;
+    quotedCount: number;
+    conversionRate: string;
+  }>;
+  trend30Days: Array<{
+    date: string;
+    count: number;
+  }>;
+}
+
+export interface ExportOptions {
+  reportType: 'monthly' | 'country' | 'cargoType' | 'office';
+  format: 'xlsx' | 'csv';
+  includeCharts: boolean;
+  month?: string;
+  countryCode?: string;
+  startDate?: string;
+  endDate?: string;
+}
