@@ -8,11 +8,12 @@ interface EnquiryDetailProps {
   enquiryId: number;
   onBack: () => void;
   onEdit: (enquiry: Enquiry) => void;
+  canManage: boolean;
 }
 
 type TabType = 'basic' | 'cargo' | 'route' | 'containers' | 'offers';
 
-export const EnquiryDetail: React.FC<EnquiryDetailProps> = ({ enquiryId, onBack, onEdit }) => {
+export const EnquiryDetail: React.FC<EnquiryDetailProps> = ({ enquiryId, onBack, onEdit, canManage }) => {
   const [enquiry, setEnquiry] = useState<Enquiry | null>(null);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -207,15 +208,17 @@ export const EnquiryDetail: React.FC<EnquiryDetailProps> = ({ enquiryId, onBack,
                   <p className="text-indigo-100 mt-1 text-sm font-medium">Enquiry Details & Management</p>
                 </div>
               </div>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => onEdit(enquiry)}
-                  className="inline-flex items-center px-5 py-2.5 bg-white text-indigo-600 shadow-lg text-sm font-semibold rounded-xl hover:bg-indigo-50 transition-all duration-200 hover:scale-105"
-                >
-                  <Edit className="w-4 h-4 mr-2" />
-                  Edit Enquiry
-                </button>
-              </div>
+              {canManage && (
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => onEdit(enquiry)}
+                    className="inline-flex items-center px-5 py-2.5 bg-white text-indigo-600 shadow-lg text-sm font-semibold rounded-xl hover:bg-indigo-50 transition-all duration-200 hover:scale-105"
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit Enquiry
+                  </button>
+                </div>
+              )}
             </div>
             
             {/* Status Bar - Enhanced */}
@@ -564,13 +567,15 @@ export const EnquiryDetail: React.FC<EnquiryDetailProps> = ({ enquiryId, onBack,
                   </div>
                   <h3 className="text-2xl font-bold text-gray-900">Offer History</h3>
                 </div>
-                <button 
-                  onClick={handleAddOffer}
-                  className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-lg text-sm font-bold rounded-xl hover:from-emerald-600 hover:to-green-700 transition-all duration-200 hover:scale-105"
-                >
-                  <Plus className="w-5 h-5 mr-2" />
-                  Add New Offer
-                </button>
+                {canManage && (
+                  <button 
+                    onClick={handleAddOffer}
+                    className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-lg text-sm font-bold rounded-xl hover:from-emerald-600 hover:to-green-700 transition-all duration-200 hover:scale-105"
+                  >
+                    <Plus className="w-5 h-5 mr-2" />
+                    Add New Offer
+                  </button>
+                )}
               </div>
               {offers.length === 0 ? (
                 <div className="text-center py-16 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl border-2 border-dashed border-emerald-200">
@@ -579,13 +584,15 @@ export const EnquiryDetail: React.FC<EnquiryDetailProps> = ({ enquiryId, onBack,
                   </div>
                   <p className="text-lg font-semibold text-gray-700">No offers yet</p>
                   <p className="text-sm text-gray-500 mt-2 max-w-sm mx-auto">Get started by creating your first offer for this enquiry</p>
-                  <button
-                    onClick={handleAddOffer}
-                    className="mt-6 inline-flex items-center px-6 py-3 bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-lg text-sm font-bold rounded-xl hover:from-emerald-600 hover:to-green-700 transition-all duration-200"
-                  >
-                    <Plus className="w-5 h-5 mr-2" />
-                    Create First Offer
-                  </button>
+                  {canManage && (
+                    <button
+                      onClick={handleAddOffer}
+                      className="mt-6 inline-flex items-center px-6 py-3 bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-lg text-sm font-bold rounded-xl hover:from-emerald-600 hover:to-green-700 transition-all duration-200"
+                    >
+                      <Plus className="w-5 h-5 mr-2" />
+                      Create First Offer
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div className="grid gap-4">
@@ -628,15 +635,17 @@ export const EnquiryDetail: React.FC<EnquiryDetailProps> = ({ enquiryId, onBack,
                             </p>
                           </div>
                         </div>
-                        <div className="flex gap-2">
-                          <button 
-                            onClick={() => handleEditOffer(offer)}
-                            className="p-3 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all duration-200 hover:scale-110"
-                            title="Edit Offer"
-                          >
-                            <Edit className="w-5 h-5" />
-                          </button>
-                        </div>
+                        {canManage && (
+                          <div className="flex gap-2">
+                            <button 
+                              onClick={() => handleEditOffer(offer)}
+                              className="p-3 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all duration-200 hover:scale-110"
+                              title="Edit Offer"
+                            >
+                              <Edit className="w-5 h-5" />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -648,7 +657,7 @@ export const EnquiryDetail: React.FC<EnquiryDetailProps> = ({ enquiryId, onBack,
       </div>
 
       {/* Offer Dialog */}
-      {enquiry && (
+      {enquiry && canManage && (
         <OfferDialog
           enquiryId={enquiryId}
           enquiryReferenceNumber={enquiry.referenceNumber}

@@ -1,12 +1,16 @@
 package com.logitrack.backend.controller;
 
-import com.logitrack.backend.dto.DashboardStatsDTO;
+import com.logitrack.backend.dto.*;
+import com.logitrack.backend.service.ComparisonService;
 import com.logitrack.backend.service.StatisticsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -19,6 +23,7 @@ import java.util.Map;
 public class StatisticsController {
     
     private final StatisticsService statisticsService;
+    private final ComparisonService comparisonService;
     
     /**
      * GET /api/statistics/dashboard - Get dashboard statistics
@@ -37,6 +42,51 @@ public class StatisticsController {
         } catch (Exception e) {
             log.error("Error fetching dashboard statistics", e);
             return ResponseEntity.internalServerError().build();
+        }
+    }
+    
+    /**
+     * GET /api/statistics/dashboard/filtered - Get filtered dashboard statistics
+     * Supports date range, core flag, and CN office filtering
+     * 
+     * @param startDate Start date (YYYY-MM-DD)
+     * @param endDate End date (YYYY-MM-DD)
+     * @param coreFlags Optional list of core flags (comma-separated: CORE,NON CORE)
+     * @param cnOffice Optional CN office filter
+     * @return Filtered dashboard statistics
+     */
+    @GetMapping("/dashboard/filtered")
+    public ResponseEntity<?> getFilteredDashboardStats(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) List<String> coreFlags,
+            @RequestParam(required = false) String cnOffice) {
+        
+        log.info("GET /api/statistics/dashboard/filtered - startDate={}, endDate={}, coreFlags={}, cnOffice={}", 
+                 startDate, endDate, coreFlags, cnOffice);
+        
+        try {
+            DashboardFilterDTO filter = DashboardFilterDTO.builder()
+                .startDate(startDate)
+                .endDate(endDate)
+                .coreFlags(coreFlags)
+                .cnOffice(cnOffice)
+                .build();
+            
+            DashboardStatsDTO stats = statisticsService.getDashboardStatsWithFilter(filter);
+            return ResponseEntity.ok(stats);
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid filter parameters: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of(
+                "error", "Invalid parameters",
+                "message", e.getMessage()
+            ));
+        } catch (Exception e) {
+            log.error("Error fetching filtered dashboard statistics", e);
+            return ResponseEntity.internalServerError().body(Map.of(
+                "error", "Internal server error",
+                "message", e.getMessage()
+            ));
         }
     }
     
@@ -94,5 +144,36 @@ public class StatisticsController {
             "message", "Export endpoint - implementation pending",
             "exportId", "EXP-" + System.currentTimeMillis()
         ));
+    }
+    
+    /**
+     * POST /api/statistics/comparison - Compare multiple time periods
+     * Supports monthly and quarterly comparisons
+     * 
+     * @param request Comparison request with periods and filters
+     * @return Comparison result with period statistics and trends
+     */
+    @PostMapping("/comparison")
+    public ResponseEntity<?> comparePeriods(@RequestBody PeriodComparisonRequestDTO request) {
+        
+        log.info("POST /api/statistics/comparison - type={}, periods={}", 
+                 request.getComparisonType(), request.getPeriods());
+        
+        try {
+            ComparisonResultDTO result = comparisonService.comparePeriods(request);
+            return ResponseEntity.ok(result);
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid comparison request: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of(
+                "error", "Invalid request",
+                "message", e.getMessage()
+            ));
+        } catch (Exception e) {
+            log.error("Error performing period comparison", e);
+            return ResponseEntity.internalServerError().body(Map.of(
+                "error", "Internal server error",
+                "message", e.getMessage()
+            ));
+        }
     }
 }

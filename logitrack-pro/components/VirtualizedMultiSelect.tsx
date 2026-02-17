@@ -19,6 +19,8 @@ interface VirtualizedMultiSelectProps {
   itemHeight?: number; // 每个选项的高度
   listHeight?: number; // 列表显示高度
   showCount?: boolean; // 是否显示数量徽章（默认false，显示具体名称）
+  onSearch?: (searchTerm: string) => Promise<void>; // ✅ 新增：异步搜索回调
+  isSearching?: boolean; // ✅ 新增：搜索加载状态
 }
 
 /**
@@ -40,12 +42,15 @@ export const VirtualizedMultiSelect: React.FC<VirtualizedMultiSelectProps> = ({
   itemHeight = 36,
   listHeight = 500,
   showCount = false,
+  onSearch, // ✅ 新增
+  isSearching = false, // ✅ 新增
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [focusedIndex, setFocusedIndex] = useState(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null); // ✅ 新增：防抖定时器
 
   // 过滤选项（使用 useMemo 优化性能）
   // ✅ 优化：将已选选项置顶
@@ -268,8 +273,19 @@ export const VirtualizedMultiSelect: React.FC<VirtualizedMultiSelectProps> = ({
               type="text"
               value={searchTerm}
               onChange={(e) => {
-                setSearchTerm(e.target.value);
+                const newSearchTerm = e.target.value;
+                setSearchTerm(newSearchTerm);
                 setFocusedIndex(0);
+                
+                // ✅ 如果提供了onSearch回调，使用防抖调用
+                if (onSearch) {
+                  if (searchTimeoutRef.current) {
+                    clearTimeout(searchTimeoutRef.current);
+                  }
+                  searchTimeoutRef.current = setTimeout(() => {
+                    onSearch(newSearchTerm);
+                  }, 500); // 500ms防抖
+                }
               }}
               placeholder="搜索港口..."
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -277,8 +293,12 @@ export const VirtualizedMultiSelect: React.FC<VirtualizedMultiSelectProps> = ({
             />
             <div className="mt-1 text-xs text-gray-500 flex justify-between">
               <span>
-                {filteredOptions.length} 个港口
-                {searchTerm && ` (从 ${options.length} 个中筛选)`}
+                {isSearching ? '搜索中...' : (
+                  <>
+                    {filteredOptions.length} 个港口
+                    {searchTerm && ` (从 ${options.length} 个中筛选)`}
+                  </>
+                )}
               </span>
               {value.length > 0 && (
                 <span className="text-blue-600 font-medium">

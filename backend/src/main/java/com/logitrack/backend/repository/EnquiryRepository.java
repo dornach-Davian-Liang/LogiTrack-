@@ -60,4 +60,7 @@ public interface EnquiryRepository extends JpaRepository<Enquiry, Long>, JpaSpec
     
     // For statistics - find enquiries by date range
     List<Enquiry> findByEnquiryReceivedDateBetween(LocalDate startDate, LocalDate endDate);
+    
+    // Note: Advanced filtering (Core Flag, CN Office) is done in Service layer using Stream API
+    // This avoids Hibernate HQL Enum casting issues and provides better type safety
 }

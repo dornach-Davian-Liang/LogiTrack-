@@ -70,25 +70,13 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
   const [cargoTypes, setCargoTypes] = useState<SelectOption[]>([]);
   const [cnPricingAdmins, setCnPricingAdmins] = useState<SelectOption[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isPortSearching, setIsPortSearching] = useState(false); // ✅ 新增：港口搜索加载状态
   const [referencePreview, setReferencePreview] = useState('');
   const [isReferenceLoading, setIsReferenceLoading] = useState(false);
-  
-  // 追踪需要补齐的港口IDs，避免ports重置时丢失数据
-  const pendingPortIdsRef = useRef<Set<number>>(new Set());
 
   useEffect(() => {
     loadMasterData();
   }, []);
-
-  useEffect(() => {
-    // ✅ 当ports加载完成后，补齐所有待补充的港口
-    if (ports.length > 0 && pendingPortIdsRef.current.size > 0) {
-      const pendingIds = Array.from(pendingPortIdsRef.current);
-      ensurePortsLoaded(pendingIds);
-      // 清空ref，避免重复补齐
-      pendingPortIdsRef.current.clear();
-    }
-  }, [ports]);
 
   useEffect(() => {
     if (initialData) {
@@ -130,13 +118,9 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
       ].filter((v): v is number => v !== null && v !== undefined).map(Number)));
 
       if (selectedPortIds.length > 0) {
-        // 保存需要补齐的港口IDs到ref
-        selectedPortIds.forEach(id => pendingPortIdsRef.current.add(id));
-        
-        // 如果ports已经加载，立即补齐；否则等待ports加载完后补齐
-        if (ports.length > 0) {
-          ensurePortsLoaded(selectedPortIds);
-        }
+        console.log('[EnquiryForm] Loading selected ports immediately:', selectedPortIds);
+        // ✅ 直接加载，不等待ports
+        ensurePortsLoaded(selectedPortIds);
       }
     }
   }, [initialData]);
@@ -211,6 +195,17 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
     };
   }, [formData.issueDate, formData.productCode]);
 
+  // 监听offers变化，自动更新Status为Quoted
+  useEffect(() => {
+    if (formData.offers && formData.offers.length > 0 && formData.status === 'New') {
+      console.log('[EnquiryForm] Offers detected, auto-setting status to Quoted');
+      setFormData(prev => ({
+        ...prev,
+        status: 'Quoted',
+      }));
+    }
+  }, [formData.offers]);
+
   const mapPortToOption = (port: Port): PortSelectOption => ({
     value: port.id,
     label: port.portName || port.portCode || String(port.id),
@@ -221,14 +216,14 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
 
   // ✅ 补齐港口：确保已选港口在下拉框中显示
   const ensurePortsLoaded = (selectedPortIds: number[], basePortsList?: PortSelectOption[]) => {
-    const currentPorts = basePortsList || ports;
-    if (!currentPorts || currentPorts.length === 0) return;
+    const currentPorts = basePortsList !== undefined ? basePortsList : ports;
     
-    // 找出还没加载的港口IDs
+    // ✅ 找出还没加载的港口IDs（如果currentPorts为空，则所有都需要加载）
     const portValueSet = new Set(currentPorts.map(p => String(p.value)));
     const missingIds = selectedPortIds.filter(id => !portValueSet.has(String(id)));
     
-    if (missingIds.length === 0) return;
+    // ✅ 如果没有缺失的港口，直接返回
+    if (missingIds.length === 0 && currentPorts.length > 0) return;
     
     // 获取缺失的港口信息
     Promise.all(missingIds.map(id => masterDataApi.getPortById(id)))
@@ -250,35 +245,26 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
 
   const loadMasterData = async () => {
     try {
+      // ✅ 优化：基础数据和港口数据分开加载
       const [
         salesCountriesData,
         allCountriesData,
         containerTypesData,
         cnOfficesData,
-        seaPortsData,
-        airPortsData,
       ] = await Promise.all([
         masterDataApi.getSalesCountries(),
         masterDataApi.getAllCountries(),
         masterDataApi.getContainerTypes(),
         masterDataApi.getCnOffices(),
-        masterDataApi.searchPorts('SEA', ''),
-        masterDataApi.searchPorts('AIR', ''),
       ]);
       setSalesCountries(salesCountriesData);
       setAllCountries(allCountriesData);
       setContainerTypes(containerTypesData);
       setCnOffices(cnOfficesData);
       
-      // 合并海港和空港数据
-      const allPortsData = [...(seaPortsData || []), ...(airPortsData || [])];
-      setPorts(allPortsData);
-      
-      // ✅ 加载完master数据后，补齐待补充的港口
-      if (pendingPortIdsRef.current.size > 0) {
-        const pendingIds = Array.from(pendingPortIdsRef.current);
-        ensurePortsLoaded(pendingIds, allPortsData);
-      }
+      // ✅ 优化：初始化空数组，编辑模式下的港口会在initialData的useEffect中加载
+      // 新建模式则由VirtualizedMultiSelect的搜索触发加载
+      setPorts([]);
       
       // 设置产品类型选项
       setProducts([
@@ -312,6 +298,68 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
 
   const handleChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // ✅ 新增：异步港口搜索处理
+  const handlePortSearch = async (searchTerm: string) => {
+    try {
+      setIsPortSearching(true);
+      
+      // 如果搜索词为空，只保留已选择的港口
+      if (!searchTerm || searchTerm.trim() === '') {
+        // 保持已选港口，清空搜索结果
+        const selectedPortIds = Array.from(new Set([
+          ...(formData.polIds || []),
+          ...(formData.podIds || []),
+        ]));
+        
+        if (selectedPortIds.length > 0) {
+          const selectedPorts = await Promise.all(
+            selectedPortIds.map(id => masterDataApi.getPortById(id))
+          );
+          setPorts(selectedPorts.filter((p): p is Port => !!p).map(mapPortToOption));
+        } else {
+          setPorts([]);
+        }
+        return;
+      }
+      
+      // 搜索海港和空港
+      const [seaPorts, airPorts] = await Promise.all([
+        masterDataApi.searchPorts('SEA', searchTerm),
+        masterDataApi.searchPorts('AIR', searchTerm),
+      ]);
+      
+      // 合并结果并去重（保留已选港口）
+      const searchResults = [...(seaPorts || []), ...(airPorts || [])];
+      const selectedPortIds = Array.from(new Set([
+        ...(formData.polIds || []),
+        ...(formData.podIds || []),
+      ]));
+      
+      // 确保已选港口在列表中
+      const selectedPorts = await Promise.all(
+        selectedPortIds
+          .filter(id => !searchResults.some(p => p.value === id))
+          .map(id => masterDataApi.getPortById(id))
+      );
+      
+      const allPorts = [
+        ...selectedPorts.filter((p): p is Port => !!p).map(mapPortToOption),
+        ...searchResults,
+      ];
+      
+      // 去重
+      const uniquePorts = Array.from(
+        new Map(allPorts.map(p => [String(p.value), p])).values()
+      );
+      
+      setPorts(uniquePorts);
+    } catch (error) {
+      console.error('Failed to search ports:', error);
+    } finally {
+      setIsPortSearching(false);
+    }
   };
 
   // Handle country change - load sales pics for that country
@@ -672,7 +720,17 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
               <input
                 type="date"
                 value={formData.enquiryReceivedDate}
-                onChange={(e) => handleChange('enquiryReceivedDate', e.target.value)}
+                max={new Date().toISOString().split('T')[0]}
+                onChange={(e) => {
+                  const selectedDateStr = e.target.value;
+                  const todayStr = new Date().toISOString().split('T')[0];
+                  
+                  if (selectedDateStr > todayStr) {
+                    alert('询价接收日期不能晚于今天之后的日期');
+                    return;
+                  }
+                  handleChange('enquiryReceivedDate', e.target.value);
+                }}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 required
               />
@@ -699,20 +757,6 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
                 {products.map(product => (
                   <option key={String(product.value)} value={String(product.value)}>{product.label}</option>
                 ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Status *</label>
-              <select
-                value={formData.status}
-                onChange={(e) => handleChange('status', e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                required
-              >
-                <option value="New">New</option>
-                <option value="Quoted">Quoted</option>
-                <option value="Cancelled">Cancelled</option>
               </select>
             </div>
 
@@ -992,8 +1036,10 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
                 required
                 maxSelections={10}  // 最多选择10个港口
                 itemHeight={36}
-                  listHeight={600}
-                  showCount={false}
+                listHeight={600}
+                showCount={false}
+                onSearch={handlePortSearch} // ✅ 异步搜索
+                isSearching={isPortSearching} // ✅ 搜索状态
               />
 
               <VirtualizedMultiSelect
@@ -1015,8 +1061,10 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
                 required
                 maxSelections={10}  // 最多选择10个港口
                 itemHeight={36}
-                  listHeight={600}
-                  showCount={false}
+                listHeight={600}
+                showCount={false}
+                onSearch={handlePortSearch} // ✅ 异步搜索
+                isSearching={isPortSearching} // ✅ 搜索状态
               />
             </div>
 
@@ -1101,7 +1149,17 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
                         <input
                           type="date"
                           value={offer.sentDate}
-                          onChange={(e) => updateOffer(index, 'sentDate', e.target.value)}
+                          max={new Date().toISOString().split('T')[0]}
+                          onChange={(e) => {
+                            const selectedDateStr = e.target.value;
+                            const todayStr = new Date().toISOString().split('T')[0];
+                            
+                            if (selectedDateStr > todayStr) {
+                              alert('报价日期不能晚于今天之后的日期');
+                              return;
+                            }
+                            updateOffer(index, 'sentDate', e.target.value);
+                          }}
                           className="block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                           required
                         />
@@ -1149,11 +1207,11 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               >
                 <option value="">Select category</option>
-                <option value="OCEAN_FREIGHT">Ocean Freight</option>
-                <option value="AIR_FREIGHT">Air Freight</option>
-                <option value="RAIL_FREIGHT">Rail Freight</option>
-                <option value="MULTIMODAL">Multimodal</option>
-                <option value="PROJECT">Project Cargo</option>
+                <option value="FREIGHT">Freight</option>
+                <option value="FREIGHT_ORIGIN_EXW">Freight + Origin Charge/EXW</option>
+                <option value="FREIGHT_ORIGIN_DEST">Freight + Origin Charge/EXW+Dest. Charges</option>
+                <option value="ORIGIN_EXW">Origin Charges/EXW</option>
+                <option value="LCL">LCL</option>
               </select>
             </div>
 
@@ -1215,6 +1273,21 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
+                <label className="block text-sm font-medium text-gray-700">Status *</label>
+                <select
+                  value={formData.status}
+                  onChange={(e) => handleChange('status', e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  required
+                  disabled={formData.offers && formData.offers.length > 0}
+                  title={formData.offers && formData.offers.length > 0 ? 'Status is auto-set to Quoted when offers exist' : ''}
+                >
+                  <option value="New">New</option>
+                  <option value="Quoted">Quoted</option>
+                  <option value="Cancelled">Cancelled</option>
+                </select>
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700">Booking Confirmed</label>
                 <select
                   value={formData.bookingConfirmed || 'Pending'}
@@ -1232,13 +1305,27 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
             {formData.bookingConfirmed === 'Rejected' && (
               <div>
                 <label className="block text-sm font-medium text-gray-700">Rejected Reason</label>
-                <textarea
+                <select
                   value={formData.rejectedReason || ''}
                   onChange={(e) => handleChange('rejectedReason', e.target.value)}
-                  rows={2}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  placeholder="Reason for rejection..."
-                />
+                >
+                  <option value="">Select reason</option>
+                  <option value="Cancel Booking">Cancel Booking</option>
+                  <option value="Rate Checking - For indication only">Rate Checking - For indication only</option>
+                  <option value="Rate Checking - No feedback from customer">Rate Checking - No feedback from customer</option>
+                  <option value="By Other NVOCC">By Other NVOCC</option>
+                  <option value="Production problem">Production problem</option>
+                  <option value="Rate Issue-freight">Rate Issue-freight</option>
+                  <option value="Rate Issue-local charges">Rate Issue-local charges</option>
+                  <option value="Space Issue">Space Issue</option>
+                  <option value="Cancel Booking - Changed to Couriers">Cancel Booking - Changed to Couriers</option>
+                  <option value="Cancel Booking - By Air">Cancel Booking - By Air</option>
+                  <option value="Cancel Booking - By Sea">Cancel Booking - By Sea</option>
+                  <option value="Cancel Booking - By Train">Cancel Booking - By Train</option>
+                  <option value="Cancel Booking - PO Cancelled">Cancel Booking - PO Cancelled</option>
+                  <option value="Others">Others</option>
+                </select>
               </div>
             )}
 

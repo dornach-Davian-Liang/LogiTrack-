@@ -1,23 +1,31 @@
 import React, { useState } from 'react';
 import { Ship, Lock, Mail, ArrowRight } from 'lucide-react';
+import { authApi } from '../services/api';
+import { LoginResponse } from '../types';
 
 interface LoginProps {
-  onLogin: () => void;
+  onLogin: (user: LoginResponse) => void;
 }
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
+    setError(null);
+    try {
+      const user = await authApi.login({ username, password });
+      onLogin(user);
+    } catch (err) {
+      console.error('[Login] Failed to sign in', err);
+      setError('Login failed. Please check your username and password.');
+    } finally {
       setIsLoading(false);
-      onLogin();
-    }, 800);
+    }
   };
 
   return (
@@ -34,18 +42,18 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         <div className="p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Mail className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
-                  type="email"
+                  type="text"
                   required
                   className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                  placeholder="admin@logitrack.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="admin"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                 />
               </div>
             </div>
@@ -67,6 +75,11 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               </div>
             </div>
 
+            {error && (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {error}
+              </div>
+            )}
             <button
               type="submit"
               disabled={isLoading}
@@ -90,7 +103,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           
           <div className="mt-6 text-center">
              <p className="text-xs text-gray-500">
-               Use any email to sign in for demo access.
+               Use your system username and password to sign in.
              </p>
           </div>
         </div>

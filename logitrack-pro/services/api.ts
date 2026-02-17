@@ -30,6 +30,8 @@ import {
   PortSelectOption,
   SalesPicSelectOption,
   ContainerTypeSelectOption,
+  LoginRequest,
+  LoginResponse,
 } from '../types';
 
 // ==========================================
@@ -38,6 +40,17 @@ import {
 
 const API_BASE_URL = '/api';
 const USE_MOCK_DATA = false; // 关闭MOCK，使用真实数据库
+
+// ==========================================
+// 认证 API
+// ==========================================
+
+export const authApi = {
+  login: async (payload: LoginRequest) => request<LoginResponse>('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+};
 
 // ==========================================
 // 通用请求方法

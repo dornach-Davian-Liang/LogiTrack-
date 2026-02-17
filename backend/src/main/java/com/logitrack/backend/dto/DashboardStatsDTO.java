@@ -23,4 +23,5 @@ public class DashboardStatsDTO {
     private List<LocationStatDTO> topOrigins;
     private List<LocationStatDTO> topDestinations;
     private List<LocationStatDTO> cargoTypes;
+    private List<CNOfficeStatDTO> cnOfficeStats;  // New: CN Office breakdown
 }

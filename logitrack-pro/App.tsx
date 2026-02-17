@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, PlusCircle, FileSpreadsheet, Ship, Settings, Bell, Search, Menu, LogOut, Loader2, RefreshCw, Globe, Anchor, Users, Box, BarChart3 } from 'lucide-react';
-import { Enquiry, EnquiryListItem, EnquiryFormData } from './types';
+import React, { useState, useEffect, useMemo } from 'react';
+import { LayoutDashboard, PlusCircle, FileSpreadsheet, Ship, Settings, Bell, Search, Menu, LogOut, Loader2, RefreshCw, Globe, Anchor, Users, Box, BarChart3, Filter, TrendingUp } from 'lucide-react';
+import { Enquiry, EnquiryListItem, EnquiryFormData, LoginResponse } from './types';
 import { enquiryApi } from './services/api';
 import EnquiryList from './components/enquiry/EnquiryList';
 import EnquiryForm from './components/enquiry/EnquiryForm';
@@ -11,12 +11,16 @@ import SalesPicList from './components/master-data/SalesPicList';
 import ContainerTypeList from './components/master-data/ContainerTypeList';
 import Login from './components/Login';
 import Dashboard from './components/report/Dashboard';
+import { EnhancedDashboard } from './components/report/EnhancedDashboard';
+import { ComparisonReport } from './components/report/ComparisonReport';
 
-type ViewType = 'dashboard' | 'enquiry-list' | 'enquiry-form' | 'enquiry-detail' | 'master-countries' | 'master-ports' | 'master-sales-pics' | 'master-container-types' | 'report-dashboard';
+type ViewType = 'dashboard' | 'enquiry-list' | 'enquiry-form' | 'enquiry-detail' | 'master-countries' | 'master-ports' | 'master-sales-pics' | 'master-container-types' | 'report-dashboard' | 'report-enhanced' | 'report-comparison';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
+  const [previousView, setPreviousView] = useState<ViewType>('dashboard');  // 跟踪上一个视图用于返回
+  const [currentUser, setCurrentUser] = useState<LoginResponse | null>(null);
   
   // Data State
   const [enquiries, setEnquiries] = useState<EnquiryListItem[]>([]);
@@ -26,6 +30,17 @@ const App: React.FC = () => {
   // UI State
   const [editingEnquiry, setEditingEnquiry] = useState<Partial<Enquiry> | null>(null);
   const [selectedEnquiryId, setSelectedEnquiryId] = useState<number | null>(null);
+  
+  // Enhanced Dashboard Modal State (用于保持弹窗状态)
+  const [enhancedDashboardModalState, setEnhancedDashboardModalState] = useState<{
+    isOpen: boolean;
+    officeName: string;
+    bookingStatus: 'yes' | 'rejected' | 'invalid' | 'pending';
+    timestamp?: number; // 添加时间戳用于强制更新
+  } | null>(null);
+  
+  // ✅ 新增：保存增强报表的过滤条件
+  const [enhancedDashboardFilter, setEnhancedDashboardFilter] = useState<any>(null);
 
   // Initial Data Load
   useEffect(() => {
@@ -48,15 +63,55 @@ const App: React.FC = () => {
     }
   };
 
-  const handleLogin = () => {
+  const handleLogin = (user: LoginResponse) => {
+    setCurrentUser(user);
     setIsAuthenticated(true);
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
+    setCurrentUser(null);
     setEnquiries([]);
     setCurrentView('dashboard');
   };
+
+  const roles = currentUser?.roles ?? [];
+  // 后端返回的角色代码: ADMIN_USER, OPERATING_USER, NORMAL_USER
+  const isAdmin = roles.includes('ADMIN_USER') || roles.includes('ADMIN');
+  const isOperatingUser = isAdmin || roles.includes('OPERATING_USER');
+  const isLoginUser = !isAdmin && !isOperatingUser;
+  
+  // Admin权限：可以访问所有功能
+  const canManageEnquiries = isAdmin || isOperatingUser;
+  const canManageMasterData = isAdmin || isOperatingUser;
+  const canViewReports = isAdmin || isOperatingUser;
+  const canViewSettings = isAdmin;  // 仅Admin可见设置
+  const displayName = currentUser?.username ?? 'User';
+  const displayRole = roles[0] ?? 'LOGIN_USER';
+
+  const allowedViews = useMemo(() => {
+    const views: ViewType[] = ['dashboard', 'enquiry-list', 'enquiry-detail'];
+
+    if (canManageEnquiries) {
+      views.push('enquiry-form');
+    }
+
+    if (canManageMasterData) {
+      views.push('master-countries', 'master-ports', 'master-sales-pics', 'master-container-types');
+    }
+
+    if (canViewReports) {
+      views.push('report-dashboard', 'report-enhanced', 'report-comparison');
+    }
+
+    return new Set(views);
+  }, [canManageEnquiries, canManageMasterData, canViewReports]);
+
+  useEffect(() => {
+    if (!allowedViews.has(currentView)) {
+      setCurrentView('dashboard');
+    }
+  }, [allowedViews, currentView]);
 
   const handleSaveEnquiry = async (enquiry: Enquiry) => {
     try {
@@ -66,7 +121,9 @@ const App: React.FC = () => {
             await enquiryApi.create(enquiry as unknown as EnquiryFormData);
         }
         setEditingEnquiry(null);
-        setCurrentView('enquiry-list');
+        // 返回到之前的视图（可能是enquiry-list或report-enhanced）
+        setCurrentView(previousView);
+        // 不清除 enhancedDashboardModalState，让 EnhancedDashboard 恢复弹窗
         fetchData();
     } catch (err) {
         alert("Failed to save enquiry.");
@@ -74,13 +131,39 @@ const App: React.FC = () => {
     }
   };
 
-  const handleViewDetail = (enquiry: Enquiry | EnquiryListItem) => {
+  const handleViewDetail = (enquiry: Enquiry | EnquiryListItem, modalState?: { officeName: string; bookingStatus: 'yes' | 'rejected' | 'invalid' | 'pending' }) => {
+    setPreviousView(currentView);  // 保存当前视图
+    
+    // 如果是从增强报表的弹窗进入，保存弹窗状态
+    if (currentView === 'report-enhanced' && modalState) {
+      console.log('[App] Saving modal state for view detail:', modalState);
+      setEnhancedDashboardModalState({
+        isOpen: true,
+        officeName: modalState.officeName,
+        bookingStatus: modalState.bookingStatus,
+        timestamp: Date.now() // 添加时间戳强制更新
+      });
+    }
+    
     setSelectedEnquiryId(enquiry.id!);
     setCurrentView('enquiry-detail');
   };
 
-  const handleEditEnquiry = async (enquiry: Enquiry | EnquiryListItem) => {
+  const handleEditEnquiry = async (enquiry: Enquiry | EnquiryListItem, modalState?: { officeName: string; bookingStatus: 'yes' | 'rejected' | 'invalid' | 'pending' }) => {
     try {
+      setPreviousView(currentView);  // 保存当前视图
+      
+      // 如果是从增强报表的弹窗进入，保存弹窗状态
+      if (currentView === 'report-enhanced' && modalState) {
+        console.log('[App] Saving modal state for edit:', modalState);
+        setEnhancedDashboardModalState({
+          isOpen: true,
+          officeName: modalState.officeName,
+          bookingStatus: modalState.bookingStatus,
+          timestamp: Date.now() // 添加时间戳强制更新
+        });
+      }
+      
       // ✅ 如果没有id，说明是Copy/Increase场景，数据已准备好，直接使用
       if (!enquiry.id) {
         console.log('📝 New enquiry (Copy/Increase), using provided data');
@@ -124,22 +207,35 @@ const App: React.FC = () => {
             onViewDetail={handleViewDetail}
             onEdit={handleEditEnquiry}
             onNewEnquiry={handleNewEnquiry}
+            canCreate={canManageEnquiries}
+            canManage={canManageEnquiries}
           />
         );
       case 'enquiry-form':
         return (
           <EnquiryForm
             initialData={editingEnquiry}
-            onSubmit={handleSaveEnquiry}
-            onCancel={() => setCurrentView('enquiry-list')}
+            onSubmit={async (enquiry) => {
+              await handleSaveEnquiry(enquiry);
+              // handleSaveEnquiry 会处理返回和fetchData
+              // 保留 enhancedDashboardModalState，弹窗会在返回时自动恢复
+            }}
+            onCancel={() => {
+              setCurrentView(previousView);
+              // 保留 enhancedDashboardModalState，弹窗会在返回时自动恢复
+            }}
           />
         );
       case 'enquiry-detail':
         return selectedEnquiryId ? (
           <EnquiryDetail
             enquiryId={selectedEnquiryId}
-            onBack={() => setCurrentView('enquiry-list')}
+            onBack={() => {
+              setCurrentView(previousView);
+              // 保留 enhancedDashboardModalState，弹窗会在返回时自动恢复
+            }}
             onEdit={handleEditEnquiry}
+            canManage={canManageEnquiries}
           />
         ) : null;
       case 'master-countries':
@@ -152,6 +248,27 @@ const App: React.FC = () => {
         return <ContainerTypeList />;
       case 'report-dashboard':
         return <Dashboard />;
+      case 'report-enhanced':
+        console.log('[App] Rendering EnhancedDashboard with modalState:', enhancedDashboardModalState);
+        return (
+          <EnhancedDashboard 
+            onViewDetail={handleViewDetail}
+            onEdit={handleEditEnquiry}
+            canManage={canManageEnquiries}
+            initialModalState={enhancedDashboardModalState}
+            onModalStateChange={(state) => {
+              console.log('[App] Modal state changed:', state);
+              setEnhancedDashboardModalState(state);
+            }}
+            savedFilter={enhancedDashboardFilter}
+            onFilterChange={(filter) => {
+              console.log('[App] Filter changed:', filter);
+              setEnhancedDashboardFilter(filter);
+            }}
+          />
+        );
+      case 'report-comparison':
+        return <ComparisonReport />;
       case 'dashboard':
       default:
         return renderDashboard();
@@ -232,13 +349,15 @@ const App: React.FC = () => {
 
       <div className="flex justify-between items-center pt-4">
         <h1 className="text-2xl font-bold text-gray-900">Recent Enquiries</h1>
-        <button 
-          onClick={handleNewEnquiry}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
-        >
-          <PlusCircle className="w-4 h-4 mr-2" />
-          Add New Enquiry
-        </button>
+        {canManageEnquiries && (
+          <button 
+            onClick={handleNewEnquiry}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
+          >
+            <PlusCircle className="w-4 h-4 mr-2" />
+            Add New Enquiry
+          </button>
+        )}
       </div>
       
       {isLoading ? (
@@ -254,9 +373,11 @@ const App: React.FC = () => {
       ) : enquiries.length === 0 ? (
         <div className="text-center bg-white rounded-lg shadow p-8">
           <p className="text-gray-500">No enquiries found. Create your first one!</p>
-          <button onClick={handleNewEnquiry} className="mt-4 text-indigo-600 hover:underline">
-            Create New Enquiry
-          </button>
+          {canManageEnquiries && (
+            <button onClick={handleNewEnquiry} className="mt-4 text-indigo-600 hover:underline">
+              Create New Enquiry
+            </button>
+          )}
         </div>
       ) : (
         <div className="bg-white shadow rounded-lg overflow-hidden">
@@ -347,57 +468,86 @@ const App: React.FC = () => {
                     <Ship className="mr-3 flex-shrink-0 h-6 w-6" />
                     Enquiries
                 </button>
-                <div className="pt-4 pb-2">
-                    <p className="px-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Master Data</p>
-                </div>
-                <button 
-                  onClick={() => setCurrentView('master-countries')}
-                  className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full transition-colors ${currentView === 'master-countries' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
-                >
-                    <Globe className="mr-3 flex-shrink-0 h-5 w-5" />
-                    Countries
-                </button>
-                <button 
-                  onClick={() => setCurrentView('master-ports')}
-                  className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full transition-colors ${currentView === 'master-ports' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
-                >
-                    <Anchor className="mr-3 flex-shrink-0 h-5 w-5" />
-                    Ports
-                </button>
-                <button 
-                  onClick={() => setCurrentView('master-sales-pics')}
-                  className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full transition-colors ${currentView === 'master-sales-pics' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
-                >
-                    <Users className="mr-3 flex-shrink-0 h-5 w-5" />
-                    Sales PICs
-                </button>
-                <button 
-                  onClick={() => setCurrentView('master-container-types')}
-                  className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full transition-colors ${currentView === 'master-container-types' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
-                >
-                    <Box className="mr-3 flex-shrink-0 h-5 w-5" />
-                    Container Types
-                </button>
-                <div className="pt-4 border-t border-slate-800 mt-4">
-                  <button 
-                    onClick={handleNewEnquiry}
-                    className="group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full text-emerald-300 hover:bg-emerald-700 hover:text-white transition-colors"
-                  >
-                    <PlusCircle className="mr-3 flex-shrink-0 h-6 w-6" />
-                    New Enquiry
+                {canManageMasterData && (
+                  <>
+                    <div className="pt-4 pb-2">
+                        <p className="px-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Master Data</p>
+                    </div>
+                    <button 
+                      onClick={() => setCurrentView('master-countries')}
+                      className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full transition-colors ${currentView === 'master-countries' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                    >
+                        <Globe className="mr-3 flex-shrink-0 h-5 w-5" />
+                        Countries
+                    </button>
+                    <button 
+                      onClick={() => setCurrentView('master-ports')}
+                      className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full transition-colors ${currentView === 'master-ports' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                    >
+                        <Anchor className="mr-3 flex-shrink-0 h-5 w-5" />
+                        Ports
+                    </button>
+                    <button 
+                      onClick={() => setCurrentView('master-sales-pics')}
+                      className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full transition-colors ${currentView === 'master-sales-pics' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                    >
+                        <Users className="mr-3 flex-shrink-0 h-5 w-5" />
+                        Sales PICs
+                    </button>
+                    <button 
+                      onClick={() => setCurrentView('master-container-types')}
+                      className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full transition-colors ${currentView === 'master-container-types' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                    >
+                        <Box className="mr-3 flex-shrink-0 h-5 w-5" />
+                        Container Types
+                    </button>
+                  </>
+                )}
+                {canManageEnquiries && (
+                  <div className="pt-4 border-t border-slate-800 mt-4">
+                    <button 
+                      onClick={handleNewEnquiry}
+                      className="group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full text-emerald-300 hover:bg-emerald-700 hover:text-white transition-colors"
+                    >
+                      <PlusCircle className="mr-3 flex-shrink-0 h-6 w-6" />
+                      New Enquiry
+                    </button>
+                  </div>
+                )}
+                {canViewReports && (
+                  <>
+                    <div className="pt-4 pb-2">
+                        <p className="px-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Reports</p>
+                    </div>
+                    <button 
+                      onClick={() => setCurrentView('report-dashboard')}
+                      className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full transition-colors ${currentView === 'report-dashboard' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                    >
+                        <BarChart3 className="mr-3 flex-shrink-0 h-5 w-5" />
+                        基础报表
+                    </button>
+                    <button 
+                      onClick={() => setCurrentView('report-enhanced')}
+                      className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full transition-colors ${currentView === 'report-enhanced' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                    >
+                        <Filter className="mr-3 flex-shrink-0 h-5 w-5" />
+                        增强报表
+                    </button>
+                    <button 
+                      onClick={() => setCurrentView('report-comparison')}
+                      className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full transition-colors ${currentView === 'report-comparison' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                    >
+                        <TrendingUp className="mr-3 flex-shrink-0 h-5 w-5" />
+                        时期对比
+                    </button>
+                  </>
+                )}
+                {canViewSettings && (
+                  <button className="group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full text-slate-300 hover:bg-slate-800 hover:text-white transition-colors">
+                      <Settings className="mr-3 flex-shrink-0 h-6 w-6" />
+                      Settings
                   </button>
-                </div>
-                <button 
-                  onClick={() => setCurrentView('report-dashboard')}
-                  className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full transition-colors ${currentView === 'report-dashboard' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
-                >
-                    <BarChart3 className="mr-3 flex-shrink-0 h-6 w-6" />
-                    Reports
-                </button>
-                 <button className="group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full text-slate-300 hover:bg-slate-800 hover:text-white transition-colors">
-                    <Settings className="mr-3 flex-shrink-0 h-6 w-6" />
-                    Settings
-                </button>
+                )}
             </nav>
         </div>
         <div className="flex-shrink-0 flex border-t border-slate-800 p-4">
@@ -406,8 +556,8 @@ const App: React.FC = () => {
               <img className="inline-block h-9 w-9 rounded-full" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="" />
             </div>
             <div className="ml-3 flex-1">
-              <p className="text-sm font-medium text-white">Susana Wong</p>
-              <p className="text-xs font-medium text-slate-400">CN Pricing Admin</p>
+              <p className="text-sm font-medium text-white">{displayName}</p>
+              <p className="text-xs font-medium text-slate-400">{displayRole}</p>
             </div>
             <button onClick={handleLogout} className="text-slate-400 hover:text-white">
               <LogOut className="w-5 h-5" />
@@ -435,7 +585,9 @@ const App: React.FC = () => {
                       {currentView === 'master-ports' && 'Port Management'}
                       {currentView === 'master-sales-pics' && 'Sales PIC Management'}
                       {currentView === 'master-container-types' && 'Container Type Management'}
-                      {currentView === 'report-dashboard' && 'Report Dashboard'}
+                      {currentView === 'report-dashboard' && '基础报表'}
+                      {currentView === 'report-enhanced' && '增强报表'}
+                      {currentView === 'report-comparison' && '时期对比报告'}
                     </h2>
                 </div>
                 <div className="ml-4 flex items-center md:ml-6 gap-3">

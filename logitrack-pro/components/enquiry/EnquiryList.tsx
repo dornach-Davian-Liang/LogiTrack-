@@ -7,9 +7,11 @@ interface EnquiryListProps {
   onViewDetail: (enquiry: Enquiry) => void;
   onEdit: (enquiry: Enquiry) => void;
   onNewEnquiry: () => void;
+  canCreate: boolean;
+  canManage: boolean;
 }
 
-export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, onNewEnquiry }) => {
+export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, onNewEnquiry, canCreate, canManage }) => {
   const [enquiries, setEnquiries] = useState<EnquiryListItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -142,13 +144,15 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
       {/* Header */}
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-900">Enquiry Management</h1>
-        <button
-          onClick={onNewEnquiry}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          New Enquiry
-        </button>
+        {canCreate && (
+          <button
+            onClick={onNewEnquiry}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            New Enquiry
+          </button>
+        )}
       </div>
 
       {/* Filters */}
@@ -216,9 +220,11 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
         ) : enquiries.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
             <p>No enquiries found</p>
-            <button onClick={onNewEnquiry} className="mt-2 text-indigo-600 hover:underline">
-              Create your first enquiry
-            </button>
+            {canCreate && (
+              <button onClick={onNewEnquiry} className="mt-2 text-indigo-600 hover:underline">
+                Create your first enquiry
+              </button>
+            )}
           </div>
         ) : (
           <>
@@ -280,34 +286,38 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
                         >
                           <Eye className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => onEdit(enquiry)}
-                          className="text-blue-600 hover:text-blue-900"
-                          title="Edit"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleCopy(enquiry)}
-                          className="text-green-600 hover:text-green-900"
-                          title="Copy"
-                        >
-                          <Copy className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleIncrease(enquiry)}
-                          className="text-teal-600 hover:text-teal-900"
-                          title="Increase"
-                        >
-                          <TrendingUp className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(enquiry.id!)}
-                          className="text-red-600 hover:text-red-900"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {canManage && (
+                          <>
+                            <button
+                              onClick={() => onEdit(enquiry)}
+                              className="text-blue-600 hover:text-blue-900"
+                              title="Edit"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleCopy(enquiry)}
+                              className="text-green-600 hover:text-green-900"
+                              title="Copy"
+                            >
+                              <Copy className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleIncrease(enquiry)}
+                              className="text-teal-600 hover:text-teal-900"
+                              title="Increase"
+                            >
+                              <TrendingUp className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(enquiry.id!)}
+                              className="text-red-600 hover:text-red-900"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>

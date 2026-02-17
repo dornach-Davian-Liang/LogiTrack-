@@ -1,5 +1,6 @@
 package com.logitrack.backend.controller;
 
+import com.logitrack.backend.aspect.AuditLogAspect.Audit;
 import com.logitrack.backend.dto.ReferencePreview;
 import com.logitrack.backend.entity.Enquiry;
 import com.logitrack.backend.service.EnquiryService;
@@ -109,6 +110,7 @@ public class EnquiryController {
      * POST /api/enquiries - Create new enquiry record
      */
     @PostMapping
+    @Audit(action = "CREATE", resourceType = "ENQUIRY")
     public ResponseEntity<?> createEnquiry(@RequestBody Enquiry enquiry) {
         log.info("POST /api/enquiries - Creating new enquiry: {}", enquiry.getReferenceNumber());
         try {
@@ -126,6 +128,7 @@ public class EnquiryController {
     /**
      * PUT /api/enquiries/{id} - Update existing enquiry record
      */
+    @Audit(action = "UPDATE", resourceType = "ENQUIRY", resourceIdParam = "id")
     @PutMapping("/{id}")
     public ResponseEntity<Enquiry> updateEnquiry(
             @PathVariable Long id, 
@@ -146,6 +149,7 @@ public class EnquiryController {
     /**
      * DELETE /api/enquiries/{id} - Delete enquiry record
      */
+    @Audit(action = "DELETE", resourceType = "ENQUIRY", resourceIdParam = "id")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteEnquiry(@PathVariable Long id) {
         log.info("DELETE /api/enquiries/{} - Deleting enquiry", id);

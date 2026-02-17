@@ -314,6 +314,8 @@ export interface EnquiryListItem {
   offerCount?: number;  // 兼容旧代码
   latestOfferDate?: string;
   latestOfferPrice?: string;
+  assignedCnOfficeCode?: string;  // CN Office代码
+  commodity?: string;  // 商品描述
 }
 
 // ==========================================
@@ -321,6 +323,12 @@ export interface EnquiryListItem {
 // ==========================================
 
 export interface EnquiryFormData {
+  referenceNumber?: string;  // 参考编号
+  referenceMonth?: string;   // 参考月份（YYMM）
+  monthlySequence?: number;  // 月度序号
+  serialNumber?: number;     // 序列号
+  productAbbr?: string;      // 产品缩写
+  
   enquiryReceivedDate: string;
   issueDate: string;
   productCode: ProductCode;
@@ -377,6 +385,7 @@ export interface EnquirySearchParams {
   cargoTypeCode?: string;
   cargoTypes?: string[];  // 多选货物类型
   bookingConfirmed?: BookingStatus;
+  assignedCnOfficeCode?: string;  // CN Office筛选
   dateFrom?: string;
   dateTo?: string;
   page?: number;
@@ -474,6 +483,115 @@ export interface LocationStat {
   type?: string;
   count: number;
   percentage?: string;
+}
+
+// ==========================================
+// Dashboard 过滤和对比类型
+// ==========================================
+
+export interface DashboardFilterParams {
+  startDate: string; // YYYY-MM-DD
+  endDate: string; // YYYY-MM-DD
+  coreFlags?: ('CORE' | 'NON_CORE')[];
+  cnOffice?: string;
+}
+
+export interface CNOfficeStat {
+  officeName: string;
+  totalEnquiries: number;
+  yes: number;        // 已确认 (Booking Confirmed = 'Yes')
+  rejected: number;   // 已拒绝 (Booking Confirmed = 'Rejected')
+  invalid: number;    // 无效 (Booking Confirmed = 'Invalid')
+  pending: number;    // 待定 (Booking Confirmed = 'Pending')
+  conversionRate: number;
+}
+
+export interface DashboardStatsWithFilter extends DashboardStats {
+  cnOfficeStats?: CNOfficeStat[];
+  filterApplied?: DashboardFilterParams;
+}
+
+export type ComparisonType = 'MONTHLY' | 'QUARTERLY';
+
+export interface PeriodComparisonRequest {
+  comparisonType: ComparisonType;
+  periods: string[]; // ["2026-01", "2026-02"] or ["2025-Q4", "2026-Q1"]
+  coreFlags?: ('CORE' | 'NON_CORE')[];
+  cnOffice?: string;
+}
+
+export interface PeriodStats {
+  period: string;
+  startDate: string;
+  endDate: string;
+  totalEnquiries: number;
+  quoted: number;
+  confirmed: number;
+  conversionRate: number;
+  changeFromPrevious?: number; // percentage
+}
+
+export interface ComparisonSummary {
+  grandTotal: number;
+  avgConversionRate: number;
+  bestPeriod: string;
+  worstPeriod: string;
+}
+
+export interface ComparisonResult {
+  periodStats: PeriodStats[];
+  summary: ComparisonSummary;
+  trendData: {
+    [key: string]: number[]; // 'totalEnquiries', 'quoted', 'confirmed'
+  };
+}
+
+// ==========================================
+// RBAC 类型定义
+// ==========================================
+
+export interface LoginRequest {
+  username: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  id: number;
+  username: string;
+  email?: string;
+  roles: string[];
+  permissions: string[];
+  token: string;
+}
+
+export interface User {
+  id: number;
+  username: string;
+  email?: string;
+  roles: Role[];
+  createdAt?: string;
+}
+
+export interface Role {
+  id: number;
+  name: string;
+  permissions: string[];
+}
+
+export interface AuditLog {
+  id: number;
+  userId: number;
+  username: string;
+  operation: string;
+  resourceType: string;
+  resourceId?: number;
+  oldValue?: string;
+  newValue?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  timestamp: string;
+  executionTime?: number;
+  status: 'SUCCESS' | 'FAILED';
 }
 
 export interface DashboardStats {
