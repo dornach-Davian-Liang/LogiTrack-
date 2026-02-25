@@ -89,12 +89,15 @@ public class AuditLogService {
         dto.setId(log.getId());
         dto.setUserId(log.getUserId());
         dto.setUsername(log.getUsername());
+        dto.setUserRole(log.getUserRole()); // ✅ 新增
+        dto.setCnPricingAdmin(log.getCnPricingAdmin()); // ✅ 新增
         dto.setAction(log.getAction());
         dto.setResourceType(log.getResourceType());
         dto.setResourceId(log.getResourceId());
         dto.setResourceName(log.getResourceName());
         dto.setOldValue(log.getOldValue());
         dto.setNewValue(log.getNewValue());
+        dto.setDetails(log.getDetails()); // ✅ 新增
         dto.setIpAddress(log.getIpAddress());
         dto.setUserAgent(log.getUserAgent());
         dto.setRequestMethod(log.getRequestMethod());
@@ -104,5 +107,14 @@ public class AuditLogService {
         dto.setDurationMs(log.getDurationMs());
         dto.setCreatedAt(log.getCreatedAt());
         return dto;
+    }
+    
+    /**
+     * 清空所有审计日志
+     */
+    @Transactional
+    public void clearAllLogs() {
+        log.warn("清空所有审计日志");
+        auditLogRepository.deleteAll();
     }
 }

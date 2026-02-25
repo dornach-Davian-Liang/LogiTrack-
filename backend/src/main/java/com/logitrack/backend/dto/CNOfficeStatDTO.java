@@ -33,6 +33,26 @@ public class CNOfficeStatDTO {
      * Number of confirmed bookings
      */
     private Integer confirmed;
+
+    /**
+     * Booking confirmed = Yes
+     */
+    private Integer yes;
+
+    /**
+     * Booking confirmed = Rejected
+     */
+    private Integer rejected;
+
+    /**
+     * Booking confirmed = Invalid
+     */
+    private Integer invalid;
+
+    /**
+     * Booking confirmed = Pending
+     */
+    private Integer pending;
     
     /**
      * Conversion rate (confirmed / total * 100%)

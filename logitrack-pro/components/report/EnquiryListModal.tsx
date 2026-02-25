@@ -6,6 +6,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Eye, Edit, Search, Loader2 } from 'lucide-react';
 import { EnquiryListItem, BookingStatus } from '../../types';
 import { enquiryApi } from '../../services/api';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 interface EnquiryListModalProps {
   isOpen: boolean;
@@ -26,6 +27,7 @@ export const EnquiryListModal: React.FC<EnquiryListModalProps> = ({
   onEdit,
   canManage,
 }) => {
+  const { language, translations } = useLanguage();
   const [enquiries, setEnquiries] = useState<EnquiryListItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,13 +52,13 @@ export const EnquiryListModal: React.FC<EnquiryListModalProps> = ({
   const getStatusLabel = (status: string): string => {
     switch (status) {
       case 'yes':
-        return '已确认';
+        return translations.enquiryListModal.confirmed;
       case 'rejected':
-        return '已拒绝';
+        return translations.enquiryListModal.rejected;
       case 'invalid':
-        return '无效';
+        return translations.enquiryListModal.invalid;
       case 'pending':
-        return '待定';
+        return translations.enquiryListModal.pending;
       default:
         return status;
     }
@@ -125,7 +127,7 @@ export const EnquiryListModal: React.FC<EnquiryListModalProps> = ({
       setEnquiries(filtered);
     } catch (err) {
       console.error('Failed to load enquiries:', err);
-      setError('加载数据失败');
+      setError(translations.enquiryListModal.loadFailed);
     } finally {
       setIsLoading(false);
     }
@@ -158,7 +160,7 @@ export const EnquiryListModal: React.FC<EnquiryListModalProps> = ({
               {officeName} - {getStatusLabel(bookingStatus)}
             </h2>
             <p className="text-sm text-indigo-100 mt-1">
-              共 {filteredEnquiries.length} 条询价记录
+              {language === 'zh' ? `共 ${filteredEnquiries.length} 条${translations.enquiryListModal.totalRecords}` : `${filteredEnquiries.length} ${translations.enquiryListModal.totalRecords}`}
             </p>
           </div>
           <button
@@ -175,7 +177,7 @@ export const EnquiryListModal: React.FC<EnquiryListModalProps> = ({
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
             <input
               type="text"
-              placeholder="搜索编号、销售人员、商品..."
+              placeholder={translations.enquiryListModal.searchPlaceholder}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
@@ -188,7 +190,7 @@ export const EnquiryListModal: React.FC<EnquiryListModalProps> = ({
           {isLoading ? (
             <div className="flex items-center justify-center h-64">
               <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
-              <span className="ml-2 text-gray-600">加载中...</span>
+              <span className="ml-2 text-gray-600">{translations.enquiryListModal.loading}</span>
             </div>
           ) : error ? (
             <div className="text-center text-red-600 bg-red-50 rounded-lg p-6">
@@ -197,13 +199,13 @@ export const EnquiryListModal: React.FC<EnquiryListModalProps> = ({
                 onClick={fetchEnquiries}
                 className="mt-2 text-indigo-600 hover:underline block mx-auto"
               >
-                重试
+                {translations.enquiryListModal.retry}
               </button>
             </div>
           ) : filteredEnquiries.length === 0 ? (
             <div className="text-center text-gray-500 py-12">
-              <p className="text-lg">暂无数据</p>
-              <p className="text-sm mt-2">没有找到符合条件的询价记录</p>
+              <p className="text-lg">{translations.enquiryListModal.noData}</p>
+              <p className="text-sm mt-2">{translations.enquiryListModal.noDataDesc}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -230,33 +232,33 @@ export const EnquiryListModal: React.FC<EnquiryListModalProps> = ({
                       {/* Details Grid */}
                       <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
                         <div className="flex items-center">
-                          <span className="text-gray-500 w-24">销售人员:</span>
+                          <span className="text-gray-500 w-24">{translations.enquiryListModal.salesPerson}:</span>
                           <span className="text-gray-900 font-medium">{enquiry.salesPicName}</span>
                         </div>
                         <div className="flex items-center">
-                          <span className="text-gray-500 w-24">销售国家:</span>
+                          <span className="text-gray-500 w-24">{translations.enquiryListModal.salesCountry}:</span>
                           <span className="text-gray-900">{enquiry.salesCountryCode}</span>
                         </div>
                         <div className="flex items-center">
-                          <span className="text-gray-500 w-24">货物类型:</span>
+                          <span className="text-gray-500 w-24">{translations.enquiryListModal.cargoType}:</span>
                           <span className="text-gray-900">{enquiry.cargoTypeCode}</span>
                         </div>
                         <div className="flex items-center">
-                          <span className="text-gray-500 w-24">产品:</span>
+                          <span className="text-gray-500 w-24">{translations.enquiryListModal.product}:</span>
                           <span className="text-gray-900">{enquiry.productAbbr}</span>
                         </div>
                         <div className="flex items-center col-span-2">
-                          <span className="text-gray-500 w-24">路线:</span>
+                          <span className="text-gray-500 w-24">{translations.enquiryListModal.route}:</span>
                           <span className="text-gray-900">
                             {enquiry.polName} → {enquiry.podName}
                           </span>
                         </div>
                         <div className="flex items-center">
-                          <span className="text-gray-500 w-24">接收日期:</span>
+                          <span className="text-gray-500 w-24">{translations.enquiryListModal.receivedDate}:</span>
                           <span className="text-gray-900">{enquiry.enquiryReceivedDate}</span>
                         </div>
                         <div className="flex items-center">
-                          <span className="text-gray-500 w-24">TEU:</span>
+                          <span className="text-gray-500 w-24">{translations.enquiryListModal.teu}:</span>
                           <span className="text-gray-900">{enquiry.quantityTeu || '-'}</span>
                         </div>
                       </div>
@@ -264,7 +266,7 @@ export const EnquiryListModal: React.FC<EnquiryListModalProps> = ({
                       {/* Commodity */}
                       {enquiry.commodity && (
                         <div className="mt-2 text-sm">
-                          <span className="text-gray-500">商品:</span>
+                          <span className="text-gray-500">{translations.enquiryListModal.commodity}:</span>
                           <span className="text-gray-700 ml-2">{enquiry.commodity}</span>
                         </div>
                       )}
@@ -278,7 +280,7 @@ export const EnquiryListModal: React.FC<EnquiryListModalProps> = ({
                           // 不关闭弹窗，由父组件管理状态
                         }}
                         className="p-2 hover:bg-gray-100 rounded-lg transition"
-                        title="查看详情"
+                        title={translations.enquiryListModal.viewDetail}
                       >
                         <Eye className="h-5 w-5 text-gray-600" />
                       </button>
@@ -289,7 +291,7 @@ export const EnquiryListModal: React.FC<EnquiryListModalProps> = ({
                             // 不关闭弹窗，由父组件管理状态
                           }}
                           className="p-2 hover:bg-indigo-50 rounded-lg transition"
-                          title="编辑"
+                          title={translations.enquiryListModal.edit}
                         >
                           <Edit className="h-5 w-5 text-indigo-600" />
                         </button>
@@ -308,7 +310,7 @@ export const EnquiryListModal: React.FC<EnquiryListModalProps> = ({
             onClick={onClose}
             className="w-full px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition font-medium"
           >
-            关闭
+            {translations.enquiryListModal.close}
           </button>
         </div>
       </div>

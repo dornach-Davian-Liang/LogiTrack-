@@ -556,8 +556,9 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
-  id: number;
+  userId: number;
   username: string;
+  fullName?: string;
   email?: string;
   roles: string[];
   permissions: string[];

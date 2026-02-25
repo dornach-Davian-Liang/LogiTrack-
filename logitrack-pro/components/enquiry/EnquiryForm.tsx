@@ -19,6 +19,7 @@ import { enquiryApi, masterDataApi } from '../../services/api';
 import { Accordion, AccordionItem } from '../Accordion';
 import { MultiSelect } from '../MultiSelect';
 import { VirtualizedMultiSelect } from '../VirtualizedMultiSelect';
+import { DatePickerInput } from '../DatePickerInput';
 
 interface EnquiryFormProps {
   initialData?: Partial<Enquiry> | null;
@@ -40,10 +41,16 @@ interface FormData extends Partial<Enquiry> {
 }
 
 export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit, onCancel }) => {
+  // Helper function: convert Date to local ISO string (avoid UTC timezone issues)
+  const getLocalDateISO = (date?: Date): string => {
+    const d = date || new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
   const [formData, setFormData] = useState<FormData>({
     status: 'New',
-    enquiryReceivedDate: new Date().toISOString().split('T')[0],
-    issueDate: new Date().toISOString().split('T')[0],
+    enquiryReceivedDate: getLocalDateISO(),
+    issueDate: getLocalDateISO(),
     productCode: 'SEA',
     cargoTypeCode: 'FCL',
     containerLines: [],
@@ -262,9 +269,19 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
       setContainerTypes(containerTypesData);
       setCnOffices(cnOfficesData);
       
-      // ✅ 优化：初始化空数组，编辑模式下的港口会在initialData的useEffect中加载
-      // 新建模式则由VirtualizedMultiSelect的搜索触发加载
-      setPorts([]);
+      // ✅ 修复：初始加载常用港口（前50个），避免编辑时下拉框空白
+      try {
+        const [commonSeaPorts, commonAirPorts] = await Promise.all([
+          masterDataApi.searchPorts('SEA', ''),  // 加载海港
+          masterDataApi.searchPorts('AIR', ''),  // 加载空港
+        ]);
+        const initialPorts = [...(commonSeaPorts || []).slice(0, 50), ...(commonAirPorts || []).slice(0, 50)];
+        console.log('[EnquiryForm] Loaded initial ports:', initialPorts.length);
+        setPorts(initialPorts);
+      } catch (portErr) {
+        console.error('Failed to load initial ports:', portErr);
+        setPorts([]);  // 失败时仍然设置空数组
+      }
       
       // 设置产品类型选项
       setProducts([
@@ -464,12 +481,16 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
 
   // Offer 管理函数
   const addOffer = () => {
+    // Get local date (not UTC) to avoid timezone offset issues
+    const now = new Date();
+    const localDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    
     const newOffer: Offer = {
       id: Date.now(),
       enquiryId: formData.id || 0,
       offerType: 'OCEAN',
       sequenceNo: (formData.offers || []).length + 1,
-      sentDate: new Date().toISOString().split('T')[0],
+      sentDate: localDateStr,
       priceText: '',
       isLatest: true,
     };
@@ -633,7 +654,7 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
 
       // 编辑模式：确保必需字段都已包含，防止 NOT NULL 约束错误
       if (formData.id) {
-        // 保留原有的必需字段值（如果新值为空则使用旧值）
+        // ✅ 保留原有的必需字段值（如果新值为空则使用旧值）
         enquiryToSubmit.referenceNumber = enquiryToSubmit.referenceNumber || initialData?.referenceNumber;
         enquiryToSubmit.referenceMonth = enquiryToSubmit.referenceMonth || initialData?.referenceMonth;
         enquiryToSubmit.monthlySequence = enquiryToSubmit.monthlySequence ?? initialData?.monthlySequence;
@@ -644,11 +665,15 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
         enquiryToSubmit.cnPricingAdmin = enquiryToSubmit.cnPricingAdmin || initialData?.cnPricingAdmin;
         enquiryToSubmit.salesCountryCode = enquiryToSubmit.salesCountryCode || initialData?.salesCountryCode;
         enquiryToSubmit.salesOfficeId = enquiryToSubmit.salesOfficeId || initialData?.salesOfficeId;
+        enquiryToSubmit.salesPicId = enquiryToSubmit.salesPicId || initialData?.salesPicId;  // ✅ 新增：保留销售人员ID
         enquiryToSubmit.assignedCnOfficeCode = enquiryToSubmit.assignedCnOfficeCode || initialData?.assignedCnOfficeCode;
         enquiryToSubmit.cargoTypeCode = enquiryToSubmit.cargoTypeCode || initialData?.cargoTypeCode;
         enquiryToSubmit.issueDate = enquiryToSubmit.issueDate || initialData?.issueDate;
         enquiryToSubmit.enquiryReceivedDate = enquiryToSubmit.enquiryReceivedDate || initialData?.enquiryReceivedDate;
         enquiryToSubmit.bookingConfirmed = enquiryToSubmit.bookingConfirmed || initialData?.bookingConfirmed || 'Pending';
+        // ✅ 新增：保留主港口ID（polId/podId）作为后备
+        enquiryToSubmit.polId = enquiryToSubmit.polId || enquiryToSubmit.polIds?.[0] || initialData?.polId;
+        enquiryToSubmit.podId = enquiryToSubmit.podId || enquiryToSubmit.podIds?.[0] || initialData?.podId;
       } else {
         // 新建时由后端生成 Reference，避免并发冲突
         delete enquiryToSubmit.referenceNumber;
@@ -716,23 +741,20 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">Enquiry Received Date *</label>
-              <input
-                type="date"
+              <DatePickerInput
+                label="Enquiry Received Date *"
                 value={formData.enquiryReceivedDate}
-                max={new Date().toISOString().split('T')[0]}
-                onChange={(e) => {
-                  const selectedDateStr = e.target.value;
-                  const todayStr = new Date().toISOString().split('T')[0];
-                  
-                  if (selectedDateStr > todayStr) {
+                max={getLocalDateISO()}
+                onChange={(date) => {
+                  const todayStr = getLocalDateISO();
+                  if (date > todayStr) {
                     alert('询价接收日期不能晚于今天之后的日期');
                     return;
                   }
-                  handleChange('enquiryReceivedDate', e.target.value);
+                  handleChange('enquiryReceivedDate', date);
                 }}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 required
+                placeholder="YYYY/MM/DD"
               />
             </div>
 
@@ -1146,21 +1168,18 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
 
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">Offer Date *</label>
-                        <input
-                          type="date"
+                        <DatePickerInput
                           value={offer.sentDate}
-                          max={new Date().toISOString().split('T')[0]}
-                          onChange={(e) => {
-                            const selectedDateStr = e.target.value;
-                            const todayStr = new Date().toISOString().split('T')[0];
-                            
-                            if (selectedDateStr > todayStr) {
+                          max={getLocalDateISO()}
+                          onChange={(date) => {
+                            const todayStr = getLocalDateISO();
+                            if (date > todayStr) {
                               alert('报价日期不能晚于今天之后的日期');
                               return;
                             }
-                            updateOffer(index, 'sentDate', e.target.value);
+                            updateOffer(index, 'sentDate', date);
                           }}
-                          className="block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                          placeholder="YYYY/MM/DD"
                           required
                         />
                       </div>
@@ -1216,12 +1235,11 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">Cargo Ready Date</label>
-              <input
-                type="date"
+              <DatePickerInput
+                label="Cargo Ready Date"
                 value={formData.cargoReadyDate || ''}
-                onChange={(e) => handleChange('cargoReadyDate', e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                onChange={(date) => handleChange('cargoReadyDate', date)}
+                placeholder="YYYY/MM/DD"
               />
             </div>
 

@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { LayoutDashboard, PlusCircle, FileSpreadsheet, Ship, Settings, Bell, Search, Menu, LogOut, Loader2, RefreshCw, Globe, Anchor, Users, Box, BarChart3, Filter, TrendingUp } from 'lucide-react';
 import { Enquiry, EnquiryListItem, EnquiryFormData, LoginResponse } from './types';
 import { enquiryApi } from './services/api';
+import { useLanguage } from './i18n/LanguageContext';
+import { getAvatarDataUrl } from './utils/avatarUtils';
 import EnquiryList from './components/enquiry/EnquiryList';
 import EnquiryForm from './components/enquiry/EnquiryForm';
 import EnquiryDetail from './components/enquiry/EnquiryDetail';
@@ -13,10 +15,12 @@ import Login from './components/Login';
 import Dashboard from './components/report/Dashboard';
 import { EnhancedDashboard } from './components/report/EnhancedDashboard';
 import { ComparisonReport } from './components/report/ComparisonReport';
+import { SettingsLayout } from './components/settings/SettingsLayout';
 
-type ViewType = 'dashboard' | 'enquiry-list' | 'enquiry-form' | 'enquiry-detail' | 'master-countries' | 'master-ports' | 'master-sales-pics' | 'master-container-types' | 'report-dashboard' | 'report-enhanced' | 'report-comparison';
+type ViewType = 'dashboard' | 'enquiry-list' | 'enquiry-form' | 'enquiry-detail' | 'master-countries' | 'master-ports' | 'master-sales-pics' | 'master-container-types' | 'report-dashboard' | 'report-enhanced' | 'report-comparison' | 'settings';
 
 const App: React.FC = () => {
+  const { language, setLanguage, translations } = useLanguage();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
   const [previousView, setPreviousView] = useState<ViewType>('dashboard');  // 跟踪上一个视图用于返回
@@ -44,6 +48,26 @@ const App: React.FC = () => {
 
   // Initial Data Load
   useEffect(() => {
+    // ✅ 新增：在应用初始化时，从localStorage恢复登录状态
+    const savedUser = localStorage.getItem('user');
+    const savedToken = localStorage.getItem('token');
+    
+    if (savedUser && savedToken) {
+      try {
+        const user = JSON.parse(savedUser) as LoginResponse;
+        setCurrentUser(user);
+        setIsAuthenticated(true);
+        console.log('[App] Restored user from localStorage:', user.username);
+      } catch (err) {
+        console.error('[App] Failed to restore user from localStorage:', err);
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+      }
+    }
+  }, []); // ✅ 仅在组件首次挂载时运行
+
+  // 当认证状态改变时，加载数据
+  useEffect(() => {
     if (isAuthenticated) {
         fetchData();
     }
@@ -66,6 +90,12 @@ const App: React.FC = () => {
   const handleLogin = (user: LoginResponse) => {
     setCurrentUser(user);
     setIsAuthenticated(true);
+    // ✅ 存储用户信息到localStorage用于审计日志
+    localStorage.setItem('user', JSON.stringify(user));
+    if (user.token) {
+      localStorage.setItem('token', user.token);
+    }
+    console.log('[App] User logged in and saved to localStorage:', user.username);
   };
 
   const handleLogout = () => {
@@ -73,6 +103,10 @@ const App: React.FC = () => {
     setCurrentUser(null);
     setEnquiries([]);
     setCurrentView('dashboard');
+    // ✅ 清除localStorage中的用户信息
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    console.log('[App] User logged out and localStorage cleared');
   };
 
   const roles = currentUser?.roles ?? [];
@@ -85,7 +119,7 @@ const App: React.FC = () => {
   const canManageEnquiries = isAdmin || isOperatingUser;
   const canManageMasterData = isAdmin || isOperatingUser;
   const canViewReports = isAdmin || isOperatingUser;
-  const canViewSettings = isAdmin;  // 仅Admin可见设置
+  const canViewSettings = isAdmin;  // ✅ 仅Admin可见设置（不包括operator）
   const displayName = currentUser?.username ?? 'User';
   const displayRole = roles[0] ?? 'LOGIN_USER';
 
@@ -104,8 +138,12 @@ const App: React.FC = () => {
       views.push('report-dashboard', 'report-enhanced', 'report-comparison');
     }
 
+    if (canViewSettings) {
+      views.push('settings');
+    }
+
     return new Set(views);
-  }, [canManageEnquiries, canManageMasterData, canViewReports]);
+  }, [canManageEnquiries, canManageMasterData, canViewReports, canViewSettings]);
 
   useEffect(() => {
     if (!allowedViews.has(currentView)) {
@@ -116,7 +154,32 @@ const App: React.FC = () => {
   const handleSaveEnquiry = async (enquiry: Enquiry) => {
     try {
         if (enquiry.id) {
-            await enquiryApi.update(enquiry.id, enquiry);
+            // ✅ 编辑模式：确保所有必填字段有值，防止NOT NULL约束错误
+            const dataToUpdate = {
+              ...enquiry,
+              // 必填字段的保留逻辑 - 优先使用新值，否则使用原值
+              salesOfficeId: enquiry.salesOfficeId || editingEnquiry?.salesOfficeId,
+              salesPicId: enquiry.salesPicId || editingEnquiry?.salesPicId,
+              cnPricingAdmin: enquiry.cnPricingAdmin || editingEnquiry?.cnPricingAdmin,
+              assignedCnOfficeCode: enquiry.assignedCnOfficeCode || editingEnquiry?.assignedCnOfficeCode,
+              salesCountryCode: enquiry.salesCountryCode || editingEnquiry?.salesCountryCode,
+              cargoTypeCode: enquiry.cargoTypeCode || editingEnquiry?.cargoTypeCode,
+              polId: enquiry.polId || enquiry.polIds?.[0] || editingEnquiry?.polId,
+              podId: enquiry.podId || enquiry.podIds?.[0] || editingEnquiry?.podId,
+              referenceNumber: enquiry.referenceNumber || editingEnquiry?.referenceNumber,
+              referenceMonth: enquiry.referenceMonth || editingEnquiry?.referenceMonth,
+              monthlySequence: enquiry.monthlySequence !== undefined ? enquiry.monthlySequence : editingEnquiry?.monthlySequence,
+              serialNumber: enquiry.serialNumber !== undefined ? enquiry.serialNumber : editingEnquiry?.serialNumber,
+              productCode: enquiry.productCode || editingEnquiry?.productCode,
+              productAbbr: enquiry.productAbbr || editingEnquiry?.productAbbr,
+              status: enquiry.status || editingEnquiry?.status || 'New',
+              issueDate: enquiry.issueDate || editingEnquiry?.issueDate,
+              enquiryReceivedDate: enquiry.enquiryReceivedDate || editingEnquiry?.enquiryReceivedDate,
+              bookingConfirmed: enquiry.bookingConfirmed || editingEnquiry?.bookingConfirmed || 'Pending',
+            };
+            console.log('[App] Updating enquiry ID:', enquiry.id);
+            console.log('[App] Data to update:', dataToUpdate);
+            await enquiryApi.update(enquiry.id, dataToUpdate);
         } else {
             await enquiryApi.create(enquiry as unknown as EnquiryFormData);
         }
@@ -125,9 +188,14 @@ const App: React.FC = () => {
         setCurrentView(previousView);
         // 不清除 enhancedDashboardModalState，让 EnhancedDashboard 恢复弹窗
         fetchData();
-    } catch (err) {
-        alert("Failed to save enquiry.");
+    } catch (err: any) {
+        const errorMsg = err?.message || err?.toString() || 'Unknown error';
+        alert(`Failed to save enquiry: ${errorMsg}`);
         console.error('[App] Save error:', err);
+        // 输出更详细的错误信息
+        if (err?.response) {
+          console.error('[App] Error response:', err.response);
+        }
     }
   };
 
@@ -269,6 +337,8 @@ const App: React.FC = () => {
         );
       case 'report-comparison':
         return <ComparisonReport />;
+      case 'settings':
+        return <SettingsLayout />;
       case 'dashboard':
       default:
         return renderDashboard();
@@ -543,7 +613,10 @@ const App: React.FC = () => {
                   </>
                 )}
                 {canViewSettings && (
-                  <button className="group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full text-slate-300 hover:bg-slate-800 hover:text-white transition-colors">
+                  <button 
+                    onClick={() => setCurrentView('settings')}
+                    className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full transition-colors ${currentView === 'settings' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                  >
                       <Settings className="mr-3 flex-shrink-0 h-6 w-6" />
                       Settings
                   </button>
@@ -553,7 +626,12 @@ const App: React.FC = () => {
         <div className="flex-shrink-0 flex border-t border-slate-800 p-4">
           <div className="flex items-center w-full">
             <div>
-              <img className="inline-block h-9 w-9 rounded-full" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="" />
+              <img 
+                className="inline-block h-9 w-9 rounded-full" 
+                src={getAvatarDataUrl(displayName, 36)} 
+                alt={displayName}
+                title={displayName}
+              />
             </div>
             <div className="ml-3 flex-1">
               <p className="text-sm font-medium text-white">{displayName}</p>
@@ -588,6 +666,7 @@ const App: React.FC = () => {
                       {currentView === 'report-dashboard' && '基础报表'}
                       {currentView === 'report-enhanced' && '增强报表'}
                       {currentView === 'report-comparison' && '时期对比报告'}
+                      {currentView === 'settings' && '系统设置'}
                     </h2>
                 </div>
                 <div className="ml-4 flex items-center md:ml-6 gap-3">
@@ -598,6 +677,30 @@ const App: React.FC = () => {
                     >
                         <RefreshCw className={`h-5 w-5 ${isLoading ? 'animate-spin' : ''}`} />
                     </button>
+                    {/* Language Switcher */}
+                    <div className="relative group">
+                        <button 
+                            className="p-1 rounded-full text-gray-400 hover:text-gray-600 focus:outline-none flex items-center gap-1"
+                            title="Language Settings"
+                        >
+                            <Globe className="h-5 w-5" />
+                            <span className="text-xs font-semibold text-gray-600">{language.toUpperCase()}</span>
+                        </button>
+                        <div className="absolute right-0 mt-0 w-32 bg-white rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                            <button
+                                onClick={() => setLanguage('zh')}
+                                className={`w-full text-left px-4 py-2 text-sm ${language === 'zh' ? 'bg-indigo-50 text-indigo-600 font-semibold' : 'text-gray-700 hover:bg-gray-50'}`}
+                            >
+                                中文
+                            </button>
+                            <button
+                                onClick={() => setLanguage('en')}
+                                className={`w-full text-left px-4 py-2 text-sm ${language === 'en' ? 'bg-indigo-50 text-indigo-600 font-semibold' : 'text-gray-700 hover:bg-gray-50'}`}
+                            >
+                                English
+                            </button>
+                        </div>
+                    </div>
                     <button className="bg-white p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                         <Bell className="h-6 w-6" />
                     </button>

@@ -315,6 +315,7 @@ public class EnquiryService {
                 enquiry.setId(id);
                 
                 // ✅ 保留必填字段（防止更新时变为null）
+                // 基本信息
                 if (enquiry.getReferenceMonth() == null) {
                     enquiry.setReferenceMonth(existing.getReferenceMonth());
                 }
@@ -326,6 +327,47 @@ public class EnquiryService {
                 }
                 if (enquiry.getReferenceNumber() == null || enquiry.getReferenceNumber().isEmpty()) {
                     enquiry.setReferenceNumber(existing.getReferenceNumber());
+                }
+                
+                // ✅ 新增：保留其他重要必填字段
+                if (enquiry.getProductCode() == null || enquiry.getProductCode().isEmpty()) {
+                    enquiry.setProductCode(existing.getProductCode());
+                }
+                if (enquiry.getProductAbbr() == null || enquiry.getProductAbbr().isEmpty()) {
+                    enquiry.setProductAbbr(existing.getProductAbbr());
+                }
+                if (enquiry.getStatus() == null) {
+                    enquiry.setStatus(existing.getStatus());
+                }
+                if (enquiry.getCnPricingAdmin() == null || enquiry.getCnPricingAdmin().isEmpty()) {
+                    enquiry.setCnPricingAdmin(existing.getCnPricingAdmin());
+                }
+                if (enquiry.getSalesCountryCode() == null || enquiry.getSalesCountryCode().isEmpty()) {
+                    enquiry.setSalesCountryCode(existing.getSalesCountryCode());
+                }
+                if (enquiry.getSalesOfficeId() == null) {
+                    enquiry.setSalesOfficeId(existing.getSalesOfficeId());
+                }
+                if (enquiry.getSalesPicId() == null) {
+                    enquiry.setSalesPicId(existing.getSalesPicId());
+                }
+                if (enquiry.getAssignedCnOfficeCode() == null || enquiry.getAssignedCnOfficeCode().isEmpty()) {
+                    enquiry.setAssignedCnOfficeCode(existing.getAssignedCnOfficeCode());
+                }
+                if (enquiry.getCargoTypeCode() == null || enquiry.getCargoTypeCode().isEmpty()) {
+                    enquiry.setCargoTypeCode(existing.getCargoTypeCode());
+                }
+                if (enquiry.getIssueDate() == null) {
+                    enquiry.setIssueDate(existing.getIssueDate());
+                }
+                if (enquiry.getEnquiryReceivedDate() == null) {
+                    enquiry.setEnquiryReceivedDate(existing.getEnquiryReceivedDate());
+                }
+                if (enquiry.getPolId() == null) {
+                    enquiry.setPolId(existing.getPolId());
+                }
+                if (enquiry.getPodId() == null) {
+                    enquiry.setPodId(existing.getPodId());
                 }
 
                 // ✅ 更新时保留现有的offers（避免detached entity）

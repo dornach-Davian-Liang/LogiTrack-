@@ -5,6 +5,8 @@
 import React, { useState } from 'react';
 import { Filter, Calendar, Flag, Building2, X, Check } from 'lucide-react';
 import { DashboardFilterParams } from '../../types';
+import { useLanguage } from '../../i18n/LanguageContext';
+import { DatePickerInput } from '../DatePickerInput';
 
 interface DashboardFiltersProps {
   onApplyFilter: (filter: DashboardFilterParams) => void;
@@ -17,6 +19,7 @@ export const DashboardFilters: React.FC<DashboardFiltersProps> = ({
   onClearFilter,
   loading = false,
 }) => {
+  const { language, translations } = useLanguage();
   const [showFilters, setShowFilters] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -24,18 +27,18 @@ export const DashboardFilters: React.FC<DashboardFiltersProps> = ({
   const [cnOffice, setCnOffice] = useState('');
 
   const cnOffices = [
-    { value: '', label: '全部办公室' },
-    { value: 'SHANGHAI', label: '上海' },
-    { value: 'SHENZHEN', label: '深圳' },
-    { value: 'BEIJING', label: '北京' },
-    { value: 'GUANGZHOU', label: '广州' },
-    { value: 'HONG KONG', label: '香港' },
-    { value: 'CN-MULTI', label: '多办公室' },
+    { value: '', label: translations.filters.allOffices },
+    { value: 'SHANGHAI', label: translations.offices.shanghai },
+    { value: 'SHENZHEN', label: translations.offices.shenzhen },
+    { value: 'BEIJING', label: translations.offices.beijing },
+    { value: 'GUANGZHOU', label: translations.offices.guangzhou },
+    { value: 'HONG KONG', label: translations.offices.hongkong },
+    { value: 'CN-MULTI', label: translations.offices.multiOffice },
   ];
 
   const handleApply = () => {
     if (!startDate || !endDate) {
-      alert('请选择开始和结束日期');
+      alert(translations.filters.selectDateRange);
       return;
     }
 
@@ -71,10 +74,10 @@ export const DashboardFilters: React.FC<DashboardFiltersProps> = ({
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
         <div className="flex items-center space-x-2">
           <Filter className="h-5 w-5 text-gray-600" />
-          <span className="font-semibold text-gray-900">数据过滤</span>
+          <span className="font-semibold text-gray-900">{translations.filters.dataFilter}</span>
           {hasActiveFilters && (
             <span className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-full">
-              已应用
+              {translations.filters.applied}
             </span>
           )}
         </div>
@@ -82,7 +85,7 @@ export const DashboardFilters: React.FC<DashboardFiltersProps> = ({
           onClick={() => setShowFilters(!showFilters)}
           className="text-sm text-blue-600 hover:text-blue-700 font-medium"
         >
-          {showFilters ? '收起' : '展开'}
+          {showFilters ? translations.filters.collapse : translations.filters.expand}
         </button>
       </div>
 
@@ -91,30 +94,18 @@ export const DashboardFilters: React.FC<DashboardFiltersProps> = ({
         <div className="p-4 space-y-4">
           {/* Date Range */}
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
-                <Calendar className="h-4 w-4 mr-1" />
-                开始日期
-              </label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
-                <Calendar className="h-4 w-4 mr-1" />
-                结束日期
-              </label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
+            <DatePickerInput
+              label={translations.filters.startDate}
+              value={startDate}
+              onChange={(date) => setStartDate(date)}
+              placeholder="YYYY/MM/DD"
+            />
+            <DatePickerInput
+              label={translations.filters.endDate}
+              value={endDate}
+              onChange={(date) => setEndDate(date)}
+              placeholder="YYYY/MM/DD"
+            />
           </div>
 
           {/* Core Flag */}
@@ -153,7 +144,7 @@ export const DashboardFilters: React.FC<DashboardFiltersProps> = ({
           <div>
             <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
               <Building2 className="h-4 w-4 mr-1" />
-              中国办公室
+              {translations.filters.cnOffice}
             </label>
             <select
               value={cnOffice}
@@ -176,7 +167,7 @@ export const DashboardFilters: React.FC<DashboardFiltersProps> = ({
               className="flex-1 flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white rounded-lg transition font-medium"
             >
               <Check className="h-4 w-4 mr-2" />
-              应用过滤
+              {translations.filters.applyFilter}
             </button>
             <button
               onClick={handleClear}
@@ -184,14 +175,14 @@ export const DashboardFilters: React.FC<DashboardFiltersProps> = ({
               className="flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition font-medium"
             >
               <X className="h-4 w-4 mr-2" />
-              清除
+              {translations.filters.clear}
             </button>
           </div>
 
           {/* Filter Summary */}
           {hasActiveFilters && (
             <div className="pt-3 border-t border-gray-200">
-              <p className="text-xs text-gray-600 mb-2">当前过滤条件：</p>
+              <p className="text-xs text-gray-600 mb-2">{translations.filters.currentFilters}</p>
               <div className="flex flex-wrap gap-2">
                 {startDate && endDate && (
                   <span className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">

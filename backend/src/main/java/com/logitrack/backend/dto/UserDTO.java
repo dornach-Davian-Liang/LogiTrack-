@@ -25,5 +25,6 @@ public class UserDTO {
     private LocalDateTime updatedAt;
     private String createdBy;
     private String updatedBy;
+    private Set<String> roleCodes;
     private Set<String> roleNames;
 }

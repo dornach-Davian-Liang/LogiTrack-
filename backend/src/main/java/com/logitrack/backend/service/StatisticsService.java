@@ -385,6 +385,10 @@ public class StatisticsService {
             int total = 0;
             int quoted = 0;
             int confirmed = 0;
+            int yes = 0;
+            int rejected = 0;
+            int invalid = 0;
+            int pending = 0;
         }
         
         Map<String, OfficeStats> officeMap = new HashMap<>();
@@ -402,8 +406,26 @@ public class StatisticsService {
                 stats.quoted++;
             }
             
-            if (e.getBookingConfirmed() == Enquiry.BookingConfirmed.Yes) {
-                stats.confirmed++;
+            Enquiry.BookingConfirmed bookingConfirmed = e.getBookingConfirmed();
+            if (bookingConfirmed == null) {
+                stats.pending++;
+            } else {
+                switch (bookingConfirmed) {
+                    case Yes:
+                        stats.confirmed++;
+                        stats.yes++;
+                        break;
+                    case Rejected:
+                        stats.rejected++;
+                        break;
+                    case Invalid:
+                        stats.invalid++;
+                        break;
+                    case Pending:
+                    default:
+                        stats.pending++;
+                        break;
+                }
             }
         }
         
@@ -419,6 +441,10 @@ public class StatisticsService {
                     .totalEnquiries(stats.total)
                     .quoted(stats.quoted)
                     .confirmed(stats.confirmed)
+                    .yes(stats.yes)
+                    .rejected(stats.rejected)
+                    .invalid(stats.invalid)
+                    .pending(stats.pending)
                     .conversionRate(String.format("%.1f%%", conversionRate))
                     .build();
             })

@@ -5,6 +5,7 @@
 import React, { useState } from 'react';
 import { Building2, TrendingUp, TrendingDown, Download, ChevronRight } from 'lucide-react';
 import { CNOfficeStat } from '../../types';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 interface CNOfficePivotTableProps {
   data: CNOfficeStat[];
@@ -13,6 +14,7 @@ interface CNOfficePivotTableProps {
 }
 
 export const CNOfficePivotTable: React.FC<CNOfficePivotTableProps> = ({ data, onRowClick, onStatusCardClick }) => {
+  const { language, translations } = useLanguage();
   const [expandedOffice, setExpandedOffice] = useState<string | null>(null);
   
   const sortedData = [...data].sort((a, b) => b.totalEnquiries - a.totalEnquiries);
@@ -33,7 +35,15 @@ export const CNOfficePivotTable: React.FC<CNOfficePivotTableProps> = ({ data, on
     : 0;
 
   const exportToCSV = () => {
-    const headers = ['办公室', '总询价数', 'Yes(已确认)', 'Rejected(已拒绝)', 'Invalid(无效)', 'Pending(待定)', '转化率'];
+    const headers = [
+      translations.cnOfficeStats.office,
+      translations.cnOfficeStats.totalEnquiries,
+      translations.cnOfficeStats.yes,
+      translations.cnOfficeStats.rejected,
+      translations.cnOfficeStats.invalid,
+      translations.cnOfficeStats.pending,
+      translations.cnOfficeStats.conversionRate
+    ];
     const rows = sortedData.map((item) => [
       item.officeName,
       item.totalEnquiries,
@@ -75,7 +85,7 @@ export const CNOfficePivotTable: React.FC<CNOfficePivotTableProps> = ({ data, on
     return (
       <div className="bg-white border border-gray-200 rounded-lg p-6 text-center">
         <Building2 className="h-12 w-12 text-gray-300 mx-auto mb-2" />
-        <p className="text-gray-500">暂无办公室统计数据</p>
+        <p className="text-gray-500">{translations.cnOfficeStats.noData}</p>
       </div>
     );
   }
@@ -86,9 +96,9 @@ export const CNOfficePivotTable: React.FC<CNOfficePivotTableProps> = ({ data, on
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
         <div className="flex items-center space-x-2">
           <Building2 className="h-5 w-5 text-gray-600" />
-          <h3 className="font-semibold text-gray-900">CN Office 统计</h3>
+          <h3 className="font-semibold text-gray-900">{translations.cnOfficeStats.title}</h3>
           <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full">
-            {sortedData.length} 个办公室
+            {sortedData.length} {translations.cnOfficeStats.officesCount}
           </span>
         </div>
         <button
@@ -96,30 +106,30 @@ export const CNOfficePivotTable: React.FC<CNOfficePivotTableProps> = ({ data, on
           className="flex items-center px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition"
         >
           <Download className="h-4 w-4 mr-1" />
-          导出 CSV
+          {translations.cnOfficeStats.exportCSV}
         </button>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-5 gap-3 p-4 bg-gray-50 border-b border-gray-200">
         <div className="text-center">
-          <p className="text-xs text-gray-600 mb-1">总询价数</p>
+          <p className="text-xs text-gray-600 mb-1">{translations.cnOfficeStats.totalEnquiries}</p>
           <p className="text-2xl font-bold text-gray-900">{totalEnquiries}</p>
         </div>
         <div className="text-center">
-          <p className="text-xs text-green-600 mb-1 font-semibold">Yes</p>
+          <p className="text-xs text-green-600 mb-1 font-semibold">{translations.cnOfficeStats.yes}</p>
           <p className="text-2xl font-bold text-green-600">{totalYes}</p>
         </div>
         <div className="text-center">
-          <p className="text-xs text-red-600 mb-1 font-semibold">Rejected</p>
+          <p className="text-xs text-red-600 mb-1 font-semibold">{translations.cnOfficeStats.rejected}</p>
           <p className="text-2xl font-bold text-red-600">{totalRejected}</p>
         </div>
         <div className="text-center">
-          <p className="text-xs text-yellow-600 mb-1 font-semibold">Invalid</p>
+          <p className="text-xs text-yellow-600 mb-1 font-semibold">{translations.cnOfficeStats.invalid}</p>
           <p className="text-2xl font-bold text-yellow-600">{totalInvalid}</p>
         </div>
         <div className="text-center">
-          <p className="text-xs text-gray-600 mb-1 font-semibold">Pending</p>
+          <p className="text-xs text-gray-600 mb-1 font-semibold">{translations.cnOfficeStats.pending}</p>
           <p className="text-2xl font-bold text-gray-600">{totalPending}</p>
         </div>
       </div>
@@ -130,31 +140,31 @@ export const CNOfficePivotTable: React.FC<CNOfficePivotTableProps> = ({ data, on
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-12">
-                排名
+                {translations.cnOfficeStats.rank}
               </th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                办公室
+                {translations.cnOfficeStats.office}
               </th>
               <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                总询价数
+                {translations.cnOfficeStats.totalEnquiries}
               </th>
               <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Yes
+                {translations.cnOfficeStats.yes}
               </th>
               <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Rejected
+                {translations.cnOfficeStats.rejected}
               </th>
               <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Invalid
+                {translations.cnOfficeStats.invalid}
               </th>
               <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Pending
+                {translations.cnOfficeStats.pending}
               </th>
               <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                转化率
+                {translations.cnOfficeStats.conversionRate}
               </th>
               <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider w-12">
-                操作
+                {translations.cnOfficeStats.action}
               </th>
             </tr>
           </thead>
@@ -228,33 +238,33 @@ export const CNOfficePivotTable: React.FC<CNOfficePivotTableProps> = ({ data, on
                             onClick={() => onStatusCardClick?.(item, 'yes')}
                             className="bg-white p-3 rounded border border-green-200 cursor-pointer hover:bg-green-50 hover:shadow-md transition"
                           >
-                            <p className="text-xs text-gray-600 mb-1">已确认(Yes)</p>
+                            <p className="text-xs text-gray-600 mb-1">{translations.cnOfficeStats.yesDetails}</p>
                             <p className="text-2xl font-bold text-green-600">{item.yes}</p>
-                            <p className="text-xs text-green-600 font-medium mt-2">点击查看详细数据 →</p>
+                            <p className="text-xs text-green-600 font-medium mt-2">{translations.cnOfficeStats.clickToView}</p>
                           </div>
                           <div 
                             onClick={() => onStatusCardClick?.(item, 'rejected')}
                             className="bg-white p-3 rounded border border-red-200 cursor-pointer hover:bg-red-50 hover:shadow-md transition"
                           >
-                            <p className="text-xs text-gray-600 mb-1">已拒绝(Rejected)</p>
+                            <p className="text-xs text-gray-600 mb-1">{translations.cnOfficeStats.rejectedDetails}</p>
                             <p className="text-2xl font-bold text-red-600">{item.rejected}</p>
-                            <p className="text-xs text-red-600 font-medium mt-2">点击查看详细数据 →</p>
+                            <p className="text-xs text-red-600 font-medium mt-2">{translations.cnOfficeStats.clickToView}</p>
                           </div>
                           <div 
                             onClick={() => onStatusCardClick?.(item, 'invalid')}
                             className="bg-white p-3 rounded border border-yellow-200 cursor-pointer hover:bg-yellow-50 hover:shadow-md transition"
                           >
-                            <p className="text-xs text-gray-600 mb-1">无效(Invalid)</p>
+                            <p className="text-xs text-gray-600 mb-1">{translations.cnOfficeStats.invalidDetails}</p>
                             <p className="text-2xl font-bold text-yellow-600">{item.invalid}</p>
-                            <p className="text-xs text-yellow-600 font-medium mt-2">点击查看详细数据 →</p>
+                            <p className="text-xs text-yellow-600 font-medium mt-2">{translations.cnOfficeStats.clickToView}</p>
                           </div>
                           <div 
                             onClick={() => onStatusCardClick?.(item, 'pending')}
                             className="bg-white p-3 rounded border border-gray-300 cursor-pointer hover:bg-gray-50 hover:shadow-md transition"
                           >
-                            <p className="text-xs text-gray-600 mb-1">待定(Pending)</p>
+                            <p className="text-xs text-gray-600 mb-1">{translations.cnOfficeStats.pendingDetails}</p>
                             <p className="text-2xl font-bold text-gray-600">{item.pending}</p>
-                            <p className="text-xs text-gray-600 font-medium mt-2">点击查看详细数据 →</p>
+                            <p className="text-xs text-gray-600 font-medium mt-2">{translations.cnOfficeStats.clickToView}</p>
                           </div>
                         </div>
                       </td>

@@ -35,6 +35,25 @@ public class UserService {
             .map(this::convertToDTO)
             .collect(Collectors.toList());
     }
+
+    /**
+     * 获取用户列表（可包含禁用用户）
+     */
+    public List<UserDTO> getUsers(boolean includeInactive) {
+        List<User> users;
+        if (includeInactive) {
+            users = userRepository.findAll();
+        } else {
+            users = java.util.stream.StreamSupport.stream(
+                userRepository.findByIsActive(true).spliterator(),
+                false
+            ).collect(Collectors.toList());
+        }
+
+        return users.stream()
+            .map(this::convertToDTO)
+            .collect(Collectors.toList());
+    }
     
     /**
      * 根据ID获取用户
@@ -83,7 +102,7 @@ public class UserService {
      * 更新用户
      */
     @Transactional
-    public UserDTO updateUser(Integer id, User updateData, Set<String> roleCodes) {
+    public UserDTO updateUser(Integer id, User updateData, Set<String> roleCodes, boolean updateRoles) {
         User user = userRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("用户不存在"));
         
@@ -100,6 +119,9 @@ public class UserService {
         if (updateData.getIsActive() != null) {
             user.setIsActive(updateData.getIsActive());
         }
+        if (updateData.getUpdatedBy() != null) {
+            user.setUpdatedBy(updateData.getUpdatedBy());
+        }
         
         // 更新密码（如果提供）
         if (updateData.getPassword() != null && !updateData.getPassword().isEmpty()) {
@@ -107,7 +129,7 @@ public class UserService {
         }
         
         // 更新角色
-        if (roleCodes != null) {
+        if (updateRoles) {
             Set<Role> roles = roleCodes.stream()
                 .map(code -> roleRepository.findByRoleCode(code)
                     .orElseThrow(() -> new RuntimeException("角色不存在: " + code)))
@@ -126,7 +148,19 @@ public class UserService {
     public void deleteUser(Integer id) {
         User user = userRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("用户不存在"));
-        userRepository.delete(user);
+        user.setIsActive(false);
+        userRepository.save(user);
+    }
+
+    /**
+     * 重置用户密码
+     */
+    @Transactional
+    public void resetPassword(Integer id, String newPassword) {
+        User user = userRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("用户不存在"));
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
     }
     
     /**
@@ -145,6 +179,9 @@ public class UserService {
         dto.setUpdatedAt(user.getUpdatedAt());
         dto.setCreatedBy(user.getCreatedBy());
         dto.setUpdatedBy(user.getUpdatedBy());
+        dto.setRoleCodes(user.getRoles().stream()
+            .map(Role::getRoleCode)
+            .collect(Collectors.toSet()));
         dto.setRoleNames(user.getRoles().stream()
             .map(Role::getRoleName)
             .collect(Collectors.toSet()));

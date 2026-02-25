@@ -67,6 +67,29 @@ async function request<T>(
     'Accept': 'application/json',
   };
 
+  const token = localStorage.getItem('token');
+  if (token) {
+    (defaultHeaders as any)['Authorization'] = `Bearer ${token}`;
+  }
+
+  // ✅ 添加用户信息请求头用于审计日志
+  const userStr = localStorage.getItem('user');
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr);
+      // 设置用户名（必需，后端用于审计日志的username字段）
+      if (user.username) {
+        (defaultHeaders as any)['X-Username'] = user.username;
+      }
+      // 设置用户角色（用于审计日志的userRole字段）
+      if (user.roles && user.roles.length > 0) {
+        (defaultHeaders as any)['X-User-Role'] = user.roles[0];
+      }
+    } catch (e) {
+      console.warn('[API] Failed to parse user info:', e);
+    }
+  }
+
   const response = await fetch(url, {
     ...options,
     headers: {
@@ -76,7 +99,13 @@ async function request<T>(
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
+    let errorText = '';
+    try {
+      errorText = await response.text();
+      console.error(`[API] Error ${response.status}:`, errorText);
+    } catch (e) {
+      console.error('[API] Failed to read error response:', e);
+    }
     throw new Error(`API Error: ${response.status} - ${errorText}`);
   }
 

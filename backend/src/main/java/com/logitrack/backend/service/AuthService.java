@@ -156,4 +156,35 @@ public class AuthService {
         }
         return null;
     }
+
+    /**
+     * 从Authorization头解析用户ID
+     */
+    public Integer resolveUserIdFromAuthHeader(String authHeader) {
+        if (authHeader == null || authHeader.isBlank()) {
+            return null;
+        }
+
+        String prefix = "Bearer ";
+        if (!authHeader.startsWith(prefix)) {
+            return null;
+        }
+
+        String token = authHeader.substring(prefix.length()).trim();
+        if (token.isEmpty()) {
+            return null;
+        }
+
+        return validateToken(token);
+    }
+
+    /**
+     * 判断是否管理员角色
+     */
+    public boolean isAdmin(Integer userId) {
+        if (userId == null) {
+            return false;
+        }
+        return hasRole(userId, "ADMIN_USER") || hasRole(userId, "ADMIN");
+    }
 }

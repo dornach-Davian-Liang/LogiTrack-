@@ -21,9 +21,11 @@ import {
   PeriodStats,
 } from '../../types';
 import { reportApi } from '../../services/reportApi';
+import { useLanguage } from '../../i18n/LanguageContext';
 import { TrendChart } from './TrendChart';
 
 export const ComparisonReport: React.FC = () => {
+  const { language, translations } = useLanguage();
   const [comparisonType, setComparisonType] = useState<ComparisonType>('MONTHLY');
   const [selectedPeriods, setSelectedPeriods] = useState<string[]>([]);
   const [coreFlags, setCoreFlags] = useState<('CORE' | 'NON_CORE')[]>([]);
@@ -33,12 +35,12 @@ export const ComparisonReport: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const cnOffices = [
-    { value: '', label: '全部' },
-    { value: 'SHANGHAI', label: '上海' },
-    { value: 'SHENZHEN', label: '深圳' },
-    { value: 'BEIJING', label: '北京' },
-    { value: 'GUANGZHOU', label: '广州' },
-    { value: 'HONG KONG', label: '香港' },
+    { value: '', label: language === 'zh' ? '全部' : 'All' },
+    { value: 'SHANGHAI', label: language === 'zh' ? '上海' : 'Shanghai' },
+    { value: 'SHENZHEN', label: language === 'zh' ? '深圳' : 'Shenzhen' },
+    { value: 'BEIJING', label: language === 'zh' ? '北京' : 'Beijing' },
+    { value: 'GUANGZHOU', label: language === 'zh' ? '广州' : 'Guangzhou' },
+    { value: 'HONG KONG', label: language === 'zh' ? '香港' : 'Hong Kong' },
   ];
 
   // 生成可选时期
@@ -72,9 +74,17 @@ export const ComparisonReport: React.FC = () => {
     if (comparisonType === 'MONTHLY') {
       const [year, month] = period.split('-');
       const date = new Date(parseInt(year), parseInt(month) - 1);
-      return date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' });
+      if (language === 'zh') {
+        return date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' });
+      } else {
+        return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+      }
     } else {
-      return period.replace('-Q', ' 年第 ') + ' 季度';
+      if (language === 'zh') {
+        return period.replace('-Q', ' 年第 ') + ' 季度';
+      } else {
+        return period.replace('-Q', ' Q');
+      }
     }
   };
 
@@ -85,7 +95,7 @@ export const ComparisonReport: React.FC = () => {
       } else if (prev.length < 6) {
         return [...prev, period].sort();
       } else {
-        alert('最多只能选择 6 个时期');
+        alert(translations.comparisonReport.maxPeriods);
         return prev;
       }
     });
@@ -99,7 +109,7 @@ export const ComparisonReport: React.FC = () => {
 
   const handleCompare = async () => {
     if (selectedPeriods.length < 2) {
-      alert('请至少选择 2 个时期进行对比');
+      alert(translations.comparisonReport.selectAtLeastTwo);
       return;
     }
 
@@ -117,7 +127,7 @@ export const ComparisonReport: React.FC = () => {
       const data = await reportApi.comparePeriods(request);
       setResult(data);
     } catch (err) {
-      setError('对比失败，请重试');
+      setError(translations.errors.compareFailed);
       console.error('Comparison error:', err);
     } finally {
       setLoading(false);
@@ -135,7 +145,10 @@ export const ComparisonReport: React.FC = () => {
   const exportToCSV = () => {
     if (!result) return;
 
-    const headers = ['时期', '总询价数', '已报价', '已确认', '转化率', '环比变化'];
+    const headers = language === 'zh' 
+      ? ['时期', '总询价数', '已报价', '已确认', '转化率', '环比变化']
+      : ['Period', 'Total', 'Quoted', 'Confirmed', 'Conversion Rate', 'MoM Change'];
+    
     const rows = result.periodStats.map((stat) => [
       stat.period,
       stat.totalEnquiries,
@@ -145,15 +158,21 @@ export const ComparisonReport: React.FC = () => {
       stat.changeFromPrevious ? `${stat.changeFromPrevious > 0 ? '+' : ''}${stat.changeFromPrevious.toFixed(1)}%` : 'N/A',
     ]);
 
+    const summaryLabel = language === 'zh' ? '汇总' : 'Summary';
+    const avgConversionLabel = language === 'zh' ? '平均转化率' : 'Average Conversion Rate';
+    const bestPeriodLabel = language === 'zh' ? '最佳时期' : 'Best Period';
+    const worstPeriodLabel = language === 'zh' ? '最差时期' : 'Worst Period';
+    const totalLabel = language === 'zh' ? '总计' : 'Total';
+
     const csvContent = [
       headers.join(','),
       ...rows.map((row) => row.join(',')),
       '',
-      '汇总',
-      `总计,${result.summary.grandTotal}`,
-      `平均转化率,${result.summary.avgConversionRate.toFixed(1)}%`,
-      `最佳时期,${result.summary.bestPeriod}`,
-      `最差时期,${result.summary.worstPeriod}`,
+      summaryLabel,
+      `${totalLabel},${result.summary.grandTotal}`,
+      `${avgConversionLabel},${result.summary.avgConversionRate.toFixed(1)}%`,
+      `${bestPeriodLabel},${result.summary.bestPeriod}`,
+      `${worstPeriodLabel},${result.summary.worstPeriod}`,
     ].join('\n');
 
     const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -172,9 +191,9 @@ export const ComparisonReport: React.FC = () => {
         <div>
           <h2 className="text-2xl font-bold text-gray-900 flex items-center">
             <BarChart3 className="h-7 w-7 mr-2 text-blue-600" />
-            时期对比报告
+            {translations.comparisonReport.title}
           </h2>
-          <p className="text-sm text-gray-500 mt-1">分析不同时期的业务表现趋势</p>
+          <p className="text-sm text-gray-500 mt-1">{translations.comparisonReport.subtitle}</p>
         </div>
       </div>
 
@@ -184,7 +203,7 @@ export const ComparisonReport: React.FC = () => {
         <div>
           <label className="flex items-center text-sm font-medium text-gray-700 mb-3">
             <Calendar className="h-4 w-4 mr-1" />
-            对比类型
+            {translations.comparisonReport.comparisonType}
           </label>
           <div className="flex space-x-3">
             <button
@@ -198,7 +217,7 @@ export const ComparisonReport: React.FC = () => {
                   : 'bg-white border-gray-300 text-gray-700 hover:border-blue-300'
               }`}
             >
-              📅 月度对比
+              📅 {translations.comparisonReport.monthly}
             </button>
             <button
               onClick={() => {
@@ -211,7 +230,7 @@ export const ComparisonReport: React.FC = () => {
                   : 'bg-white border-gray-300 text-gray-700 hover:border-blue-300'
               }`}
             >
-              📊 季度对比
+              📊 {translations.comparisonReport.quarterly}
             </button>
           </div>
         </div>
@@ -219,7 +238,7 @@ export const ComparisonReport: React.FC = () => {
         {/* Period Selection */}
         <div>
           <label className="text-sm font-medium text-gray-700 mb-3 block">
-            选择时期 ({selectedPeriods.length}/6)
+            {translations.comparisonReport.selectPeriods} ({selectedPeriods.length}/6)
           </label>
           <div className="grid grid-cols-4 lg:grid-cols-6 gap-2 max-h-48 overflow-y-auto p-2 bg-gray-50 rounded-lg">
             {periodOptions.map((period) => (
@@ -244,7 +263,7 @@ export const ComparisonReport: React.FC = () => {
           <div>
             <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
               <Flag className="h-4 w-4 mr-1" />
-              Core Flag（可选）
+              Core Flag ({language === 'zh' ? '可选' : 'Optional'})
             </label>
             <div className="flex space-x-2">
               <button
@@ -274,7 +293,7 @@ export const ComparisonReport: React.FC = () => {
           <div>
             <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
               <Building2 className="h-4 w-4 mr-1" />
-              中国办公室（可选）
+              {translations.enhancedDashboard.cnOffice} ({language === 'zh' ? '可选' : 'Optional'})
             </label>
             <select
               value={cnOffice}
@@ -297,13 +316,13 @@ export const ComparisonReport: React.FC = () => {
             disabled={loading || selectedPeriods.length < 2}
             className="flex-1 flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white rounded-lg transition font-semibold"
           >
-            {loading ? '分析中...' : '开始对比'}
+            {loading ? (language === 'zh' ? '分析中...' : 'Analyzing...') : translations.comparisonReport.compare}
           </button>
           <button
             onClick={handleReset}
             className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition font-semibold"
           >
-            重置
+            {translations.filters.clearFilters}
           </button>
         </div>
       </div>
@@ -321,11 +340,11 @@ export const ComparisonReport: React.FC = () => {
           {/* Summary Cards */}
           <div className="grid grid-cols-4 gap-4">
             <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <p className="text-sm text-gray-600 mb-1">总询价数</p>
+              <p className="text-sm text-gray-600 mb-1">{translations.statistics.totalEnquiries}</p>
               <p className="text-3xl font-bold text-gray-900">{result.summary.grandTotal}</p>
             </div>
             <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <p className="text-sm text-gray-600 mb-1">平均转化率</p>
+              <p className="text-sm text-gray-600 mb-1">{language === 'zh' ? '平均转化率' : 'Avg Conversion Rate'}</p>
               <p className="text-3xl font-bold text-green-600">
                 {result.summary.avgConversionRate.toFixed(1)}%
               </p>
@@ -333,14 +352,14 @@ export const ComparisonReport: React.FC = () => {
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
               <p className="text-sm text-green-700 mb-1 flex items-center">
                 <Trophy className="h-4 w-4 mr-1" />
-                最佳时期
+                {language === 'zh' ? '最佳时期' : 'Best Period'}
               </p>
               <p className="text-2xl font-bold text-green-600">{result.summary.bestPeriod}</p>
             </div>
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
               <p className="text-sm text-red-700 mb-1 flex items-center">
                 <AlertTriangle className="h-4 w-4 mr-1" />
-                最差时期
+                {language === 'zh' ? '最差时期' : 'Worst Period'}
               </p>
               <p className="text-2xl font-bold text-red-600">{result.summary.worstPeriod}</p>
             </div>
@@ -349,13 +368,13 @@ export const ComparisonReport: React.FC = () => {
           {/* Comparison Table */}
           <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
             <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <h3 className="font-semibold text-gray-900">详细对比</h3>
+              <h3 className="font-semibold text-gray-900">{language === 'zh' ? '详细对比' : 'Detailed Comparison'}</h3>
               <button
                 onClick={exportToCSV}
                 className="flex items-center px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition"
               >
                 <Download className="h-4 w-4 mr-1" />
-                导出 CSV
+                {translations.actions.downloadReport}
               </button>
             </div>
             <div className="overflow-x-auto">
@@ -363,22 +382,22 @@ export const ComparisonReport: React.FC = () => {
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                      时期
+                      {language === 'zh' ? '时期' : 'Period'}
                     </th>
                     <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">
-                      总询价数
+                      {translations.statistics.totalEnquiries}
                     </th>
                     <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">
-                      已报价
+                      {translations.statistics.quoted}
                     </th>
                     <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">
-                      已确认
+                      {translations.statistics.confirmed}
                     </th>
                     <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">
-                      转化率
+                      {language === 'zh' ? '转化率' : 'Conversion Rate'}
                     </th>
                     <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">
-                      环比变化
+                      {language === 'zh' ? '环比变化' : 'MoM Change'}
                     </th>
                   </tr>
                 </thead>

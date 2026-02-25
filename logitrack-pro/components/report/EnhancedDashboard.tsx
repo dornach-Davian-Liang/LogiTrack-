@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { DashboardStatsWithFilter, DashboardFilterParams, CNOfficeStat, EnquiryListItem } from '../../types';
 import { reportApi } from '../../services/reportApi';
+import { useLanguage } from '../../i18n/LanguageContext';
 import { StatCard } from './StatCard';
 import { DashboardFilters } from './DashboardFilters';
 import { CNOfficePivotTable } from './CNOfficePivotTable';
@@ -39,6 +40,7 @@ export const EnhancedDashboard: React.FC<EnhancedDashboardProps> = ({
   savedFilter = null, // ✅ 新增
   onFilterChange // ✅ 新增
 }) => {
+  const { language, translations } = useLanguage();
   const [stats, setStats] = useState<DashboardStatsWithFilter | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -99,7 +101,7 @@ export const EnhancedDashboard: React.FC<EnhancedDashboardProps> = ({
       // ✅ 通知父组件保存过滤条件
       onFilterChange?.(filter);
     } catch (err) {
-      setError('加载统计数据失败');
+      setError(translations.errors.dataLoadFailed);
       console.error('Error loading dashboard stats:', err);
     } finally {
       setLoading(false);
@@ -117,7 +119,7 @@ export const EnhancedDashboard: React.FC<EnhancedDashboardProps> = ({
     return (
       <div className="flex items-center justify-center h-64">
         <RefreshCw className="h-8 w-8 animate-spin text-blue-500" />
-        <span className="ml-2 text-gray-600">加载中...</span>
+        <span className="ml-2 text-gray-600">{translations.loading}</span>
       </div>
     );
   }
@@ -131,7 +133,7 @@ export const EnhancedDashboard: React.FC<EnhancedDashboardProps> = ({
           onClick={loadDefaultStats}
           className="mt-4 px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition"
         >
-          重试
+          {translations.retry}
         </button>
       </div>
     );
@@ -146,9 +148,9 @@ export const EnhancedDashboard: React.FC<EnhancedDashboardProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">增强版报表仪表板</h2>
+          <h2 className="text-2xl font-bold text-gray-900">{translations.enhancedDashboard.title}</h2>
           <p className="text-sm text-gray-500 mt-1">
-            实时数据概览与多维度分析
+            {translations.enhancedDashboard.subtitle}
             {stats.filterApplied && (
               <span className="ml-2 text-blue-600">
                 📅 {stats.filterApplied.startDate} ~ {stats.filterApplied.endDate}
@@ -168,33 +170,33 @@ export const EnhancedDashboard: React.FC<EnhancedDashboardProps> = ({
       {/* Overview Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
-          title="总询价数"
+          title={translations.statistics.totalEnquiries}
           value={overview.totalEnquiries}
           change={overview.totalEnquiriesChange}
-          comparison={`较上期${overview.totalEnquiriesChange >= 0 ? '增加' : '减少'}`}
+          comparison={`${language === 'zh' ? '较上期' : 'vs period'} ${overview.totalEnquiriesChange >= 0 ? (language === 'zh' ? '增加' : 'increased') : (language === 'zh' ? '减少' : 'decreased')}`}
           icon={<FileText className="h-6 w-6" />}
           color="blue"
         />
         <StatCard
-          title="已报价"
+          title={translations.statistics.quoted}
           value={overview.quoted}
           change={overview.quotedChange}
-          comparison={`报价率 ${overview.totalEnquiries > 0 ? ((overview.quoted / overview.totalEnquiries) * 100).toFixed(1) : 0}%`}
+          comparison={`${language === 'zh' ? '报价率' : 'Quote Rate'} ${overview.totalEnquiries > 0 ? ((overview.quoted / overview.totalEnquiries) * 100).toFixed(1) : 0}%`}
           icon={<CheckCircle className="h-6 w-6" />}
           color="green"
         />
         <StatCard
-          title="待处理"
+          title={translations.statistics.pending}
           value={overview.pending}
-          comparison={`占比 ${overview.totalEnquiries > 0 ? ((overview.pending / overview.totalEnquiries) * 100).toFixed(1) : 0}%`}
+          comparison={`${language === 'zh' ? '占比' : 'Percentage'} ${overview.totalEnquiries > 0 ? ((overview.pending / overview.totalEnquiries) * 100).toFixed(1) : 0}%`}
           icon={<Clock className="h-6 w-6" />}
           color="yellow"
         />
         <StatCard
-          title="已确认"
+          title={translations.statistics.confirmed}
           value={overview.confirmed}
           change={overview.confirmedChange}
-          comparison={`转化率 ${overview.quoted > 0 ? ((overview.confirmed / overview.quoted) * 100).toFixed(1) : 0}%`}
+          comparison={`${language === 'zh' ? '转化率' : 'Conversion Rate'} ${overview.quoted > 0 ? ((overview.confirmed / overview.quoted) * 100).toFixed(1) : 0}%`}
           icon={<CheckCircle className="h-6 w-6" />}
           color="purple"
         />
@@ -257,7 +259,7 @@ export const EnhancedDashboard: React.FC<EnhancedDashboardProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Status Breakdown */}
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">状态分布</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{translations.dashboard.statusBreakdown}</h3>
           <div className="space-y-3">
             {Object.entries(statusBreakdown).map(([status, data]) => {
               const statusData = data as { count: number; percentage: string };
@@ -269,7 +271,7 @@ export const EnhancedDashboard: React.FC<EnhancedDashboardProps> = ({
                   <div className="flex-1">
                     <div className="flex justify-between mb-1">
                       <span className="text-sm font-medium text-gray-700">
-                        {getStatusLabel(status)}
+                        {getStatusLabel(status, language)}
                       </span>
                       <span className="text-sm text-gray-600">
                         {statusData.count} ({percentage}%)
@@ -290,7 +292,7 @@ export const EnhancedDashboard: React.FC<EnhancedDashboardProps> = ({
 
         {/* Monthly Trend */}
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">趋势数据</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{translations.dashboard.monthlyTrend}</h3>
           <div className="space-y-4">
             {monthlyTrend.slice(0, 6).map((item) => (
               <div key={item.month} className="flex items-center justify-between">
@@ -316,7 +318,7 @@ export const EnhancedDashboard: React.FC<EnhancedDashboardProps> = ({
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
             <MapPin className="h-5 w-5 mr-2 text-blue-500" />
-            热门国家
+            {translations.dashboard.topCountries}
           </h3>
           <div className="space-y-3">
             {topCountries.slice(0, 5).map((country, index) => (
@@ -336,7 +338,7 @@ export const EnhancedDashboard: React.FC<EnhancedDashboardProps> = ({
       <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
           <Package className="h-5 w-5 mr-2 text-orange-500" />
-          货物类型分布
+          {translations.dashboard.cargoTypes}
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {cargoTypes.map((cargo) => {
@@ -358,14 +360,24 @@ export const EnhancedDashboard: React.FC<EnhancedDashboardProps> = ({
 };
 
 // Helper functions
-function getStatusLabel(status: string): string {
-  const labels: Record<string, string> = {
+function getStatusLabel(status: string, language: string): string {
+  const zhLabels: Record<string, string> = {
     'New': '新询价',
     'Quoted': '已报价',
     'Confirmed': '已确认',
     'Lost': '已流失',
     'Cancelled': '已取消',
   };
+  
+  const enLabels: Record<string, string> = {
+    'New': 'New',
+    'Quoted': 'Quoted',
+    'Confirmed': 'Confirmed',
+    'Lost': 'Lost',
+    'Cancelled': 'Cancelled',
+  };
+  
+  const labels = language === 'zh' ? zhLabels : enLabels;
   return labels[status] || status;
 }
 

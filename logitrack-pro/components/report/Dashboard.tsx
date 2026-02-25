@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { DashboardStats } from '../../types';
 import { reportApi } from '../../services/reportApi';
+import { useLanguage } from '../../i18n/LanguageContext';
 import { StatCard } from './StatCard';
 
 interface DashboardProps {
@@ -24,6 +25,7 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ currentMonth }) => {
+  const { language, translations } = useLanguage();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +42,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentMonth }) => {
       const data = await reportApi.getDashboardStats(selectedMonth);
       setStats(data);
     } catch (err) {
-      setError('加载统计数据失败');
+      setError(translations.errors.dataLoadFailed);
       console.error('Error loading dashboard stats:', err);
     } finally {
       setLoading(false);
@@ -56,7 +58,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentMonth }) => {
     return (
       <div className="flex items-center justify-center h-64">
         <RefreshCw className="h-8 w-8 animate-spin text-blue-500" />
-        <span className="ml-2 text-gray-600">加载中...</span>
+        <span className="ml-2 text-gray-600">{translations.loading}</span>
       </div>
     );
   }
@@ -65,12 +67,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentMonth }) => {
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
         <XCircle className="h-12 w-12 text-red-500 mx-auto mb-2" />
-        <p className="text-red-600">{error || '无法加载数据'}</p>
+        <p className="text-red-600">{error || translations.noData}</p>
         <button
           onClick={loadStats}
           className="mt-4 px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition"
         >
-          重试
+          {translations.retry}
         </button>
       </div>
     );
@@ -83,8 +85,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentMonth }) => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">报表仪表板</h2>
-          <p className="text-sm text-gray-500 mt-1">实时数据概览与统计分析</p>
+          <h2 className="text-2xl font-bold text-gray-900">{translations.dashboard.title}</h2>
+          <p className="text-sm text-gray-500 mt-1">{translations.dashboard.subtitle}</p>
         </div>
         <div className="flex items-center space-x-3">
           <Calendar className="h-5 w-5 text-gray-400" />
@@ -93,14 +95,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentMonth }) => {
             onChange={(e) => setSelectedMonth(e.target.value)}
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
-            {generateMonthOptions()}
+            {generateMonthOptions(language)}
           </select>
           <button
             onClick={loadStats}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition flex items-center"
           >
             <RefreshCw className="h-4 w-4 mr-2" />
-            刷新
+            {translations.refresh}
           </button>
         </div>
       </div>
@@ -108,33 +110,33 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentMonth }) => {
       {/* Overview Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
-          title="总询价数"
+          title={translations.statistics.totalEnquiries}
           value={overview.totalEnquiries}
           change={overview.totalEnquiriesChange}
-          comparison={`较上月${overview.totalEnquiriesChange >= 0 ? '增加' : '减少'}`}
+          comparison={`${language === 'zh' ? '较上月' : 'vs last month'} ${overview.totalEnquiriesChange >= 0 ? (language === 'zh' ? '增加' : 'increased') : (language === 'zh' ? '减少' : 'decreased')}`}
           icon={<FileText className="h-6 w-6" />}
           color="blue"
         />
         <StatCard
-          title="已报价"
+          title={translations.statistics.quoted}
           value={overview.quoted}
           change={overview.quotedChange}
-          comparison={`报价率 ${((overview.quoted / overview.totalEnquiries) * 100).toFixed(1)}%`}
+          comparison={`${language === 'zh' ? '报价率' : 'Quote Rate'} ${((overview.quoted / overview.totalEnquiries) * 100).toFixed(1)}%`}
           icon={<CheckCircle className="h-6 w-6" />}
           color="green"
         />
         <StatCard
-          title="待处理"
+          title={translations.statistics.pending}
           value={overview.pending}
-          comparison={`占比 ${((overview.pending / overview.totalEnquiries) * 100).toFixed(1)}%`}
+          comparison={`${language === 'zh' ? '占比' : 'Percentage'} ${((overview.pending / overview.totalEnquiries) * 100).toFixed(1)}%`}
           icon={<Clock className="h-6 w-6" />}
           color="yellow"
         />
         <StatCard
-          title="已确认"
+          title={translations.statistics.confirmed}
           value={overview.confirmed}
           change={overview.confirmedChange}
-          comparison={`转化率 ${((overview.confirmed / overview.quoted) * 100 || 0).toFixed(1)}%`}
+          comparison={`${language === 'zh' ? '转化率' : 'Conversion Rate'} ${((overview.confirmed / overview.quoted) * 100 || 0).toFixed(1)}%`}
           icon={<CheckCircle className="h-6 w-6" />}
           color="purple"
         />
@@ -144,7 +146,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentMonth }) => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Status Breakdown */}
         <div className="bg-white p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">状态分布</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{translations.dashboard.statusBreakdown}</h3>
           <div className="space-y-3">
             {Object.entries(statusBreakdown).map(([status, data]) => {
               const statusData = data as { count: number; percentage: string };
@@ -154,7 +156,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentMonth }) => {
                   <div className="flex-1">
                     <div className="flex justify-between mb-1">
                       <span className="text-sm font-medium text-gray-700">
-                        {getStatusLabel(status)}
+                        {getStatusLabel(status, language)}
                       </span>
                       <span className="text-sm text-gray-600">
                         {statusData.count} ({percentage}%)
@@ -175,7 +177,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentMonth }) => {
 
         {/* Monthly Trend */}
         <div className="bg-white p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">月度趋势</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{translations.dashboard.monthlyTrend}</h3>
           <div className="space-y-4">
             {monthlyTrend.slice(0, 6).map((item) => (
               <div key={item.month} className="flex items-center justify-between">
@@ -201,7 +203,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentMonth }) => {
         <div className="bg-white p-6 rounded-lg shadow">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
             <MapPin className="h-5 w-5 mr-2 text-blue-500" />
-            热门国家
+            {translations.dashboard.topCountries}
           </h3>
           <div className="space-y-3">
             {topCountries.map((country, index) => (
@@ -220,7 +222,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentMonth }) => {
         <div className="bg-white p-6 rounded-lg shadow">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
             <Package className="h-5 w-5 mr-2 text-green-500" />
-            主要起运港
+            {translations.dashboard.topOrigins}
           </h3>
           <div className="space-y-3">
             {topOrigins.map((origin, index) => (
@@ -239,7 +241,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentMonth }) => {
         <div className="bg-white p-6 rounded-lg shadow">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
             <MapPin className="h-5 w-5 mr-2 text-purple-500" />
-            主要目的港
+            {translations.dashboard.topDestinations}
           </h3>
           <div className="space-y-3">
             {topDestinations.map((dest, index) => (
@@ -259,7 +261,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentMonth }) => {
       <div className="bg-white p-6 rounded-lg shadow">
         <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
           <Package className="h-5 w-5 mr-2 text-orange-500" />
-          货物类型分布
+          {translations.dashboard.cargoTypes}
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {cargoTypes.map((cargo) => {
@@ -279,14 +281,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentMonth }) => {
 };
 
 // Helper functions
-function getStatusLabel(status: string): string {
-  const labels: Record<string, string> = {
+function getStatusLabel(status: string, language: string): string {
+  const zhLabels: Record<string, string> = {
     'New': '新询价',
     'Quoted': '已报价',
     'Confirmed': '已确认',
     'Lost': '已流失',
     'Cancelled': '已取消',
   };
+  
+  const enLabels: Record<string, string> = {
+    'New': 'New',
+    'Quoted': 'Quoted',
+    'Confirmed': 'Confirmed',
+    'Lost': 'Lost',
+    'Cancelled': 'Cancelled',
+  };
+  
+  const labels = language === 'zh' ? zhLabels : enLabels;
   return labels[status] || status;
 }
 
@@ -301,14 +313,21 @@ function getStatusColor(status: string): string {
   return colors[status] || 'bg-gray-500';
 }
 
-function generateMonthOptions(): React.ReactElement[] {
+function generateMonthOptions(language: string): React.ReactElement[] {
   const options: React.ReactElement[] = [];
   const currentDate = new Date();
   
   for (let i = 0; i < 12; i++) {
     const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
     const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-    const label = `${date.getFullYear()}年${date.getMonth() + 1}月`;
+    
+    let label: string;
+    if (language === 'zh') {
+      label = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}`;
+    } else {
+      label = date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+    }
+    
     options.push(<option key={value} value={value}>{label}</option>);
   }
   

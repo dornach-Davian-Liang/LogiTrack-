@@ -27,6 +27,12 @@ public class AuditLog {
     @Column(name = "username", nullable = false, length = 50)
     private String username;
     
+    @Column(name = "user_role", length = 50)
+    private String userRole; // ADMIN, PRICING_ADMIN, OPERATING_USER等
+    
+    @Column(name = "cn_pricing_admin", length = 100)
+    private String cnPricingAdmin; // 记录enquiry的CN Pricing Admin字段
+    
     @Column(name = "action", nullable = false, length = 50)
     private String action; // CREATE, UPDATE, DELETE, VIEW, EXPORT, LOGIN, LOGOUT
     
@@ -44,6 +50,9 @@ public class AuditLog {
     
     @Column(name = "new_value", columnDefinition = "JSON")
     private String newValue;
+    
+    @Column(name = "details", columnDefinition = "TEXT")
+    private String details; // 详细的变更说明，如："修改了字段: status (New → Quoted), quantity (10 → 15)"
     
     @Column(name = "ip_address", length = 45)
     private String ipAddress;

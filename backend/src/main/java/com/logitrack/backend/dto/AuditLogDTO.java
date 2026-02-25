@@ -16,12 +16,15 @@ public class AuditLogDTO {
     private Long id;
     private Integer userId;
     private String username;
+    private String userRole;
+    private String cnPricingAdmin;
     private String action;
     private String resourceType;
     private String resourceId;
     private String resourceName;
     private String oldValue;
     private String newValue;
+    private String details;
     private String ipAddress;
     private String userAgent;
     private String requestMethod;
