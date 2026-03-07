@@ -38,4 +38,16 @@ public class DashboardFilterDTO {
      * If null or empty, include all offices
      */
     private String cnOffice;
+
+    /**
+     * Product code filter options: ["AIR", "SEA", "SEA-AIR", "RAIL", "RAIL-SEA"]
+     * If null or empty, include all products
+     */
+    private List<String> products;
+
+    /**
+     * Country code filter options: ["FR", "UK", "DE", ...]
+     * If null or empty, include all countries
+     */
+    private List<String> countries;
 }

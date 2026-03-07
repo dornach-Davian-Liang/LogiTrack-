@@ -2,9 +2,13 @@ package com.logitrack.backend.service;
 
 import com.logitrack.backend.dto.ReferencePreview;
 import com.logitrack.backend.entity.Enquiry;
+import com.logitrack.backend.entity.Country;
+import com.logitrack.backend.entity.Port;
 import com.logitrack.backend.repository.EnquiryRepository;
 import com.logitrack.backend.repository.ProductRepository;
 import com.logitrack.backend.repository.ContainerTypeRepository;
+import com.logitrack.backend.repository.CountryRepository;
+import com.logitrack.backend.repository.PortRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import com.logitrack.backend.entity.EnquiryContainerLine;
@@ -19,6 +23,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 import java.util.ArrayList;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +36,8 @@ public class EnquiryService {
     private final ProductRepository productRepository;
     private final ContainerTypeRepository containerTypeRepository;
     private final EnquiryPortService enquiryPortService;  // ✅ 新增：多港口服务
+    private final CountryRepository countryRepository;
+    private final PortRepository portRepository;
     
     /**
      * Get all enquiry records
@@ -109,6 +118,65 @@ public class EnquiryService {
                 serialNumber > 0 ? String.valueOf(serialNumber) : "");
     }
 
+    /**
+     * Calculate CORE/NON-CORE flag based on POD countries
+     * 根据POD国家自动判断CORE/NON-CORE标志
+     * 规则：如果存在混合情况（既有CORE又有NON-CORE国家），返回null表示需要手动选择
+     * 
+     * @param podIds POD港口ID列表
+     * @return CoreFlag枚举值，如果混合则返回null
+     */
+    private Enquiry.CoreFlag calculateCoreFlagFromPods(List<Integer> podIds) {
+        if (podIds == null || podIds.isEmpty()) {
+            log.debug("No POD IDs provided, cannot determine CORE flag");
+            return null;
+        }
+
+        // 获取所有POD的国家信息
+        Set<String> countryCodes = new HashSet<>();
+        for (Integer podId : podIds) {
+            Optional<Port> port = portRepository.findById(podId);
+            if (port.isPresent() && port.get().getCountryCode() != null) {
+                countryCodes.add(port.get().getCountryCode());
+            }
+        }
+
+        if (countryCodes.isEmpty()) {
+            log.debug("No country codes found for PODs, cannot determine CORE flag");
+            return null;
+        }
+
+        // 查询这些国家的is_core属性
+        boolean hasCore = false;
+        boolean hasNonCore = false;
+        
+        for (String countryCode : countryCodes) {
+            Optional<Country> country = countryRepository.findByCountryCode(countryCode);
+            if (country.isPresent()) {
+                if (country.get().getIsCore()) {
+                    hasCore = true;
+                } else {
+                    hasNonCore = true;
+                }
+            }
+        }
+
+        // 混合情况：既有CORE又有NON-CORE
+        if (hasCore && hasNonCore) {
+            log.warn("Mixed CORE/NON-CORE countries detected for PODs: {}. Requires manual selection.", countryCodes);
+            return null; // 需要用户手动选择
+        }
+
+        // 纯CORE或纯NON-CORE
+        if (hasCore) {
+            log.debug("All POD countries are CORE");
+            return Enquiry.CoreFlag.CORE;
+        } else {
+            log.debug("All POD countries are NON-CORE");
+            return Enquiry.CoreFlag.NON_CORE;
+        }
+    }
+
     public ReferencePreview getNextReference(LocalDate issueDate, String productCode) {
         LocalDate effectiveDate = issueDate != null ? issueDate : LocalDate.now();
         DateTimeFormatter fm = DateTimeFormatter.ofPattern("yyMM");
@@ -160,14 +228,25 @@ public class EnquiryService {
         if (enquiry.getSalesCountryCode() == null || enquiry.getSalesCountryCode().isEmpty()) {
             enquiry.setSalesCountryCode("CN");
         }
-        if (enquiry.getSalesOfficeId() == null) {
-            enquiry.setSalesOfficeId(1);
+        // ✅ 修复：空字符串的 categoryCode 需转为 null，否则触发 fk_enquiry_category 外键约束失败
+        if (enquiry.getCategoryCode() != null && enquiry.getCategoryCode().isEmpty()) {
+            enquiry.setCategoryCode(null);
         }
+        if (enquiry.getSalesOfficeId() == null) {
+            // 不再硬编码1，让数据库允许NULL
+        }
+        // ✅ 修复：polId/podId 优先从 polIds/podIds 数组取第一个，避免 FK 约束违反
         if (enquiry.getPolId() == null) {
-            enquiry.setPolId(1);  // 默认起运港
+            if (enquiry.getPolIds() != null && !enquiry.getPolIds().isEmpty()) {
+                enquiry.setPolId(enquiry.getPolIds().get(0));
+            }
+            // 若 polIds 也为空，保持 null（数据库列允许 null）
         }
         if (enquiry.getPodId() == null) {
-            enquiry.setPodId(1);  // 默认目的港
+            if (enquiry.getPodIds() != null && !enquiry.getPodIds().isEmpty()) {
+                enquiry.setPodId(enquiry.getPodIds().get(0));
+            }
+            // 若 podIds 也为空，保持 null（数据库列允许 null）
         }
         if (enquiry.getBookingConfirmed() == null) {
             enquiry.setBookingConfirmed(com.logitrack.backend.entity.Enquiry.BookingConfirmed.Pending);
@@ -192,6 +271,10 @@ public class EnquiryService {
         enquiry.setProductAbbr(abbr);
 
         // Handle container lines and compute TEU aggregate
+        // ✅ 修复：合并相同箱型的行，避免 uk_enquiry_container 唯一约束冲突
+        if (enquiry.getContainerLines() != null && !enquiry.getContainerLines().isEmpty()) {
+            enquiry.setContainerLines(mergeContainerLines(enquiry.getContainerLines()));
+        }
         java.math.BigDecimal totalTeu = java.math.BigDecimal.ZERO;
         if (enquiry.getContainerLines() != null && !enquiry.getContainerLines().isEmpty()) {
             for (EnquiryContainerLine line : enquiry.getContainerLines()) {
@@ -260,47 +343,49 @@ public class EnquiryService {
             enquiry.setOffers(new ArrayList<>());
         }
 
-        // Persist (cascade persists containerLines) with retry to ensure unique reference
-        boolean isIncrease = enquiry.getMonthlySequence() != null && enquiry.getSerialNumber() != null && enquiry.getSerialNumber() > 0;
-        int attempts = 0;
-        while (true) {
-            try {
-                if (isIncrease) {
-                    int seq = enquiry.getMonthlySequence();
-                    Integer maxSerial = enquiryRepository.findMaxSerialNumber(refMonth, seq, abbr);
-                    int nextSerial = (maxSerial == null ? 0 : maxSerial) + 1;
-                    enquiry.setSerialNumber(nextSerial);
-                    enquiry.setReferenceNumber(buildReferenceNumber(refMonth, seq, abbr, nextSerial));
-                } else {
-                    Integer maxSeq = enquiryRepository.findMaxMonthlySequence(refMonth);
-                    int nextSeq = (maxSeq == null ? 0 : maxSeq) + 1;
-                    enquiry.setMonthlySequence(nextSeq);
-                    enquiry.setSerialNumber(0);
-                    enquiry.setReferenceNumber(buildReferenceNumber(refMonth, nextSeq, abbr, 0));
-                }
-                
-                // ✅ 保存 Enquiry 实体
-                Enquiry savedEnquiry = enquiryRepository.save(enquiry);
-                
-                // ✅ 保存多港口关联（如果有 polIds/podIds）
-                if (enquiry.getPolIds() != null && !enquiry.getPolIds().isEmpty()) {
-                    enquiryPortService.savePolIds(savedEnquiry.getId(), enquiry.getPolIds());
-                    log.info("Saved {} POL(s) for new enquiry {}", enquiry.getPolIds().size(), savedEnquiry.getId());
-                }
-                if (enquiry.getPodIds() != null && !enquiry.getPodIds().isEmpty()) {
-                    enquiryPortService.savePodIds(savedEnquiry.getId(), enquiry.getPodIds());
-                    log.info("Saved {} POD(s) for new enquiry {}", enquiry.getPodIds().size(), savedEnquiry.getId());
-                }
-                
-                return savedEnquiry;
-            } catch (DataIntegrityViolationException ex) {
-                attempts++;
-                log.warn("Reference number conflict, retrying... attempt={}", attempts);
-                if (attempts >= 3) {
-                    throw ex;
-                }
+        // ✅ 自动计算CORE/NON-CORE flag（如果未手动设置）
+        if (enquiry.getCoreFlag() == null && enquiry.getPodIds() != null && !enquiry.getPodIds().isEmpty()) {
+            Enquiry.CoreFlag calculatedFlag = calculateCoreFlagFromPods(enquiry.getPodIds());
+            if (calculatedFlag != null) {
+                enquiry.setCoreFlag(calculatedFlag);
+                log.info("Auto-calculated CORE flag: {}", calculatedFlag);
+            } else {
+                log.warn("Mixed CORE/NON-CORE countries detected. User must manually select CORE flag.");
             }
         }
+
+        // ✅ 修复：将参考编号计算移到事务/save之前（在任何JPA操作前），
+        //   防止 DataIntegrityViolationException 后 session 损坏，再次查询触发 AssertionFailure
+        boolean isIncrease = enquiry.getMonthlySequence() != null && enquiry.getSerialNumber() != null && enquiry.getSerialNumber() > 0;
+        if (isIncrease) {
+            int seq = enquiry.getMonthlySequence();
+            Integer maxSerial = enquiryRepository.findMaxSerialNumber(refMonth, seq, abbr);
+            int nextSerial = (maxSerial == null ? 0 : maxSerial) + 1;
+            enquiry.setSerialNumber(nextSerial);
+            enquiry.setReferenceNumber(buildReferenceNumber(refMonth, seq, abbr, nextSerial));
+        } else {
+            Integer maxSeq = enquiryRepository.findMaxMonthlySequence(refMonth);
+            int nextSeq = (maxSeq == null ? 0 : maxSeq) + 1;
+            enquiry.setMonthlySequence(nextSeq);
+            enquiry.setSerialNumber(0);
+            enquiry.setReferenceNumber(buildReferenceNumber(refMonth, nextSeq, abbr, 0));
+        }
+        log.info("Calculated reference number: {}", enquiry.getReferenceNumber());
+
+        // ✅ 保存 Enquiry 实体（不再在事务内循环重试，避免 session 损坏后 AssertionFailure）
+        Enquiry savedEnquiry = enquiryRepository.save(enquiry);
+
+        // ✅ 保存多港口关联（如果有 polIds/podIds）
+        if (enquiry.getPolIds() != null && !enquiry.getPolIds().isEmpty()) {
+            enquiryPortService.savePolIds(savedEnquiry.getId(), enquiry.getPolIds());
+            log.info("Saved {} POL(s) for new enquiry {}", enquiry.getPolIds().size(), savedEnquiry.getId());
+        }
+        if (enquiry.getPodIds() != null && !enquiry.getPodIds().isEmpty()) {
+            enquiryPortService.savePodIds(savedEnquiry.getId(), enquiry.getPodIds());
+            log.info("Saved {} POD(s) for new enquiry {}", enquiry.getPodIds().size(), savedEnquiry.getId());
+        }
+
+        return savedEnquiry;
     }
     
     /**
@@ -357,6 +442,10 @@ public class EnquiryService {
                 if (enquiry.getCargoTypeCode() == null || enquiry.getCargoTypeCode().isEmpty()) {
                     enquiry.setCargoTypeCode(existing.getCargoTypeCode());
                 }
+                // ✅ 修复：空字符串的 categoryCode 需转为 null，否则触发 fk_enquiry_category 外键约束失败
+                if (enquiry.getCategoryCode() != null && enquiry.getCategoryCode().isEmpty()) {
+                    enquiry.setCategoryCode(null);
+                }
                 if (enquiry.getIssueDate() == null) {
                     enquiry.setIssueDate(existing.getIssueDate());
                 }
@@ -393,8 +482,11 @@ public class EnquiryService {
                         enquiryRepository.flush();  // 立即执行删除
                     }
                     
+                    // ✅ 修复：合并相同箱型的行，避免 uk_enquiry_container 唯一约束冲突
+                    List<EnquiryContainerLine> mergedLines = mergeContainerLines(enquiry.getContainerLines());
+                    enquiry.setContainerLines(mergedLines);
                     // 然后添加新的 containerLines
-                    for (EnquiryContainerLine line : enquiry.getContainerLines()) {
+                    for (EnquiryContainerLine line : mergedLines) {
                         line.setId(null);  // 确保作为新行插入
                         line.setEnquiry(enquiry);
                         
@@ -423,6 +515,26 @@ public class EnquiryService {
                 }
                 enquiry.setQuantityTeu(totalTeu);
 
+                // ✅ 自动计算CORE/NON-CORE flag（如果POD有变更且未手动设置）
+                if (enquiry.getPodIds() != null && !enquiry.getPodIds().isEmpty()) {
+                    // 只有在coreFlag为null或POD发生变化时才重新计算
+                    List<Integer> existingPodIds = enquiryPortService.getPodIds(existing.getId());
+                    boolean podChanged = !enquiry.getPodIds().equals(existingPodIds);
+                    
+                    if (podChanged && enquiry.getCoreFlag() == null) {
+                        Enquiry.CoreFlag calculatedFlag = calculateCoreFlagFromPods(enquiry.getPodIds());
+                        if (calculatedFlag != null) {
+                            enquiry.setCoreFlag(calculatedFlag);
+                            log.info("Auto-calculated CORE flag after POD change: {}", calculatedFlag);
+                        } else {
+                            log.warn("Mixed CORE/NON-CORE countries detected after POD change. User must manually select CORE flag.");
+                        }
+                    }
+                } else if (enquiry.getCoreFlag() == null) {
+                    // 保留原有的coreFlag
+                    enquiry.setCoreFlag(existing.getCoreFlag());
+                }
+
                 // ✅ 保存 Enquiry 实体
                 Enquiry updatedEnquiry = enquiryRepository.save(enquiry);
                 
@@ -445,6 +557,35 @@ public class EnquiryService {
             .orElseThrow(() -> new RuntimeException("Enquiry record not found with id: " + id));
     }
     
+    /**
+     * 合并相同箱型的集装箱行，将 container_type_id 相同的行按数量累加，
+     * 避免违反 uk_enquiry_container (enquiry_id, container_type_id) 唯一约束。
+     * 例如：两行 20FR (qty=1, qty=2) → 一行 20FR (qty=3)
+     */
+    private List<EnquiryContainerLine> mergeContainerLines(List<EnquiryContainerLine> lines) {
+        if (lines == null || lines.isEmpty()) return lines;
+        java.util.LinkedHashMap<Integer, EnquiryContainerLine> mergedMap = new java.util.LinkedHashMap<>();
+        for (EnquiryContainerLine line : lines) {
+            Integer typeId = line.getContainerTypeId();
+            if (typeId == null) {
+                // 无法合并，保留原行
+                mergedMap.put(System.identityHashCode(line), line);
+                continue;
+            }
+            if (mergedMap.containsKey(typeId)) {
+                EnquiryContainerLine existing = mergedMap.get(typeId);
+                int existingQty = existing.getContainerQty() != null ? existing.getContainerQty() : 0;
+                int addQty = line.getContainerQty() != null ? line.getContainerQty() : 0;
+                existing.setContainerQty(existingQty + addQty);
+                log.info("Merged duplicate container type {} rows: qty {} + {} = {}",
+                        typeId, existingQty, addQty, existingQty + addQty);
+            } else {
+                mergedMap.put(typeId, line);
+            }
+        }
+        return new java.util.ArrayList<>(mergedMap.values());
+    }
+
     /**
      * Delete enquiry record
      */

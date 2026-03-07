@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { masterDataApi } from '../../services/api';
 import { ContainerType } from '../../types';
 import { Edit, Trash2, Plus, Loader2, Save, X, Box } from 'lucide-react';
+import Toast, { useToast, parseApiError } from '../common/Toast';
 
 const ContainerTypeList: React.FC = () => {
   const [containerTypes, setContainerTypes] = useState<ContainerType[]>([]);
@@ -9,6 +10,7 @@ const ContainerTypeList: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingType, setEditingType] = useState<Partial<ContainerType>>({});
+  const { toast, showToast, closeToast } = useToast();
 
   useEffect(() => {
     fetchData();
@@ -32,8 +34,9 @@ const ContainerTypeList: React.FC = () => {
     try {
       await masterDataApi.deleteContainerType(id);
       setContainerTypes(containerTypes.filter(c => c.id !== id));
+      showToast('Container type deleted successfully', 'success');
     } catch (err) {
-      alert('Failed to delete container type');
+      showToast(parseApiError(err, 'Failed to delete container type'), 'error');
     }
   };
 
@@ -57,8 +60,9 @@ const ContainerTypeList: React.FC = () => {
         setContainerTypes([...containerTypes, saved]);
       }
       setIsModalOpen(false);
+      showToast(editingType.id ? 'Container type updated successfully' : 'Container type created successfully', 'success');
     } catch (err) {
-      alert('Failed to save container type');
+      showToast(parseApiError(err, 'Failed to save container type'), 'error');
       console.error(err);
     }
   };
@@ -133,20 +137,30 @@ const ContainerTypeList: React.FC = () => {
             <form onSubmit={handleSave}>
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700">Code</label>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Code
+                    <span className="ml-1 text-xs text-gray-400 font-normal">(max 20 chars)</span>
+                  </label>
                   <input
                     type="text"
                     required
+                    maxLength={20}
                     value={editingType.containerCode || ''}
-                    onChange={e => setEditingType({ ...editingType, containerCode: e.target.value })}
+                    onChange={e => setEditingType({ ...editingType, containerCode: e.target.value.toUpperCase() })}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
+                    placeholder="e.g. 20GP"
                   />
+                  <p className="mt-0.5 text-xs text-gray-400 text-right">{(editingType.containerCode || '').length}/20</p>
                 </div>
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700">Name</label>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Name
+                    <span className="ml-1 text-xs text-gray-400 font-normal">(max 50 chars)</span>
+                  </label>
                   <input
                     type="text"
                     required
+                    maxLength={50}
                     value={editingType.containerName || ''}
                     onChange={e => setEditingType({ ...editingType, containerName: e.target.value })}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
@@ -213,6 +227,9 @@ const ContainerTypeList: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Toast 通知 */}
+      {toast && <Toast message={toast.message} type={toast.type} onClose={closeToast} />}
     </div>
   );
 };

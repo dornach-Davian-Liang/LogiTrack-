@@ -2,7 +2,7 @@
 // ComparisonReport - 时期对比报告组件
 // ============================================================
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   BarChart3,
   Calendar,
@@ -13,14 +13,20 @@ import {
   Trophy,
   AlertTriangle,
   Download,
+  Globe,
+  Package,
+  Search,
+  Filter,
 } from 'lucide-react';
 import {
   ComparisonType,
   PeriodComparisonRequest,
   ComparisonResult,
   PeriodStats,
+  Country,
 } from '../../types';
 import { reportApi } from '../../services/reportApi';
+import { masterDataApi } from '../../services/api';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { TrendChart } from './TrendChart';
 
@@ -33,6 +39,35 @@ export const ComparisonReport: React.FC = () => {
   const [result, setResult] = useState<ComparisonResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
+  const [availableCountries, setAvailableCountries] = useState<Country[]>([]);
+  const [countrySearch, setCountrySearch] = useState('');
+
+  const PRODUCT_OPTIONS = [
+    { value: 'AIR', label: 'AIR' },
+    { value: 'SEA', label: 'SEA' },
+    { value: 'SEA-AIR', label: 'SEA-AIR' },
+    { value: 'RAIL', label: 'RAIL' },
+    { value: 'RAIL-SEA', label: 'RAIL-SEA' },
+  ];
+
+  // 根据搜索词过滤国家列表
+  const filteredCountries = useMemo(() => {
+    const q = countrySearch.trim().toLowerCase();
+    if (!q) return availableCountries;
+    return availableCountries.filter((c) => {
+      const en = c.countryNameEn?.toLowerCase() ?? '';
+      const cn = c.countryNameCn?.toLowerCase() ?? '';
+      const code = c.countryCode?.toLowerCase() ?? '';
+      return en.includes(q) || cn.includes(q) || code.includes(q);
+    });
+  }, [availableCountries, countrySearch]);
+
+  useEffect(() => {
+    masterDataApi.getCountries().then(setAvailableCountries).catch(() => setAvailableCountries([]));
+  }, []);
 
   const cnOffices = [
     { value: '', label: language === 'zh' ? '全部' : 'All' },
@@ -101,6 +136,18 @@ export const ComparisonReport: React.FC = () => {
     });
   };
 
+  const toggleProduct = (product: string) => {
+    setSelectedProducts((prev) =>
+      prev.includes(product) ? prev.filter((p) => p !== product) : [...prev, product]
+    );
+  };
+
+  const toggleCountry = (countryCode: string) => {
+    setSelectedCountries((prev) =>
+      prev.includes(countryCode) ? prev.filter((c) => c !== countryCode) : [...prev, countryCode]
+    );
+  };
+
   const toggleCoreFlag = (flag: 'CORE' | 'NON_CORE') => {
     setCoreFlags((prev) =>
       prev.includes(flag) ? prev.filter((f) => f !== flag) : [...prev, flag]
@@ -117,13 +164,17 @@ export const ComparisonReport: React.FC = () => {
     setError(null);
 
     try {
-      const request: PeriodComparisonRequest = {
-        comparisonType,
-        periods: selectedPeriods,
-        coreFlags: coreFlags.length > 0 ? coreFlags : undefined,
-        cnOffice: cnOffice || undefined,
-      };
+        const countryIds = selectedCountries
+          .map((code) => availableCountries.find((c) => c.countryCode === code)?.id)
+          .filter(id => id !== undefined) as number[];
 
+        const request: PeriodComparisonRequest = {
+          comparisonType,
+          periods: selectedPeriods,
+          coreFlags: coreFlags.length > 0 ? coreFlags : undefined,
+          cnOffice: cnOffice || undefined,
+          countryIds: countryIds.length > 0 ? countryIds : undefined,
+          productCodes: selectedProducts.length > 0 ? selectedProducts : undefined,        };
       const data = await reportApi.comparePeriods(request);
       setResult(data);
     } catch (err) {
@@ -138,6 +189,9 @@ export const ComparisonReport: React.FC = () => {
     setSelectedPeriods([]);
     setCoreFlags([]);
     setCnOffice('');
+    setSelectedProducts([]);
+    setSelectedCountries([]);
+    setCountrySearch('');
     setResult(null);
     setError(null);
   };
@@ -257,31 +311,46 @@ export const ComparisonReport: React.FC = () => {
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="grid grid-cols-2 gap-4">
+        {/* Filters Section Header */}
+        <div className="flex items-center gap-2 pt-1">
+          <Filter className="h-4 w-4 text-gray-500" />
+          <span className="text-sm font-semibold text-gray-700">
+            {language === 'zh' ? '数据筛选' : 'Data Filters'}
+          </span>
+          {(coreFlags.length > 0 || cnOffice || selectedProducts.length > 0 || selectedCountries.length > 0) && (
+            <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full font-medium">
+              {[coreFlags.length, cnOffice ? 1 : 0, selectedProducts.length, selectedCountries.length].reduce((a, b) => a + b, 0)}{' '}
+              {language === 'zh' ? '项已选' : 'active'}
+            </span>
+          )}
+        </div>
+
+        {/* Filters Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Core Flag */}
           <div>
             <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
-              <Flag className="h-4 w-4 mr-1" />
-              Core Flag ({language === 'zh' ? '可选' : 'Optional'})
+              <Flag className="h-4 w-4 mr-1 text-gray-500" />
+              Core Flag
+              <span className="ml-1 text-xs text-gray-400">({language === 'zh' ? '可选' : 'Optional'})</span>
             </label>
-            <div className="flex space-x-2">
+            <div className="flex gap-2">
               <button
                 onClick={() => toggleCoreFlag('CORE')}
-                className={`flex-1 px-3 py-2 text-sm border rounded-lg transition ${
+                className={`flex-1 px-3 py-2 text-sm border-2 rounded-lg transition font-medium ${
                   coreFlags.includes('CORE')
                     ? 'bg-blue-500 text-white border-blue-500'
-                    : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
+                    : 'bg-white text-gray-700 border-gray-200 hover:border-blue-400'
                 }`}
               >
                 CORE
               </button>
               <button
                 onClick={() => toggleCoreFlag('NON_CORE')}
-                className={`flex-1 px-3 py-2 text-sm border rounded-lg transition ${
+                className={`flex-1 px-3 py-2 text-sm border-2 rounded-lg transition font-medium ${
                   coreFlags.includes('NON_CORE')
                     ? 'bg-blue-500 text-white border-blue-500'
-                    : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
+                    : 'bg-white text-gray-700 border-gray-200 hover:border-blue-400'
                 }`}
               >
                 NON CORE
@@ -292,13 +361,14 @@ export const ComparisonReport: React.FC = () => {
           {/* CN Office */}
           <div>
             <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
-              <Building2 className="h-4 w-4 mr-1" />
-              {translations.enhancedDashboard.cnOffice} ({language === 'zh' ? '可选' : 'Optional'})
+              <Building2 className="h-4 w-4 mr-1 text-gray-500" />
+              {translations.enhancedDashboard.cnOffice}
+              <span className="ml-1 text-xs text-gray-400">({language === 'zh' ? '可选' : 'Optional'})</span>
             </label>
             <select
               value={cnOffice}
               onChange={(e) => setCnOffice(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
             >
               {cnOffices.map((office) => (
                 <option key={office.value} value={office.value}>
@@ -306,6 +376,99 @@ export const ComparisonReport: React.FC = () => {
                 </option>
               ))}
             </select>
+          </div>
+
+          {/* Product Code */}
+          <div>
+            <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
+              <Package className="h-4 w-4 mr-1 text-gray-500" />
+              {language === 'zh' ? '产品类型' : 'Product Type'}
+              {selectedProducts.length > 0 && (
+                <span className="ml-1.5 px-1.5 py-0.5 text-xs bg-blue-100 text-blue-600 rounded-full">
+                  {selectedProducts.length}
+                </span>
+              )}
+            </label>
+            <div className="flex flex-wrap gap-2 p-2 bg-gray-50 border border-gray-200 rounded-lg">
+              {PRODUCT_OPTIONS.map((prod) => (
+                <label
+                  key={prod.value}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg cursor-pointer text-sm border transition-all ${
+                    selectedProducts.includes(prod.value)
+                      ? 'bg-blue-500 text-white border-blue-500'
+                      : 'bg-white text-gray-700 border-gray-200 hover:border-blue-400'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedProducts.includes(prod.value)}
+                    onChange={() => toggleProduct(prod.value)}
+                    className="sr-only"
+                  />
+                  {prod.label}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Country */}
+          <div>
+            <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
+              <Globe className="h-4 w-4 mr-1 text-gray-500" />
+              {language === 'zh' ? '目的国' : 'Country'}
+              {selectedCountries.length > 0 && (
+                <span className="ml-1.5 px-1.5 py-0.5 text-xs bg-blue-100 text-blue-600 rounded-full">
+                  {selectedCountries.length}
+                </span>
+              )}
+            </label>
+            {availableCountries.length > 0 ? (
+              <div className="border-2 border-gray-200 rounded-lg overflow-hidden bg-white">
+                {/* Country search */}
+                <div className="flex items-center gap-1.5 px-2 py-1.5 border-b border-gray-100 bg-gray-50">
+                  <Search className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                  <input
+                    type="text"
+                    value={countrySearch}
+                    onChange={(e) => setCountrySearch(e.target.value)}
+                    placeholder={language === 'zh' ? '搜索国家...' : 'Search countries...'}
+                    className="w-full text-xs bg-transparent outline-none text-gray-700 placeholder-gray-400"
+                  />
+                  {countrySearch && (
+                    <button onClick={() => setCountrySearch('')} className="text-gray-400 hover:text-gray-600 text-xs">✕</button>
+                  )}
+                </div>
+                <div className="max-h-36 overflow-y-auto p-1.5 grid grid-cols-2 gap-0.5">
+                  {filteredCountries.map((c) => (
+                    <label
+                      key={c.countryCode}
+                      className={`flex items-center gap-1.5 px-2 py-1 rounded cursor-pointer text-xs transition-colors ${
+                        selectedCountries.includes(c.countryCode)
+                          ? 'bg-blue-50 text-blue-700'
+                          : 'hover:bg-gray-50 text-gray-700'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedCountries.includes(c.countryCode)}
+                        onChange={() => toggleCountry(c.countryCode)}
+                        className="rounded border-gray-300 text-blue-600 w-3 h-3 flex-shrink-0"
+                      />
+                      <span className="truncate" title={language === 'zh' && c.countryNameCn ? c.countryNameCn : c.countryNameEn}>
+                        {language === 'zh' && c.countryNameCn ? c.countryNameCn : c.countryNameEn}
+                      </span>
+                    </label>
+                  ))}
+                  {filteredCountries.length === 0 && (
+                    <span className="col-span-2 text-xs text-gray-400 text-center py-2">
+                      {language === 'zh' ? '无匹配结果' : 'No results'}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="text-sm text-gray-500 py-2">{language === 'zh' ? '加载中...' : 'Loading countries...'}</div>
+            )}
           </div>
         </div>
 

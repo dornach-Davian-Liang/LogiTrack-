@@ -120,6 +120,14 @@ export const reportApi = {
     if (filter.cnOffice) {
       params.append('cnOffice', filter.cnOffice);
     }
+
+    if (filter.products && filter.products.length > 0) {
+      filter.products.forEach(p => params.append('products', p));
+    }
+
+    if (filter.countries && filter.countries.length > 0) {
+      filter.countries.forEach(c => params.append('countries', c));
+    }
     
     const response = await fetch(
       `${API_BASE_URL}/statistics/dashboard/filtered?${params}`,
@@ -153,6 +161,46 @@ export const reportApi = {
     }
     
     return data;
+  },
+
+  /**
+   * 获取特定 CN Office + 预订状态的询价列表（增强报表弹窗专用）
+   * 后端精确过滤，解决 pageSize 截断 / Invalid=0 问题
+   */
+  getOfficeEnquiries: async (params: {
+    officeName: string;
+    bookingStatus: string;
+    startDate: string;
+    endDate: string;
+    coreFlags?: string[];
+    products?: string[];
+    countries?: string[];
+  }): Promise<Record<string, unknown>[]> => {
+    const urlParams = new URLSearchParams();
+    urlParams.append('officeName', params.officeName);
+    urlParams.append('bookingStatus', params.bookingStatus);
+    urlParams.append('startDate', params.startDate);
+    urlParams.append('endDate', params.endDate);
+
+    if (params.coreFlags && params.coreFlags.length > 0) {
+      params.coreFlags.forEach(f => urlParams.append('coreFlags', f));
+    }
+    if (params.products && params.products.length > 0) {
+      params.products.forEach(p => urlParams.append('products', p));
+    }
+    if (params.countries && params.countries.length > 0) {
+      params.countries.forEach(c => urlParams.append('countries', c));
+    }
+
+    const response = await fetch(
+      `${API_BASE_URL}/statistics/office-enquiries?${urlParams}`,
+      { method: 'GET' }
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch office enquiries');
+    }
+    return response.json();
   },
 
   /**

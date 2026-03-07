@@ -4,8 +4,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, Eye, Edit, Search, Loader2 } from 'lucide-react';
-import { EnquiryListItem, BookingStatus } from '../../types';
-import { enquiryApi } from '../../services/api';
+import { EnquiryListItem, BookingStatus, DashboardFilterParams } from '../../types';
+import { reportApi } from '../../services/reportApi';
 import { useLanguage } from '../../i18n/LanguageContext';
 
 interface EnquiryListModalProps {
@@ -16,6 +16,7 @@ interface EnquiryListModalProps {
   onViewDetail: (enquiry: EnquiryListItem) => void;
   onEdit: (enquiry: EnquiryListItem) => void;
   canManage: boolean;
+  filter?: DashboardFilterParams | null; // ✅ 新增：当前 Data Filter 条件
 }
 
 export const EnquiryListModal: React.FC<EnquiryListModalProps> = ({
@@ -26,6 +27,7 @@ export const EnquiryListModal: React.FC<EnquiryListModalProps> = ({
   onViewDetail,
   onEdit,
   canManage,
+  filter,
 }) => {
   const { language, translations } = useLanguage();
   const [enquiries, setEnquiries] = useState<EnquiryListItem[]>([]);
@@ -33,7 +35,7 @@ export const EnquiryListModal: React.FC<EnquiryListModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // 映射前端status到后端BookingStatus
+  // 映射前端status到后端BookingStatus字符串
   const getBackendStatus = (status: string): BookingStatus => {
     switch (status) {
       case 'yes':
@@ -41,11 +43,11 @@ export const EnquiryListModal: React.FC<EnquiryListModalProps> = ({
       case 'rejected':
         return 'Rejected';
       case 'invalid':
-        return '';  // Invalid可能需要特殊处理
+        return 'Invalid';  // ✅ 修复：之前错误返回空字符串导致 Invalid 始终为0
       case 'pending':
         return 'Pending';
       default:
-        return '';
+        return 'Pending';
     }
   };
 
@@ -83,48 +85,38 @@ export const EnquiryListModal: React.FC<EnquiryListModalProps> = ({
     if (isOpen) {
       fetchEnquiries();
     }
-  }, [isOpen, officeName, bookingStatus]);
+  }, [isOpen, officeName, bookingStatus, filter]);
 
   const fetchEnquiries = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      console.log('[Modal] Fetching enquiries:', {
+      const backendStatus = getBackendStatus(bookingStatus);
+      console.log('[Modal] Fetching office enquiries via backend API:', {
         officeName,
         bookingStatus,
-        backendStatus: getBackendStatus(bookingStatus)
+        backendStatus,
+        filter,
       });
-      
-      // 获取所有数据（后端暂不支持这些过滤参数）
-      const response = await enquiryApi.list({
-        page: 0,
-        pageSize: 1000, // 获取足够多的数据
+
+      // ✅ 修复：使用专用后端 API，后端精确过滤，避免 pageSize=1000 截断问题
+      if (!filter?.startDate || !filter?.endDate) {
+        setEnquiries([]);
+        return;
+      }
+
+      const items = await reportApi.getOfficeEnquiries({
+        officeName,
+        bookingStatus: backendStatus,
+        startDate: filter.startDate,
+        endDate: filter.endDate,
+        coreFlags: filter.coreFlags,
+        products: filter.products,
+        countries: filter.countries,
       });
-      
-      console.log('[Modal] API response:', {
-        totalItems: response.content.length,
-      });
-      
-      // 在前端进行精确过滤
-      const targetStatus = getBackendStatus(bookingStatus);
-      const filtered = response.content.filter(e => {
-        const matchOffice = e.assignedCnOfficeCode === officeName;
-        const matchStatus = e.bookingConfirmed === targetStatus;
-        return matchOffice && matchStatus;
-      });
-      
-      console.log('[Modal] After filter:', {
-        office: officeName,
-        status: targetStatus,
-        filtered: filtered.length,
-        items: filtered.map(e => ({
-          ref: e.referenceNumber,
-          office: e.assignedCnOfficeCode,
-          status: e.bookingConfirmed
-        }))
-      });
-      
-      setEnquiries(filtered);
+
+      console.log('[Modal] Backend returned:', items.length, 'records');
+      setEnquiries(items as unknown as EnquiryListItem[]);
     } catch (err) {
       console.error('Failed to load enquiries:', err);
       setError(translations.enquiryListModal.loadFailed);

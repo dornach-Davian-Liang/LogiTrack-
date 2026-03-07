@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { masterDataApi } from '../../services/api';
 import { Port, Country } from '../../types';
-import { Edit, Trash2, Plus, Loader2, Save, X, Ship, Plane, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Edit, Trash2, Plus, Loader2, Save, X, Ship, Plane, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import Toast, { useToast, parseApiError } from '../common/Toast';
 
 const PortList: React.FC = () => {
   const [ports, setPorts] = useState<Port[]>([]);
@@ -10,6 +11,7 @@ const PortList: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPort, setEditingPort] = useState<Partial<Port>>({});
+  const { toast, showToast, closeToast } = useToast();
   
   // Pagination and filtering states
   const [searchTerm, setSearchTerm] = useState('');
@@ -48,9 +50,10 @@ const PortList: React.FC = () => {
     try {
       await masterDataApi.deletePort(id);
       setPorts(ports.filter(p => p.id !== id));
+      showToast(`Port ${port?.portCode} deleted successfully`, 'success');
     } catch (err) {
       console.error(err);
-      alert(`Failed to delete port ${port?.portCode}`);
+      showToast(parseApiError(err, `Failed to delete port ${port?.portCode}`), 'error');
     }
   };
 
@@ -74,9 +77,10 @@ const PortList: React.FC = () => {
         setPorts([...ports, saved]);
       }
       setIsModalOpen(false);
+      showToast(editingPort.id ? 'Port updated successfully' : 'Port created successfully', 'success');
     } catch (err) {
       console.error(err);
-      alert('Failed to save port');
+      showToast(parseApiError(err, 'Failed to save port'), 'error');
     }
   };
 
@@ -235,6 +239,14 @@ const PortList: React.FC = () => {
             </div>
             <div className="flex gap-2">
               <button
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+                className="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                title="First Page"
+              >
+                <ChevronsLeft className="w-4 h-4" />
+              </button>
+              <button
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
                 className="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
@@ -273,6 +285,14 @@ const PortList: React.FC = () => {
               >
                 Next <ChevronRight className="w-4 h-4" />
               </button>
+              <button
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                title="Last Page"
+              >
+                <ChevronsRight className="w-4 h-4" />
+              </button>
             </div>
           </div>
         )}
@@ -290,14 +310,20 @@ const PortList: React.FC = () => {
             <form onSubmit={handleSave}>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="col-span-1">
-                  <label className="block text-sm font-medium text-gray-700">Port Code</label>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Port Code
+                    <span className="ml-1 text-xs text-gray-400 font-normal">(max 10 chars)</span>
+                  </label>
                   <input
                     type="text"
                     required
+                    maxLength={10}
                     value={editingPort.portCode || ''}
-                    onChange={e => setEditingPort({ ...editingPort, portCode: e.target.value })}
+                    onChange={e => setEditingPort({ ...editingPort, portCode: e.target.value.toUpperCase() })}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
+                    placeholder="e.g. CNSHA"
                   />
+                  <p className="mt-0.5 text-xs text-gray-400 text-right">{(editingPort.portCode || '').length}/10</p>
                 </div>
                 <div className="col-span-1">
                   <label className="block text-sm font-medium text-gray-700">Port Type</label>
@@ -315,6 +341,7 @@ const PortList: React.FC = () => {
                   <input
                     type="text"
                     required
+                    maxLength={200}
                     value={editingPort.portName || ''}
                     onChange={e => setEditingPort({ ...editingPort, portName: e.target.value })}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
@@ -340,6 +367,7 @@ const PortList: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700">City</label>
                   <input
                     type="text"
+                    maxLength={100}
                     value={editingPort.city || ''}
                     onChange={e => setEditingPort({ ...editingPort, city: e.target.value })}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
@@ -374,6 +402,9 @@ const PortList: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Toast 通知 */}
+      {toast && <Toast message={toast.message} type={toast.type} onClose={closeToast} />}
     </div>
   );
 };

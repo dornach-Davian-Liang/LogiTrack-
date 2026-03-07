@@ -53,6 +53,8 @@ public class StatisticsController {
      * @param endDate End date (YYYY-MM-DD)
      * @param coreFlags Optional list of core flags (comma-separated: CORE,NON CORE)
      * @param cnOffice Optional CN office filter
+     * @param products Optional list of product codes (AIR,SEA,SEA-AIR,RAIL,RAIL-SEA)
+     * @param countries Optional list of country codes (FR,UK,DE,...)
      * @return Filtered dashboard statistics
      */
     @GetMapping("/dashboard/filtered")
@@ -60,10 +62,12 @@ public class StatisticsController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam(required = false) List<String> coreFlags,
-            @RequestParam(required = false) String cnOffice) {
+            @RequestParam(required = false) String cnOffice,
+            @RequestParam(required = false) List<String> products,
+            @RequestParam(required = false) List<String> countries) {
         
-        log.info("GET /api/statistics/dashboard/filtered - startDate={}, endDate={}, coreFlags={}, cnOffice={}", 
-                 startDate, endDate, coreFlags, cnOffice);
+        log.info("GET /api/statistics/dashboard/filtered - startDate={}, endDate={}, coreFlags={}, cnOffice={}, products={}, countries={}", 
+                 startDate, endDate, coreFlags, cnOffice, products, countries);
         
         try {
             DashboardFilterDTO filter = DashboardFilterDTO.builder()
@@ -71,6 +75,8 @@ public class StatisticsController {
                 .endDate(endDate)
                 .coreFlags(coreFlags)
                 .cnOffice(cnOffice)
+                .products(products)
+                .countries(countries)
                 .build();
             
             DashboardStatsDTO stats = statisticsService.getDashboardStatsWithFilter(filter);
@@ -90,6 +96,52 @@ public class StatisticsController {
         }
     }
     
+    /**
+     * GET /api/statistics/office-enquiries - 获取特定办公室 + 预订状态的询价列表（用于增强报表弹窗钻取）
+     * 解决前端 pageSize=1000 截断导致数据不全以及 Invalid=0 的问题
+     *
+     * @param officeName    CN Office 代码 (如 SHENZHEN)
+     * @param bookingStatus 预订状态：Yes / Rejected / Invalid / Pending
+     * @param startDate     开始日期 (YYYY-MM-DD, 必填)
+     * @param endDate       结束日期 (YYYY-MM-DD, 必填)
+     * @param coreFlags     可选核心标记列表
+     * @param products      可选产品列表
+     * @param countries     可选国家列表
+     */
+    @GetMapping("/office-enquiries")
+    public ResponseEntity<?> getOfficeEnquiries(
+            @RequestParam String officeName,
+            @RequestParam String bookingStatus,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) List<String> coreFlags,
+            @RequestParam(required = false) List<String> products,
+            @RequestParam(required = false) List<String> countries) {
+
+        log.info("GET /api/statistics/office-enquiries - office={}, status={}, start={}, end={}",
+                 officeName, bookingStatus, startDate, endDate);
+
+        try {
+            DashboardFilterDTO filter = DashboardFilterDTO.builder()
+                    .startDate(startDate)
+                    .endDate(endDate)
+                    .coreFlags(coreFlags)
+                    .products(products)
+                    .countries(countries)
+                    .build();
+
+            List<java.util.Map<String, Object>> result =
+                    statisticsService.getOfficeEnquiries(officeName, bookingStatus, filter);
+
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            log.error("Error fetching office enquiries", e);
+            return ResponseEntity.internalServerError().body(
+                    java.util.Map.of("error", "Internal server error", "message", e.getMessage())
+            );
+        }
+    }
+
     /**
      * GET /api/statistics/monthly - Get monthly report
      * @param year Year parameter

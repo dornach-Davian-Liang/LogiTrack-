@@ -25,6 +25,7 @@ public class MasterDataController {
     private final SalesPicRepository salesPicRepository;
     private final SalesOfficeRepository salesOfficeRepository;
     private final ContainerTypeRepository containerTypeRepository;
+    private final CnPricingAdminRepository cnPricingAdminRepository;
     
     // ========== Country 国家管理 ==========
     
@@ -60,6 +61,7 @@ public class MasterDataController {
                 existing.setCountryNameEn(country.getCountryNameEn());
                 existing.setCountryNameCn(country.getCountryNameCn());
                 existing.setIsActive(country.getIsActive());
+                existing.setIsCore(country.getIsCore());
                 Country updated = countryRepository.save(existing);
                 return ResponseEntity.ok(updated);
             })
@@ -271,6 +273,62 @@ public class MasterDataController {
         log.info("DELETE /api/master/container-types/{}", id);
         if (containerTypeRepository.existsById(id)) {
             containerTypeRepository.deleteById(id);
+            return ResponseEntity.ok().build();
+        }
+        return ResponseEntity.notFound().build();
+    }
+    
+    // ========== CN Pricing Admin 定价管理员字典 ==========
+    
+    @GetMapping("/cn-pricing-admins")
+    public ResponseEntity<List<CnPricingAdmin>> getAllCnPricingAdmins() {
+        log.info("GET /api/master/cn-pricing-admins");
+        List<CnPricingAdmin> admins = cnPricingAdminRepository.findAllByOrderByDisplayOrderAscNameAsc();
+        return ResponseEntity.ok(admins);
+    }
+    
+    @GetMapping("/cn-pricing-admins/active")
+    public ResponseEntity<List<CnPricingAdmin>> getActiveCnPricingAdmins() {
+        log.info("GET /api/master/cn-pricing-admins/active");
+        List<CnPricingAdmin> admins = cnPricingAdminRepository.findByIsActiveTrueOrderByDisplayOrderAscNameAsc();
+        return ResponseEntity.ok(admins);
+    }
+    
+    @GetMapping("/cn-pricing-admins/{id}")
+    public ResponseEntity<CnPricingAdmin> getCnPricingAdminById(@PathVariable Integer id) {
+        log.info("GET /api/master/cn-pricing-admins/{}", id);
+        return cnPricingAdminRepository.findById(id)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
+    }
+    
+    @PostMapping("/cn-pricing-admins")
+    public ResponseEntity<CnPricingAdmin> createCnPricingAdmin(@RequestBody CnPricingAdmin admin) {
+        log.info("POST /api/master/cn-pricing-admins: {}", admin);
+        admin.setId(null); // 确保是新增
+        CnPricingAdmin saved = cnPricingAdminRepository.save(admin);
+        return ResponseEntity.ok(saved);
+    }
+    
+    @PutMapping("/cn-pricing-admins/{id}")
+    public ResponseEntity<CnPricingAdmin> updateCnPricingAdmin(@PathVariable Integer id, @RequestBody CnPricingAdmin admin) {
+        log.info("PUT /api/master/cn-pricing-admins/{}: {}", id, admin);
+        return cnPricingAdminRepository.findById(id)
+            .map(existing -> {
+                existing.setName(admin.getName());
+                existing.setDisplayOrder(admin.getDisplayOrder());
+                existing.setIsActive(admin.getIsActive());
+                CnPricingAdmin updated = cnPricingAdminRepository.save(existing);
+                return ResponseEntity.ok(updated);
+            })
+            .orElse(ResponseEntity.notFound().build());
+    }
+    
+    @DeleteMapping("/cn-pricing-admins/{id}")
+    public ResponseEntity<Void> deleteCnPricingAdmin(@PathVariable Integer id) {
+        log.info("DELETE /api/master/cn-pricing-admins/{}", id);
+        if (cnPricingAdminRepository.existsById(id)) {
+            cnPricingAdminRepository.deleteById(id);
             return ResponseEntity.ok().build();
         }
         return ResponseEntity.notFound().build();

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { masterDataApi } from '../../services/api';
 import { SalesPic, Country, SalesOffice } from '../../types';
-import { Edit, Trash2, Plus, Loader2, Save, X, User, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Edit, Trash2, Plus, Loader2, Save, X, User, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import Toast, { useToast, parseApiError } from '../common/Toast';
 
 const SalesPicList: React.FC = () => {
   const [salesPics, setSalesPics] = useState<SalesPic[]>([]);
@@ -11,6 +12,7 @@ const SalesPicList: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPic, setEditingPic] = useState<Partial<SalesPic>>({});
+  const { toast, showToast, closeToast } = useToast();
 
   // Derived state for form
   const [availableOffices, setAvailableOffices] = useState<SalesOffice[]>([]);
@@ -48,12 +50,9 @@ const SalesPicList: React.FC = () => {
   };
 
   useEffect(() => {
-    if (editingPic.countryCode) {
-      setAvailableOffices(salesOffices.filter(o => o.countryCode === editingPic.countryCode));
-    } else {
-      setAvailableOffices([]);
-    }
-  }, [editingPic.countryCode, salesOffices]);
+    // salesOffices 加载完成后同步到 availableOffices（始终展示全部，不按国家过滤）
+    setAvailableOffices(salesOffices);
+  }, [salesOffices]);
 
   const handleDelete = async (id: number) => {
     const pic = salesPics.find(p => p.id === id);
@@ -62,9 +61,10 @@ const SalesPicList: React.FC = () => {
     try {
       await masterDataApi.deleteSalesPic(id);
       setSalesPics(salesPics.filter(p => p.id !== id));
+      showToast(`${pic?.name} deleted successfully`, 'success');
     } catch (err) {
       console.error(err);
-      alert(`Failed to delete ${pic?.name}`);
+      showToast(parseApiError(err, `Failed to delete ${pic?.name}`), 'error');
     }
   };
 
@@ -96,9 +96,10 @@ const SalesPicList: React.FC = () => {
         setSalesPics([...salesPics, saved]);
       }
       setIsModalOpen(false);
+      showToast(editingPic.id ? 'Sales PIC updated successfully' : 'Sales PIC created successfully', 'success');
     } catch (err) {
       console.error(err);
-      alert('Failed to save sales PIC');
+      showToast(parseApiError(err, 'Failed to save sales PIC'), 'error');
     }
   };
 
@@ -106,12 +107,12 @@ const SalesPicList: React.FC = () => {
   const filteredPics = useMemo(() => {
     return salesPics.filter(pic => {
       const matchesSearch = !searchTerm || 
-        pic.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        pic.salesOfficeCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        pic.salesOfficeName.toLowerCase().includes(searchTerm.toLowerCase());
+        pic.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (pic.salesOfficeCode ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (pic.salesOfficeName ?? '').toLowerCase().includes(searchTerm.toLowerCase());
       
       const matchesCountry = !filterCountry || pic.countryCode === filterCountry;
-      const matchesOffice = !filterOffice || pic.salesOfficeCode === filterOffice;
+      const matchesOffice = !filterOffice || (pic.salesOfficeCode ?? '') === filterOffice;
       
       return matchesSearch && matchesCountry && matchesOffice;
     });
@@ -254,6 +255,14 @@ const SalesPicList: React.FC = () => {
             </div>
             <div className="flex gap-2">
               <button
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+                className="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                title="First Page"
+              >
+                <ChevronsLeft className="w-4 h-4" />
+              </button>
+              <button
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
                 className="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
@@ -292,6 +301,14 @@ const SalesPicList: React.FC = () => {
               >
                 Next <ChevronRight className="w-4 h-4" />
               </button>
+              <button
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                title="Last Page"
+              >
+                <ChevronsRight className="w-4 h-4" />
+              </button>
             </div>
           </div>
         )}
@@ -312,7 +329,7 @@ const SalesPicList: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700">Country</label>
                   <select
                     value={editingPic.countryCode || ''}
-                    onChange={e => setEditingPic({ ...editingPic, countryCode: e.target.value, salesOfficeId: undefined })}
+                    onChange={e => setEditingPic({ ...editingPic, countryCode: e.target.value })}
                     required
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
                   >
@@ -330,8 +347,7 @@ const SalesPicList: React.FC = () => {
                     value={editingPic.salesOfficeId || ''}
                     onChange={e => setEditingPic({ ...editingPic, salesOfficeId: Number(e.target.value) })}
                     required
-                    disabled={!editingPic.countryCode}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2 disabled:bg-gray-100"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
                   >
                     <option value="">Select Office...</option>
                     {availableOffices.map(o => (
@@ -346,6 +362,7 @@ const SalesPicList: React.FC = () => {
                   <input
                     type="text"
                     required
+                    maxLength={100}
                     value={editingPic.name || ''}
                     onChange={e => setEditingPic({ ...editingPic, name: e.target.value })}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
@@ -380,6 +397,9 @@ const SalesPicList: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Toast 通知 */}
+      {toast && <Toast message={toast.message} type={toast.type} onClose={closeToast} />}
     </div>
   );
 };

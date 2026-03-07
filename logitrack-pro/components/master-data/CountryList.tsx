@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { masterDataApi } from '../../services/api';
 import { Country } from '../../types';
 import { Edit, Trash2, Plus, Loader2, Save, X } from 'lucide-react';
+import Toast, { useToast, parseApiError } from '../common/Toast';
 
 const CountryList: React.FC = () => {
   const [countries, setCountries] = useState<Country[]>([]);
@@ -9,6 +10,7 @@ const CountryList: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCountry, setEditingCountry] = useState<Partial<Country>>({});
+  const { toast, showToast, closeToast } = useToast();
 
   useEffect(() => {
     fetchCountries();
@@ -32,8 +34,9 @@ const CountryList: React.FC = () => {
     try {
       await masterDataApi.deleteCountry(id);
       setCountries(countries.filter(c => c.id !== id));
+      showToast('Country deleted successfully', 'success');
     } catch (err) {
-      alert('Failed to delete country');
+      showToast(parseApiError(err, 'Failed to delete country'), 'error');
     }
   };
 
@@ -57,8 +60,9 @@ const CountryList: React.FC = () => {
         setCountries([...countries, saved]);
       }
       setIsModalOpen(false);
+      showToast(editingCountry.id ? 'Country updated successfully' : 'Country created successfully', 'success');
     } catch (err) {
-      alert('Failed to save country');
+      showToast(parseApiError(err, 'Failed to save country'), 'error');
       console.error(err);
     }
   };
@@ -126,20 +130,27 @@ const CountryList: React.FC = () => {
             <form onSubmit={handleSave}>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Country Code</label>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Country Code
+                    <span className="ml-1 text-xs text-gray-400 font-normal">(max 2 chars)</span>
+                  </label>
                   <input
                     type="text"
                     required
+                    maxLength={2}
                     value={editingCountry.countryCode || ''}
-                    onChange={e => setEditingCountry({ ...editingCountry, countryCode: e.target.value })}
+                    onChange={e => setEditingCountry({ ...editingCountry, countryCode: e.target.value.toUpperCase() })}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
+                    placeholder="e.g. CN"
                   />
+                  <p className="mt-0.5 text-xs text-gray-400 text-right">{(editingCountry.countryCode || '').length}/2</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">English Name</label>
                   <input
                     type="text"
                     required
+                    maxLength={100}
                     value={editingCountry.countryNameEn || ''}
                     onChange={e => setEditingCountry({ ...editingCountry, countryNameEn: e.target.value })}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
@@ -149,6 +160,7 @@ const CountryList: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700">Chinese Name</label>
                   <input
                     type="text"
+                    maxLength={100}
                     value={editingCountry.countryNameCn || ''}
                     onChange={e => setEditingCountry({ ...editingCountry, countryNameCn: e.target.value })}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
@@ -183,6 +195,9 @@ const CountryList: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Toast 通知 */}
+      {toast && <Toast message={toast.message} type={toast.type} onClose={closeToast} />}
     </div>
   );
 };

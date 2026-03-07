@@ -10,7 +10,7 @@
 export type ProductType = 'AIR' | 'SEA' | 'RAIL' | 'TRUCK';
 export type ProductCode = 'AIR' | 'SEA' | 'SEA-AIR' | 'RAIL' | 'RAIL-SEA';
 export type EnquiryStatus = 'New' | 'Quoted' | 'Pending';
-export type BookingStatus = 'Yes' | 'Rejected' | 'Pending' | '';
+export type BookingStatus = 'Yes' | 'Rejected' | 'Pending' | 'Invalid' | '';
 export type CoreStatus = 'CORE' | 'NON CORE' | '';
 export type PortType = 'AIR' | 'SEA';
 export type OfferType = 'OCEAN' | 'AIR' | 'OTHER';
@@ -75,6 +75,7 @@ export interface Country {
   countryNameEn: string;
   countryNameCn?: string;
   isActive: boolean;
+  isCore?: boolean; // CORE国家标记
 }
 
 export interface Port {
@@ -494,6 +495,8 @@ export interface DashboardFilterParams {
   endDate: string; // YYYY-MM-DD
   coreFlags?: ('CORE' | 'NON_CORE')[];
   cnOffice?: string;
+  products?: string[];   // e.g. ['AIR', 'SEA']
+  countries?: string[];  // e.g. ['FR', 'UK', 'DE']
 }
 
 export interface CNOfficeStat {
@@ -518,6 +521,8 @@ export interface PeriodComparisonRequest {
   periods: string[]; // ["2026-01", "2026-02"] or ["2025-Q4", "2026-Q1"]
   coreFlags?: ('CORE' | 'NON_CORE')[];
   cnOffice?: string;
+  countryIds?: number[];    // 目的国 ID 列表
+  productCodes?: string[];  // 产品类型代码列表
 }
 
 export interface PeriodStats {

@@ -109,6 +109,18 @@ async function request<T>(
     throw new Error(`API Error: ${response.status} - ${errorText}`);
   }
 
+  // 204 No Content 或 200 无 body（如 DELETE 成功响应）直接返回 undefined
+  const contentType = response.headers.get('content-type');
+  const contentLength = response.headers.get('content-length');
+  if (
+    response.status === 204 ||
+    contentLength === '0' ||
+    !contentType ||
+    !contentType.includes('json')
+  ) {
+    return undefined as unknown as T;
+  }
+
   return response.json();
 }
 
@@ -117,13 +129,13 @@ async function request<T>(
 // ==========================================
 
 const MOCK_COUNTRIES: Country[] = [
-  { id: 1, countryCode: 'FR', countryNameEn: 'FRANCE', countryNameCn: '法国', isActive: true },
-  { id: 2, countryCode: 'UK', countryNameEn: 'UNITED KINGDOM', countryNameCn: '英国', isActive: true },
-  { id: 3, countryCode: 'DE', countryNameEn: 'GERMANY', countryNameCn: '德国', isActive: true },
-  { id: 4, countryCode: 'BE', countryNameEn: 'BELGIUM', countryNameCn: '比利时', isActive: true },
-  { id: 5, countryCode: 'NL', countryNameEn: 'NETHERLANDS', countryNameCn: '荷兰', isActive: true },
-  { id: 6, countryCode: 'CN', countryNameEn: 'CHINA', countryNameCn: '中国', isActive: true },
-  { id: 7, countryCode: 'AGENTS', countryNameEn: 'AGENTS', isActive: true },
+  { id: 1, countryCode: 'FR', countryNameEn: 'FRANCE', countryNameCn: '法国', isActive: true, isCore: true },
+  { id: 2, countryCode: 'UK', countryNameEn: 'UNITED KINGDOM', countryNameCn: '英国', isActive: true, isCore: true },
+  { id: 3, countryCode: 'DE', countryNameEn: 'GERMANY', countryNameCn: '德国', isActive: true, isCore: true },
+  { id: 4, countryCode: 'BE', countryNameEn: 'BELGIUM', countryNameCn: '比利时', isActive: true, isCore: true },
+  { id: 5, countryCode: 'NL', countryNameEn: 'NETHERLANDS', countryNameCn: '荷兰', isActive: true, isCore: true },
+  { id: 6, countryCode: 'CN', countryNameEn: 'CHINA', countryNameCn: '中国', isActive: true, isCore: true },
+  { id: 7, countryCode: 'AGENTS', countryNameEn: 'AGENTS', isActive: true, isCore: false },
 ];
 
 const MOCK_SALES_OFFICES: SalesOffice[] = [
@@ -671,6 +683,21 @@ export const masterDataApi = {
         return;
     }
     return request<void>(`/master/container-types/${id}`, { method: 'DELETE' });
+  },
+
+  /** 获取CN Pricing Admin列表（仅启用的） */
+  getCnPricingAdmins: async (): Promise<SelectOption[]> => {
+    if (USE_MOCK_DATA) {
+      return [
+        { value: 'Janet Chan', label: 'Janet Chan' },
+        { value: 'Niki Guan', label: 'Niki Guan' },
+        { value: 'Susana Wong', label: 'Susana Wong' },
+        { value: 'Yuki Ying', label: 'Yuki Ying' },
+        { value: 'Yvonne Ho', label: 'Yvonne Ho' },
+      ];
+    }
+    const admins = await request<any[]>('/master/cn-pricing-admins/active');
+    return admins.map(a => ({ value: a.name, label: a.name }));
   },
 };
 

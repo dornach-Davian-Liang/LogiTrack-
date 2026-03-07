@@ -68,7 +68,7 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
   });
 
   const [salesCountries, setSalesCountries] = useState<SelectOption[]>([]); // 销售国家（用于下拉框）
-  const [allCountries, setAllCountries] = useState<SelectOption[]>([]); // 所有国家（用于POD映射）
+  const [allCountries, setAllCountries] = useState<Country[]>([]); // 所有国家（完整对象，包含isCore）
   const [salesPics, setSalesPics] = useState<SalesPicSelectOption[]>([]);
   const [ports, setPorts] = useState<PortSelectOption[]>([]);
   const [containerTypes, setContainerTypes] = useState<ContainerTypeSelectOption[]>([]);
@@ -80,6 +80,7 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
   const [isPortSearching, setIsPortSearching] = useState(false); // ✅ 新增：港口搜索加载状态
   const [referencePreview, setReferencePreview] = useState('');
   const [isReferenceLoading, setIsReferenceLoading] = useState(false);
+  const [coreFlagWarning, setCoreFlagWarning] = useState(''); // CORE flag自动计算警告
 
   useEffect(() => {
     loadMasterData();
@@ -258,16 +259,19 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
         allCountriesData,
         containerTypesData,
         cnOfficesData,
+        cnPricingAdminsData,
       ] = await Promise.all([
         masterDataApi.getSalesCountries(),
-        masterDataApi.getAllCountries(),
+        masterDataApi.getCountries(), // ✅ 获取完整Country对象（包含isCore）
         masterDataApi.getContainerTypes(),
         masterDataApi.getCnOffices(),
+        masterDataApi.getCnPricingAdmins(),
       ]);
       setSalesCountries(salesCountriesData);
       setAllCountries(allCountriesData);
       setContainerTypes(containerTypesData);
       setCnOffices(cnOfficesData);
+      setCnPricingAdmins(cnPricingAdminsData);
       
       // ✅ 修复：初始加载常用港口（前50个），避免编辑时下拉框空白
       try {
@@ -277,7 +281,12 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
         ]);
         const initialPorts = [...(commonSeaPorts || []).slice(0, 50), ...(commonAirPorts || []).slice(0, 50)];
         console.log('[EnquiryForm] Loaded initial ports:', initialPorts.length);
-        setPorts(initialPorts);
+        // ✅ 修复竞争条件：合并而非替换，避免覆盖 ensurePortsLoaded 已加载的选中港口
+        setPorts(prev => {
+          const merged = new Map(prev.map(p => [String(p.value), p]));
+          initialPorts.forEach(p => merged.set(String(p.value), p));
+          return Array.from(merged.values());
+        });
       } catch (portErr) {
         console.error('Failed to load initial ports:', portErr);
         setPorts([]);  // 失败时仍然设置空数组
@@ -299,14 +308,6 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
         { value: 'LCL', label: 'LCL' },
         { value: 'RAIL', label: 'RAIL' },
         { value: 'SEA', label: 'SEA' },
-      ]);
-      
-      // 设置CN定价管理员选项（模拟字典数据）
-      setCnPricingAdmins([
-        { value: 'admin', label: 'Admin' },
-        { value: 'manager', label: 'Manager' },
-        { value: 'supervisor', label: 'Supervisor' },
-        { value: 'analyst', label: 'Analyst' },
       ]);
     } catch (error) {
       console.error('Failed to load master data:', error);
@@ -517,7 +518,7 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
     }));
   };
 
-  // POD Country 自动映射
+  // POD Country 自动映射 + CORE Flag自动计算
   const updatePodCountries = (podIds: (string | number)[]) => {
     console.log('updatePodCountries called with:', podIds);
     console.log('Available ports:', ports);
@@ -542,20 +543,56 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
     // 根据国家代码查找国家名称（使用完整国家列表）
     const countryNames = countryCodes
       .map(code => {
-        const country = allCountries.find(c => String(c.value).toUpperCase() === String(code).toUpperCase());
+        const country = allCountries.find(c => String(c.countryCode).toUpperCase() === String(code).toUpperCase());
         console.log(`Looking for country ${code}, found:`, country);
-        return country?.label;
+        return country?.countryNameEn;
       })
       .filter(Boolean)
       .join(', ');
     
     console.log('Final country names:', countryNames);
     
+    // ✅ 自动计算CORE/NON-CORE flag
+    let calculatedCoreFlag: string | undefined = undefined;
+    let warning = '';
+    
+    if (countryCodes.length > 0) {
+      // 查找所有选中POD国家的is_core标记
+      const coreCountries = countryCodes.filter(code => {
+        const country = allCountries.find(c => String(c.countryCode).toUpperCase() === String(code).toUpperCase());
+        return country?.isCore === true;
+      });
+      
+      const nonCoreCountries = countryCodes.filter(code => {
+        const country = allCountries.find(c => String(c.countryCode).toUpperCase() === String(code).toUpperCase());
+        return country?.isCore !== true; // 包括 false 和 undefined
+      });
+      
+      console.log('CORE countries:', coreCountries);
+      console.log('NON-CORE countries:', nonCoreCountries);
+      
+      // 判断是否混合
+      if (coreCountries.length > 0 && nonCoreCountries.length > 0) {
+        // 混合情况：需要手动选择
+        warning = `⚠️ 混合CORE和NON-CORE国家，请手动选择`;
+        calculatedCoreFlag = undefined; // 不自动设置
+      } else if (coreCountries.length > 0) {
+        calculatedCoreFlag = 'CORE';
+        warning = `✓ 自动识别为 CORE（可手动覆盖）`;
+      } else if (nonCoreCountries.length > 0) {
+        calculatedCoreFlag = 'NON_CORE';
+        warning = `✓ 自动识别为 NON-CORE（可手动覆盖）`;
+      }
+    }
+    
+    setCoreFlagWarning(warning);
+    
     setFormData(prev => ({
       ...prev,
       podIds: podIdStrings.map(id => parseInt(id, 10)), // 存储为数字数组
       podCountryCode: countryCodes[0], // 存储第一个国家代码
       podCountryName: countryNames || '未找到对应国家', // 显示所有国家名称
+      coreFlag: calculatedCoreFlag !== undefined ? calculatedCoreFlag : prev.coreFlag, // 只在有计算结果时更新
     }));
   };
 
@@ -742,7 +779,7 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
 
             <div>
               <DatePickerInput
-                label="Enquiry Received Date *"
+                label="Enquiry Received Date"
                 value={formData.enquiryReceivedDate}
                 max={getLocalDateISO()}
                 onChange={(date) => {
@@ -769,7 +806,7 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">Product Type *</label>
+              <label className="block text-sm font-medium text-gray-700">Product Type <span className="text-red-500 font-bold">*</span></label>
               <select
                 value={formData.productCode}
                 onChange={(e) => handleChange('productCode', e.target.value)}
@@ -783,7 +820,7 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">CN Pricing Admin *</label>
+              <label className="block text-sm font-medium text-gray-700">CN Pricing Admin <span className="text-red-500 font-bold">*</span></label>
               <select
                 value={formData.cnPricingAdmin || ''}
                 onChange={(e) => handleChange('cnPricingAdmin', e.target.value)}
@@ -804,7 +841,7 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Sales Country *</label>
+                <label className="block text-sm font-medium text-gray-700">Sales Country <span className="text-red-500 font-bold">*</span></label>
                 <select
                   value={formData.salesCountryCode || ''}
                   onChange={(e) => handleCountryChange(e.target.value)}
@@ -823,7 +860,7 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Sales PIC *</label>
+                <label className="block text-sm font-medium text-gray-700">Sales PIC <span className="text-red-500 font-bold">*</span></label>
                 <select
                   value={formData.salesPicId || ''}
                   onChange={(e) => handleSalesPicChange(Number(e.target.value))}
@@ -859,7 +896,7 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Assigned CN Office *</label>
+                <label className="block text-sm font-medium text-gray-700">Assigned CN Office <span className="text-red-500 font-bold">*</span></label>
                 <select
                   value={formData.assignedCnOfficeCode || ''}
                   onChange={(e) => handleChange('assignedCnOfficeCode', e.target.value)}
@@ -881,7 +918,7 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Cargo Type *</label>
+                <label className="block text-sm font-medium text-gray-700">Cargo Type <span className="text-red-500 font-bold">*</span></label>
                 <select
                   value={formData.cargoTypeCode}
                   onChange={(e) => handleChange('cargoTypeCode', e.target.value)}
@@ -960,7 +997,7 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
         </AccordionItem>
 
         {/* 4. Container Lines */}
-        <AccordionItem title="Container Lines">
+        <AccordionItem title="Container Lines" defaultExpanded={true}>
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <p className="text-sm text-gray-600">Configure container types and quantities</p>
@@ -1077,6 +1114,16 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
                   handleChange('podIds', podIds);
                   if (podIds.length > 0) {
                     updatePodCountries(podIds);
+                  } else {
+                    // ✅ 清除POD时，重置coreFlag和警告
+                    setCoreFlagWarning('');
+                    setFormData(prev => ({
+                      ...prev,
+                      podIds: [],
+                      podCountryCode: undefined,
+                      podCountryName: '',
+                      coreFlag: undefined,
+                    }));
                   }
                 }}
                 placeholder="Search and select ports of discharge..."
@@ -1116,7 +1163,7 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
         </AccordionItem>
 
         {/* 6. Offer Information */}
-        <AccordionItem title="Offer Information" badge={formData.offers?.length}>
+        <AccordionItem title="Offer Information" badge={formData.offers?.length?.toString()} defaultExpanded={true}>
           <div className="space-y-4">
             <button
               type="button"
@@ -1203,13 +1250,23 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
         </AccordionItem>
 
         {/* 7. Business Classification */}
-        <AccordionItem title="Business Classification">
+        <AccordionItem title="Business Classification" defaultExpanded={true}>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">CORE / NON-CORE</label>
+              <label className="block text-sm font-medium text-gray-700">
+                CORE / NON-CORE
+                {coreFlagWarning && (
+                  <span className={`ml-2 text-xs ${coreFlagWarning.includes('⚠️') ? 'text-yellow-600' : 'text-green-600'}`}>
+                    {coreFlagWarning}
+                  </span>
+                )}
+              </label>
               <select
                 value={formData.coreFlag || ''}
-                onChange={(e) => handleChange('coreFlag', e.target.value)}
+                onChange={(e) => {
+                  handleChange('coreFlag', e.target.value);
+                  setCoreFlagWarning(''); // 清除警告，表示用户已手动选择
+                }}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               >
                 <option value="">Select...</option>
@@ -1226,11 +1283,14 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               >
                 <option value="">Select category</option>
-                <option value="FREIGHT">Freight</option>
-                <option value="FREIGHT_ORIGIN_EXW">Freight + Origin Charge/EXW</option>
-                <option value="FREIGHT_ORIGIN_DEST">Freight + Origin Charge/EXW+Dest. Charges</option>
-                <option value="ORIGIN_EXW">Origin Charges/EXW</option>
+                <option value="OCEAN_FREIGHT">Ocean Freight</option>
+                <option value="OCEAN_FREIGHT_ORIGIN">Ocean Freight + Origin Charges &amp; EXW</option>
+                <option value="OCEAN_FREIGHT_ORIGIN_DEST">Ocean Freight + Origin Charges &amp; EXW + Dest. Charges</option>
+                <option value="ORIGIN_CHARGES_EXW">Origin Charges &amp; EXW</option>
+                <option value="DEST_CHARGES">Dest. Charges</option>
                 <option value="LCL">LCL</option>
+                <option value="AIR_FREIGHT">Air Freight</option>
+                <option value="AIR_FREIGHT_ORIGIN">Air Freight + Origin Charge &amp; EXW</option>
               </select>
             </div>
 
@@ -1257,7 +1317,7 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
         </AccordionItem>
 
         {/* 8. Additional Information */}
-        <AccordionItem title="Additional Information">
+        <AccordionItem title="Additional Information" defaultExpanded={true}>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700">Additional Requirements</label>
@@ -1287,11 +1347,11 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
         </AccordionItem>
 
         {/* 9. Status & Result */}
-        <AccordionItem title="Status & Result">
+        <AccordionItem title="Status & Result" defaultExpanded={true}>
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Status *</label>
+                <label className="block text-sm font-medium text-gray-700">Status <span className="text-red-500 font-bold">*</span></label>
                 <select
                   value={formData.status}
                   onChange={(e) => handleChange('status', e.target.value)}
@@ -1362,6 +1422,26 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
           </div>
         </AccordionItem>
       </Accordion>
+
+      {/* 底部操作按钮区域 */}
+      <div className="flex justify-end gap-3 bg-white shadow rounded-lg p-4 mt-4 border-t border-gray-200 sticky bottom-0 z-10">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="inline-flex items-center px-6 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        >
+          <X className="w-4 h-4 mr-2" />
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="inline-flex items-center px-6 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+        >
+          <Save className="w-4 h-4 mr-2" />
+          {isLoading ? 'Saving...' : 'Save Enquiry'}
+        </button>
+      </div>
     </form>
   );
 };

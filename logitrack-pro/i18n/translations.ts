@@ -122,6 +122,10 @@ export interface Translations {
     clear: string;
     currentFilters: string;
     selectDateRange: string;
+    product: string;
+    allProducts: string;
+    country: string;
+    allCountries: string;
   };
 
   // Offices
@@ -452,6 +456,10 @@ export const zhTranslations: Translations = {
     clear: '清除',
     currentFilters: '当前过滤条件:',
     selectDateRange: '请选择开始和结束日期',
+    product: '产品类型',
+    allProducts: '全部产品',
+    country: '国家',
+    allCountries: '全部国家',
   },
 
   // Offices
@@ -780,6 +788,10 @@ export const enTranslations: Translations = {
     clear: 'Clear',
     currentFilters: 'Current Filters:',
     selectDateRange: 'Please select start and end dates',
+    product: 'Product',
+    allProducts: 'All Products',
+    country: 'Country',
+    allCountries: 'All Countries',
   },
 
   // Offices

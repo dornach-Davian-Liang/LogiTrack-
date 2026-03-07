@@ -236,6 +236,7 @@ export const EnhancedDashboard: React.FC<EnhancedDashboardProps> = ({
         }}
         officeName={selectedOffice}
         bookingStatus={selectedStatus}
+        filter={stats?.filterApplied ?? null}
         onViewDetail={(enquiry) => {
           // 传递弹窗状态给父组件
           onViewDetail?.(enquiry, {

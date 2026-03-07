@@ -8,10 +8,9 @@ export default defineConfig(({ mode }) => {
     return {
       server: {
         port: 3000,
-        host: '0.0.0.0',
+        host: true,
         strictPort: true,
         hmr: {
-          host: 'localhost',
           port: 3000,
           protocol: 'ws'
         },

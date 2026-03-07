@@ -2,9 +2,20 @@
 
 完整的物流询价管理系统，采用现代化的前后端分离架构，支持 MySQL 持久化存储。
 
+## 📚 文档导航
+
+- **[代码变更里程碑](MILESTONE_CHANGELOG.md)** - 详细记录每次需求变更和代码修改历史
+- **[文档索引](docs/README.md)** - 完整的文档分类索引（部署、测试、功能设计等）
+- **[快速开始](docs/01-getting-started/QUICKSTART.md)** - 快速上手指南
+- **[部署指南](docs/02-deployment/)** - Windows、Linux、AWS等多种部署方式
+- **[功能设计](docs/03-features/)** - 系统设计和功能规范
+- **[测试文档](docs/04-testing/)** - 测试指南和检查清单
+- **[Bug修复记录](docs/05-bugfixes/)** - 已解决问题汇总
+- **[实现报告](docs/06-implementation-reports/)** - 功能实现详细报告
+
 ## 🎯 快速开始
 
-**完整部署指南**: 查看 [DEPLOYMENT.md](DEPLOYMENT.md)  
+**完整部署指南**: 查看 [docs/02-deployment/DEPLOYMENT.md](docs/02-deployment/DEPLOYMENT.md)  
 **数据库迁移**: 查看 [database/MIGRATION_GUIDE.md](database/MIGRATION_GUIDE.md)
 
 ## 项目结构

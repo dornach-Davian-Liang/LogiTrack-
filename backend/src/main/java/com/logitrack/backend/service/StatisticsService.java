@@ -240,8 +240,9 @@ public class StatisticsService {
      * @return Complete dashboard statistics filtered by parameters
      */
     public DashboardStatsDTO getDashboardStatsWithFilter(DashboardFilterDTO filter) {
-        log.info("Fetching filtered dashboard stats: startDate={}, endDate={}, coreFlags={}, cnOffice={}", 
-                 filter.getStartDate(), filter.getEndDate(), filter.getCoreFlags(), filter.getCnOffice());
+        log.info("Fetching filtered dashboard stats: startDate={}, endDate={}, coreFlags={}, cnOffice={}, products={}, countries={}", 
+                 filter.getStartDate(), filter.getEndDate(), filter.getCoreFlags(), filter.getCnOffice(),
+                 filter.getProducts(), filter.getCountries());
         
         // Validate date range
         if (filter.getStartDate() == null || filter.getEndDate() == null) {
@@ -257,7 +258,9 @@ public class StatisticsService {
             filter.getStartDate(), 
             filter.getEndDate(), 
             filter.getCoreFlags(), 
-            filter.getCnOffice()
+            filter.getCnOffice(),
+            filter.getProducts(),
+            filter.getCountries()
         );
         
         // Calculate previous period dates for comparison
@@ -270,7 +273,9 @@ public class StatisticsService {
             previousStartDate, 
             previousEndDate, 
             filter.getCoreFlags(), 
-            filter.getCnOffice()
+            filter.getCnOffice(),
+            filter.getProducts(),
+            filter.getCountries()
         );
         
         // Build overview statistics
@@ -284,7 +289,9 @@ public class StatisticsService {
             filter.getStartDate(), 
             filter.getEndDate(), 
             filter.getCoreFlags(), 
-            filter.getCnOffice()
+            filter.getCnOffice(),
+            filter.getProducts(),
+            filter.getCountries()
         );
         
         // Build location statistics
@@ -314,7 +321,8 @@ public class StatisticsService {
      * Get filtered enquiries based on all filter criteria
      */
     private List<Enquiry> getFilteredEnquiries(LocalDate startDate, LocalDate endDate, 
-                                                List<String> coreFlags, String cnOffice) {
+                                                List<String> coreFlags, String cnOffice,
+                                                List<String> products, List<String> countries) {
         // Get all enquiries in date range
         List<Enquiry> enquiries = enquiryRepository.findByEnquiryReceivedDateBetween(startDate, endDate);
         
@@ -331,6 +339,20 @@ public class StatisticsService {
                 .filter(e -> cnOffice.equals(e.getAssignedCnOfficeCode()))
                 .collect(Collectors.toList());
         }
+
+        // Apply product filter
+        if (products != null && !products.isEmpty()) {
+            enquiries = enquiries.stream()
+                .filter(e -> e.getProductCode() != null && products.contains(e.getProductCode()))
+                .collect(Collectors.toList());
+        }
+
+        // Apply country filter
+        if (countries != null && !countries.isEmpty()) {
+            enquiries = enquiries.stream()
+                .filter(e -> e.getSalesCountryCode() != null && countries.contains(e.getSalesCountryCode()))
+                .collect(Collectors.toList());
+        }
         
         return enquiries;
     }
@@ -339,7 +361,8 @@ public class StatisticsService {
      * Build monthly trend for filtered date range
      */
     private List<MonthlyTrendDTO> buildFilteredMonthlyTrend(LocalDate startDate, LocalDate endDate,
-                                                             List<String> coreFlags, String cnOffice) {
+                                                             List<String> coreFlags, String cnOffice,
+                                                             List<String> products, List<String> countries) {
         List<MonthlyTrendDTO> trend = new ArrayList<>();
         
         YearMonth currentMonth = YearMonth.from(startDate);
@@ -353,7 +376,7 @@ public class StatisticsService {
             if (monthStart.isBefore(startDate)) monthStart = startDate;
             if (monthEnd.isAfter(endDate)) monthEnd = endDate;
             
-            List<Enquiry> monthEnquiries = getFilteredEnquiries(monthStart, monthEnd, coreFlags, cnOffice);
+            List<Enquiry> monthEnquiries = getFilteredEnquiries(monthStart, monthEnd, coreFlags, cnOffice, products, countries);
             
             int quoted = (int) monthEnquiries.stream()
                 .filter(e -> e.getStatus() == Enquiry.EnquiryStatus.Quoted)
@@ -452,6 +475,75 @@ public class StatisticsService {
             .collect(Collectors.toList());
     }
     
+    /**
+     * Get enquiries for a specific CN office and booking status (for modal drill-down)
+     * 用于增强报表弹窗：按办公室 + 预订状态精确查询，避免前端分页截断问题
+     *
+     * @param officeName     CN Office 代码 (如 SHENZHEN)
+     * @param bookingStatus  预订状态字符串：Yes / Rejected / Invalid / Pending
+     * @param filter         日期范围及其他过滤条件
+     * @return 匹配的询价列表（简化字段）
+     */
+    public List<Map<String, Object>> getOfficeEnquiries(String officeName,
+                                                         String bookingStatus,
+                                                         DashboardFilterDTO filter) {
+        log.info("getOfficeEnquiries: office={}, status={}, start={}, end={}",
+                officeName, bookingStatus, filter.getStartDate(), filter.getEndDate());
+
+        // 1. 先按日期范围 + 其他条件过滤
+        List<Enquiry> enquiries = getFilteredEnquiries(
+                filter.getStartDate(),
+                filter.getEndDate(),
+                filter.getCoreFlags(),
+                null,          // cnOffice 不在此过滤，下面单独处理
+                filter.getProducts(),
+                filter.getCountries()
+        );
+
+        // 2. 按 CN Office 过滤
+        enquiries = enquiries.stream()
+                .filter(e -> officeName.equals(e.getAssignedCnOfficeCode()))
+                .collect(Collectors.toList());
+
+        // 3. 按 bookingStatus 过滤
+        enquiries = enquiries.stream()
+                .filter(e -> {
+                    Enquiry.BookingConfirmed bc = e.getBookingConfirmed();
+                    if ("Pending".equalsIgnoreCase(bookingStatus)) {
+                        return bc == null || bc == Enquiry.BookingConfirmed.Pending;
+                    } else if ("Yes".equalsIgnoreCase(bookingStatus)) {
+                        return bc == Enquiry.BookingConfirmed.Yes;
+                    } else if ("Rejected".equalsIgnoreCase(bookingStatus)) {
+                        return bc == Enquiry.BookingConfirmed.Rejected;
+                    } else if ("Invalid".equalsIgnoreCase(bookingStatus)) {
+                        return bc == Enquiry.BookingConfirmed.Invalid;
+                    }
+                    return false;
+                })
+                .collect(Collectors.toList());
+
+        // 4. 转换为前端 EnquiryListItem 兼容格式（只保留列表展示所需字段）
+        return enquiries.stream().map(e -> {
+            Map<String, Object> item = new HashMap<>();
+            item.put("id", e.getId());
+            item.put("referenceNumber", e.getReferenceNumber());
+            item.put("enquiryReceivedDate",
+                    e.getEnquiryReceivedDate() != null ? e.getEnquiryReceivedDate().toString() : null);
+            item.put("issueDate",
+                    e.getIssueDate() != null ? e.getIssueDate().toString() : null);
+            item.put("status", e.getStatus() != null ? e.getStatus().name() : null);
+            item.put("productCode", e.getProductCode());
+            item.put("salesCountryCode", e.getSalesCountryCode());
+            item.put("cargoTypeCode", e.getCargoTypeCode());
+            item.put("commodity", e.getCommodity());
+            item.put("assignedCnOfficeCode", e.getAssignedCnOfficeCode());
+            item.put("bookingConfirmed",
+                    e.getBookingConfirmed() != null ? e.getBookingConfirmed().name() : "Pending");
+            item.put("quantityTeu", e.getQuantityTeu());
+            return item;
+        }).collect(Collectors.toList());
+    }
+
     /**
      * Calculate percentage change between two values
      */

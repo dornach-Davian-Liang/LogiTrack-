@@ -2,11 +2,12 @@
 // DashboardFilters - Dashboard 过滤组件
 // ============================================================
 
-import React, { useState } from 'react';
-import { Filter, Calendar, Flag, Building2, X, Check } from 'lucide-react';
-import { DashboardFilterParams } from '../../types';
+import React, { useState, useEffect } from 'react';
+import { Filter, Calendar, Flag, Building2, X, Check, Package, Globe } from 'lucide-react';
+import { DashboardFilterParams, Country } from '../../types';
 import { useLanguage } from '../../i18n/LanguageContext';
 import { DatePickerInput } from '../DatePickerInput';
+import { masterDataApi } from '../../services/api';
 
 interface DashboardFiltersProps {
   onApplyFilter: (filter: DashboardFilterParams) => void;
@@ -25,6 +26,21 @@ export const DashboardFilters: React.FC<DashboardFiltersProps> = ({
   const [endDate, setEndDate] = useState('');
   const [selectedCoreFlags, setSelectedCoreFlags] = useState<('CORE' | 'NON_CORE')[]>([]);
   const [cnOffice, setCnOffice] = useState('');
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
+  const [availableCountries, setAvailableCountries] = useState<Country[]>([]);
+
+  const PRODUCT_OPTIONS = [
+    { value: 'AIR', label: 'AIR' },
+    { value: 'SEA', label: 'SEA' },
+    { value: 'SEA-AIR', label: 'SEA-AIR' },
+    { value: 'RAIL', label: 'RAIL' },
+    { value: 'RAIL-SEA', label: 'RAIL-SEA' },
+  ];
+
+  useEffect(() => {
+    masterDataApi.getCountries().then(setAvailableCountries).catch(() => setAvailableCountries([]));
+  }, []);
 
   const cnOffices = [
     { value: '', label: translations.filters.allOffices },
@@ -47,6 +63,8 @@ export const DashboardFilters: React.FC<DashboardFiltersProps> = ({
       endDate,
       coreFlags: selectedCoreFlags.length > 0 ? selectedCoreFlags : undefined,
       cnOffice: cnOffice || undefined,
+      products: selectedProducts.length > 0 ? selectedProducts : undefined,
+      countries: selectedCountries.length > 0 ? selectedCountries : undefined,
     };
 
     onApplyFilter(filter);
@@ -57,6 +75,8 @@ export const DashboardFilters: React.FC<DashboardFiltersProps> = ({
     setEndDate('');
     setSelectedCoreFlags([]);
     setCnOffice('');
+    setSelectedProducts([]);
+    setSelectedCountries([]);
     onClearFilter();
   };
 
@@ -66,7 +86,19 @@ export const DashboardFilters: React.FC<DashboardFiltersProps> = ({
     );
   };
 
-  const hasActiveFilters = startDate || endDate || selectedCoreFlags.length > 0 || cnOffice;
+  const toggleProduct = (product: string) => {
+    setSelectedProducts((prev) =>
+      prev.includes(product) ? prev.filter((p) => p !== product) : [...prev, product]
+    );
+  };
+
+  const toggleCountry = (countryCode: string) => {
+    setSelectedCountries((prev) =>
+      prev.includes(countryCode) ? prev.filter((c) => c !== countryCode) : [...prev, countryCode]
+    );
+  };
+
+  const hasActiveFilters = startDate || endDate || selectedCoreFlags.length > 0 || cnOffice || selectedProducts.length > 0 || selectedCountries.length > 0;
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
@@ -159,6 +191,55 @@ export const DashboardFilters: React.FC<DashboardFiltersProps> = ({
             </select>
           </div>
 
+          {/* Product */}
+          <div>
+            <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
+              <Package className="h-4 w-4 mr-1" />
+              {translations.filters.product}
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {PRODUCT_OPTIONS.map((p) => (
+                <button
+                  key={p.value}
+                  onClick={() => toggleProduct(p.value)}
+                  className={`flex items-center px-3 py-1.5 border rounded-lg text-sm transition ${
+                    selectedProducts.includes(p.value)
+                      ? 'bg-indigo-500 text-white border-indigo-500'
+                      : 'bg-white text-gray-700 border-gray-300 hover:border-indigo-400'
+                  }`}
+                >
+                  {selectedProducts.includes(p.value) && <Check className="h-3 w-3 mr-1" />}
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Country */}
+          <div>
+            <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
+              <Globe className="h-4 w-4 mr-1" />
+              {translations.filters.country}
+            </label>
+            {availableCountries.length > 0 ? (
+              <div className="max-h-40 overflow-y-auto border border-gray-300 rounded-lg p-2 grid grid-cols-2 gap-1">
+                {availableCountries.map((c) => (
+                  <label key={c.countryCode} className="flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-50 cursor-pointer text-sm">
+                    <input
+                      type="checkbox"
+                      checked={selectedCountries.includes(c.countryCode)}
+                      onChange={() => toggleCountry(c.countryCode)}
+                      className="rounded border-gray-300 text-blue-600"
+                    />
+                    <span className="text-gray-700">{language === 'zh' && c.countryNameCn ? c.countryNameCn : c.countryNameEn}</span>
+                  </label>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-gray-400">{translations.filters.allCountries}</p>
+            )}
+          </div>
+
           {/* Action Buttons */}
           <div className="flex space-x-3 pt-2">
             <button
@@ -199,6 +280,20 @@ export const DashboardFilters: React.FC<DashboardFiltersProps> = ({
                     🏢 {cnOffices.find((o) => o.value === cnOffice)?.label}
                   </span>
                 )}
+                {selectedProducts.map((prod) => (
+                  <span key={prod} className="px-2 py-1 text-xs bg-indigo-100 text-indigo-700 rounded">
+                    📦 {prod}
+                  </span>
+                ))}
+                {selectedCountries.map((code) => {
+                  const found = availableCountries.find((c) => c.countryCode === code);
+                  const label = found ? (language === 'zh' && found.countryNameCn ? found.countryNameCn : found.countryNameEn) : code;
+                  return (
+                    <span key={code} className="px-2 py-1 text-xs bg-teal-100 text-teal-700 rounded">
+                      🌍 {label}
+                    </span>
+                  );
+                })}
               </div>
             </div>
           )}

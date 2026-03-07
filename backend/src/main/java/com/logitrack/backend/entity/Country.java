@@ -33,6 +33,9 @@ public class Country {
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
     
+    @Column(name = "is_core", nullable = false)
+    private Boolean isCore = false;
+    
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
     
