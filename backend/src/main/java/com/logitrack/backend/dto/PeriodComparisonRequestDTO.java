@@ -39,4 +39,14 @@ public class PeriodComparisonRequestDTO {
      * Optional: CN Office filter
      */
     private String cnOffice;
+    
+    /**
+     * Optional: Country ID filter
+     */
+    private List<Integer> countryIds;
+    
+    /**
+     * Optional: Product code filter
+     */
+    private List<String> productCodes;
 }

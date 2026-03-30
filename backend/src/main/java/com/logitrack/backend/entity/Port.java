@@ -47,7 +47,7 @@ public class Port {
     private LocalDateTime updatedAt;
     
     public enum PortType {
-        AIR, SEA
+        AIR, SEA, RAIL
     }
     
     @PrePersist

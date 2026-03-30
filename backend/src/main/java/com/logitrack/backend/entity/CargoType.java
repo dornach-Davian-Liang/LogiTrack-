@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * 运输类型字典实体类 - 匹配 MySQL dict_cargo_type 表结构
+ * Cargo 类型字典实体类 v3 - 匹配 dict_cargo_type 表
  */
 @Entity
 @Table(name = "dict_cargo_type")
@@ -22,14 +22,9 @@ public class CargoType {
     @Column(name = "name", length = 100, nullable = false)
     private String name;
     
-    @Enumerated(EnumType.STRING)
-    @Column(name = "offer_type", nullable = false)
-    private OfferType offerType;
+    @Column(name = "needs_container", nullable = false)
+    private Boolean needsContainer = false;
     
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
-    
-    public enum OfferType {
-        OCEAN, AIR, OTHER
-    }
 }

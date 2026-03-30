@@ -34,7 +34,7 @@ export const ComparisonReport: React.FC = () => {
   const { language, translations } = useLanguage();
   const [comparisonType, setComparisonType] = useState<ComparisonType>('MONTHLY');
   const [selectedPeriods, setSelectedPeriods] = useState<string[]>([]);
-  const [coreFlags, setCoreFlags] = useState<('CORE' | 'NON_CORE')[]>([]);
+  const [coreFlags, setCoreFlags] = useState<('Core' | 'Non_Core')[]>([]);
   const [cnOffice, setCnOffice] = useState('');
   const [result, setResult] = useState<ComparisonResult | null>(null);
   const [loading, setLoading] = useState(false);
@@ -51,6 +51,8 @@ export const ComparisonReport: React.FC = () => {
     { value: 'SEA-AIR', label: 'SEA-AIR' },
     { value: 'RAIL', label: 'RAIL' },
     { value: 'RAIL-SEA', label: 'RAIL-SEA' },
+    { value: 'RAIL-AIR', label: 'RAIL-AIR' },
+    { value: 'AIR-RAIL-SEA', label: 'AIR-RAIL-SEA' },
   ];
 
   // 根据搜索词过滤国家列表
@@ -148,7 +150,7 @@ export const ComparisonReport: React.FC = () => {
     );
   };
 
-  const toggleCoreFlag = (flag: 'CORE' | 'NON_CORE') => {
+  const toggleCoreFlag = (flag: 'Core' | 'Non_Core') => {
     setCoreFlags((prev) =>
       prev.includes(flag) ? prev.filter((f) => f !== flag) : [...prev, flag]
     );
@@ -336,9 +338,9 @@ export const ComparisonReport: React.FC = () => {
             </label>
             <div className="flex gap-2">
               <button
-                onClick={() => toggleCoreFlag('CORE')}
+                onClick={() => toggleCoreFlag('Core')}
                 className={`flex-1 px-3 py-2 text-sm border-2 rounded-lg transition font-medium ${
-                  coreFlags.includes('CORE')
+                  coreFlags.includes('Core')
                     ? 'bg-blue-500 text-white border-blue-500'
                     : 'bg-white text-gray-700 border-gray-200 hover:border-blue-400'
                 }`}
@@ -346,9 +348,9 @@ export const ComparisonReport: React.FC = () => {
                 CORE
               </button>
               <button
-                onClick={() => toggleCoreFlag('NON_CORE')}
+                onClick={() => toggleCoreFlag('Non_Core')}
                 className={`flex-1 px-3 py-2 text-sm border-2 rounded-lg transition font-medium ${
-                  coreFlags.includes('NON_CORE')
+                  coreFlags.includes('Non_Core')
                     ? 'bg-blue-500 text-white border-blue-500'
                     : 'bg-white text-gray-700 border-gray-200 hover:border-blue-400'
                 }`}

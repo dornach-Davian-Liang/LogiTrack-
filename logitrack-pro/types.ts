@@ -1,23 +1,44 @@
 // ============================================================
-// LogiTrack Pro - 类型定义
-// 完整的类型定义文件，适配 schema_v2 数据库设计
+// LogiTrack Pro - Type Definitions v3
+// Aligned with schema_v3 database design
 // ============================================================
 
 // ==========================================
-// 基础类型定义
+// Base Type Unions
 // ==========================================
 
-export type ProductType = 'AIR' | 'SEA' | 'RAIL' | 'TRUCK';
-export type ProductCode = 'AIR' | 'SEA' | 'SEA-AIR' | 'RAIL' | 'RAIL-SEA';
-export type EnquiryStatus = 'New' | 'Quoted' | 'Pending';
-export type BookingStatus = 'Yes' | 'Rejected' | 'Pending' | 'Invalid' | '';
-export type CoreStatus = 'CORE' | 'NON CORE' | '';
-export type PortType = 'AIR' | 'SEA';
-export type OfferType = 'OCEAN' | 'AIR' | 'OTHER';
-export type CargoType = 'AIR' | 'FCL' | 'LCL' | 'RAIL' | 'SEA';
+/** 7 product types */
+export type ProductCode =
+  | 'AIR'
+  | 'SEA'
+  | 'SEA-AIR'
+  | 'RAIL'
+  | 'RAIL-SEA'
+  | 'RAIL-AIR'
+  | 'AIR-RAIL-SEA';
+
+/** 5-value status (DB stores "Quoted & Pending") */
+export type EnquiryStatus =
+  | 'New'
+  | 'Quoted & Pending'
+  | 'Secured'
+  | 'Lost'
+  | 'Cancelled';
+
+/** 4 cargo / offer types (DB stores "BUYER-CONSOL") */
+export type OfferType = 'FCL' | 'LCL' | 'AIR' | 'BUYER-CONSOL';
+
+/** Port physical mode */
+export type PortType = 'AIR' | 'SEA' | 'RAIL';
+
+/** Route-group sub-mode for mixed products */
+export type SubMode = 'AIR' | 'SEA' | 'RAIL';
+
+/** Core / Non-Core (DB stores "Non-Core") */
+export type CoreNonCore = 'Core' | 'Non-Core';
 
 // ==========================================
-// API 响应类型
+// API Response Wrappers
 // ==========================================
 
 export interface ApiResponse<T> {
@@ -31,15 +52,15 @@ export interface PagedResponse<T> {
   content: T[];
   totalElements: number;
   totalPages: number;
-  number?: number;  // Spring 标准字段
-  page?: number;    // 兼容旧代码
+  number?: number;
+  page?: number;
   size: number;
   first?: boolean;
   last?: boolean;
 }
 
 // ==========================================
-// 选择器类型
+// Select-option shapes
 // ==========================================
 
 export interface SelectOption {
@@ -66,7 +87,7 @@ export interface ContainerTypeSelectOption extends SelectOption {
 }
 
 // ==========================================
-// 主数据实体
+// Master-data entities
 // ==========================================
 
 export interface Country {
@@ -75,7 +96,7 @@ export interface Country {
   countryNameEn: string;
   countryNameCn?: string;
   isActive: boolean;
-  isCore?: boolean; // CORE国家标记
+  isCore?: boolean;
 }
 
 export interface Port {
@@ -99,10 +120,10 @@ export interface SalesOffice {
 export interface SalesPic {
   id: number;
   name: string;
-  countryCode: string;
+  salesCountryCode: string;
   salesOfficeId: number;
-  salesOfficeName: string;
-  salesOfficeCode: string;
+  salesOfficeName?: string;
+  salesOfficeCode?: string;
   isActive: boolean;
 }
 
@@ -123,21 +144,42 @@ export interface CnOffice {
 }
 
 // ==========================================
-// 字典类型
+// Dictionary entities (v3)
 // ==========================================
-
-export interface CargoTypeDict {
-  code: string;
-  name: string;
-  offerType: OfferType;
-  isActive: boolean;
-}
 
 export interface ProductDict {
   code: string;
   name: string;
   abbr: string;
+  isMixed: boolean;
+  sortOrder: number;
   isActive: boolean;
+}
+
+export interface CargoTypeDict {
+  code: string;
+  name: string;
+  needsContainer: boolean;
+  isActive: boolean;
+}
+
+export interface SalesCountryDict {
+  code: string;
+  name: string;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+export interface CancelledReasonDict {
+  code: string;
+  label: string;
+  sortOrder: number;
+}
+
+export interface LostReasonDict {
+  code: string;
+  label: string;
+  sortOrder: number;
 }
 
 export interface UomDict {
@@ -153,150 +195,143 @@ export interface CategoryDict {
 }
 
 // ==========================================
-// 集装箱行
+// Route Group (v3 mixed-mode support)
 // ==========================================
 
-export interface ContainerLine {
+export interface RouteGroup {
   id?: number;
   enquiryId?: number;
-  lineNumber?: number;
-  containerTypeId: number;
-  containerTypeCode?: string;
-  containerCode?: string;  // 兼容旧代码
-  containerQty?: number;   // 兼容旧代码
-  quantity?: number;
-  teuValue?: number;
-  teuPerUnit?: number;     // 兼容旧代码
-  lineTeu?: number;
-  teuTotal?: number;       // 兼容旧代码
+  groupIndex: number;
+  subMode: SubMode;
+  polIds: number[];
+  podIds: number[];
+  polNames?: string[];
+  podNames?: string[];
 }
 
 // ==========================================
-// 报价实体
+// Offer + Price Lines + Container Details (v3)
 // ==========================================
 
-export interface Offer {
-  id: number;
-  enquiryId: number;
-  offerType: OfferType;
-  sequenceNo?: number;
-  sentDate: string;
+export interface OfferContainerDetail {
+  id?: number;
+  offerPriceLineId?: number;
+  containerSizeType: string;
+  containerType?: string;
+  numberOfContainers: number;
+  cargoWeightPerContainer?: number;
+  containerPrice?: number;
+  teuValue: number;
+  lineTeu?: number;
+}
+
+export interface OfferPriceLine {
+  id?: number;
+  offerId?: number;
+  routeGroupId?: number;
+  subMode?: SubMode;
+  polId: number;
+  podId: number;
+  perCbm?: number;
+  minCharge?: number;
+  localCharge?: number;
   price?: number;
   priceText?: string;
-  isBest?: boolean;
-  isLatest?: boolean;
-  isRejectedPrice?: boolean;
+  sortOrder?: number;
+  containerDetails?: OfferContainerDetail[];
+  polName?: string;
+  podName?: string;
+}
+
+export interface Offer {
+  id?: number;
+  enquiryId?: number;
+  sequenceNo: number;
+  isLatest: boolean;
+  offerType: OfferType;
+  offerDate?: string;
+  remark?: string;
+  priceLines: OfferPriceLine[];
   createdAt?: string;
   updatedAt?: string;
 }
 
-export interface OfferFormData {
-  enquiryId: number;
+/** DTO payload for creating/updating an offer (matches backend OfferCreateDTO) */
+export interface OfferCreatePayload {
   offerType: OfferType;
-  sentDate: string;
-  price?: number;
-  priceText?: string;
+  offerDate?: string;
+  cargoTypeCode?: string;
+  remark?: string;
+  sequenceNo?: number;
+  isLatest?: boolean;
+  priceLines: OfferPriceLine[];
 }
 
 // ==========================================
-// 询价实体 (详细)
+// Enquiry (full detail, v3)
 // ==========================================
 
 export interface Enquiry {
   id: number;
-  referenceNumber: string;
+  refNumber: string;
   enquiryReceivedDate: string;
-  issueDate: string;
-  referenceMonth: string;
-  monthlySequence: number;
-  serialNumber: number;
+  enquiryCreatedDate: string;
   productCode: ProductCode;
-  productAbbr: string;
+  productAbbr?: string;
   status: EnquiryStatus;
-  
-  // 销售信息
-  cnPricingAdmin: string;
+
+  cancelledReason?: string;
+  cancelledReasonText?: string;
+  lostReason?: string;
+  lostReasonText?: string;
+
   salesCountryCode: string;
+  salesPicId?: number;
+  salesPicName?: string;
   salesOfficeId?: number;
   salesOfficeName?: string;
   salesOfficeCode?: string;
-  salesPicId?: number;
-  salesPicName?: string;
   assignedCnOffice?: string;
-  assignedCnOfficeCode?: string;  // 兼容旧代码
-  
-  // 货物信息
+
   cargoTypeCode: string;
+  offerType?: OfferType;
   volumeCbm?: number;
   quantity?: number;
-  quantityUom?: string;
-  quantityUomCode?: string;  // 兼容旧代码
-  quantityTeu?: number;
+  uom?: string;
   commodity?: string;
-  hazSpecialEquipment?: string;
-  additionalRequirement?: string;
-  
-  // 路线信息 (支持多港口)
-  polIds?: number[];  // 多个起运港ID
-  polId?: number;  // 兼容单港口
-  polCode?: string;
-  polName?: string;
-  polPortType?: string;
-  podIds?: number[];  // 多个目的港ID
-  podId?: number;  // 兼容单港口
-  podCode?: string;
-  podName?: string;
-  podCountryCode?: string;
-  podCountryName?: string;
-  podPortType?: string;
-  
-  // 业务逻辑
-  coreNonCore?: CoreStatus;
-  coreFlag?: string;  // 兼容旧代码
-  categoryCode?: string;
-  categoryName?: string;
+  hazardousSpecialEquipment?: string;
+  isOversizeCargo?: boolean;
+  exwLocation?: string;
+
+  polIds?: number[];
+  podIds?: number[];
+  polCountry?: string;
+  podCountry?: string;
+
+  routeGroups?: RouteGroup[];
+
+  coreNonCore?: CoreNonCore;
+  category?: string;
+  hasSpecificCargoReadyDate?: boolean;
   cargoReadyDate?: string;
-  cargoReadyDateRawText?: string;  // 兼容旧代码
-  
-  // 报价信息 (汇总)
-  firstQuotationSent?: string;
-  firstOfferOceanFrg?: string;
-  firstOfferAirFrgKg?: string;
-  latestOfferOceanFrg?: string;
-  latestOfferAirFrgKg?: string;
-  
-  // 结果
-  bookingConfirmed: BookingStatus;
+  cargoReadyDateDetails?: string;
   remark?: string;
-  rejectedReason?: string;
-  actualReason?: string;
-  
-  // 关联数据
-  containerLines?: ContainerLine[];
+
   offers?: Offer[];
-  
-  // 时间戳
+
   createdAt?: string;
   updatedAt?: string;
 }
 
-export interface ReferencePreview {
-  referenceNumber: string;
-  referenceMonth: string;
-  monthlySequence: number;
-  serialNumber: number;
-  productAbbr: string;
-}
-
 // ==========================================
-// 询价列表项 (简化版)
+// Enquiry list item (slim projection)
 // ==========================================
 
 export interface EnquiryListItem {
   id: number;
-  referenceNumber: string;
+  refNumber: string;
   enquiryReceivedDate: string;
-  issueDate?: string;
+  enquiryCreatedDate?: string;
   status: EnquiryStatus;
   productCode?: ProductCode;
   productAbbr?: string;
@@ -304,89 +339,76 @@ export interface EnquiryListItem {
   salesPicName?: string;
   salesOfficeName?: string;
   cargoTypeCode: string;
-  polCode?: string;
+  commodity?: string;
+  assignedCnOffice?: string;
+  coreNonCore?: CoreNonCore;
   polName?: string;
-  podCode?: string;
   podName?: string;
-  podCountryName?: string;
-  quantityTeu?: number;
-  bookingConfirmed: BookingStatus;
+  podCountry?: string;
   offersCount?: number;
-  offerCount?: number;  // 兼容旧代码
   latestOfferDate?: string;
-  latestOfferPrice?: string;
-  assignedCnOfficeCode?: string;  // CN Office代码
-  commodity?: string;  // 商品描述
 }
 
 // ==========================================
-// 询价表单数据
+// Enquiry form data (create / update payload)
 // ==========================================
 
 export interface EnquiryFormData {
-  referenceNumber?: string;  // 参考编号
-  referenceMonth?: string;   // 参考月份（YYMM）
-  monthlySequence?: number;  // 月度序号
-  serialNumber?: number;     // 序列号
-  productAbbr?: string;      // 产品缩写
-  
   enquiryReceivedDate: string;
-  issueDate: string;
+  enquiryCreatedDate: string;
   productCode: ProductCode;
-  status: EnquiryStatus;
-  
-  cnPricingAdmin: string;
+  status?: EnquiryStatus;
+
   salesCountryCode: string;
   salesPicId?: number;
   salesOfficeId?: number;
   assignedCnOffice?: string;
-  assignedCnOfficeCode?: string;  // 兼容旧代码
-  
+
   cargoTypeCode: string;
+  offerType?: OfferType;
   volumeCbm?: number;
   quantity?: number;
-  quantityUom?: string;
-  quantityUomCode?: string;  // 兼容旧代码
+  uom?: string;
   commodity?: string;
-  hazSpecialEquipment?: string;
-  polIds?: number[];  // 多个起运港ID
-  polId?: number;  // 兼容单港口（后端可能需要）
-  podIds?: number[];  // 多个目的港ID
-  podId?: number;  // 兼容单港口（后端可能需要）
-  podCountryCode?: string;  // POD国家代码
-  podCountryName?: string;  // POD国家名称（自动映射）
-  
-  coreNonCore?: CoreStatus;
-  coreFlag?: string;  // 兼容旧代码
-  categoryCode?: string;
+  hazardousSpecialEquipment?: string;
+  isOversizeCargo?: boolean;
+  exwLocation?: string;
+
+  polIds?: number[];
+  podIds?: number[];
+  polCountry?: string;
+  podCountry?: string;
+
+  routeGroups?: RouteGroup[];
+
+  coreNonCore?: CoreNonCore;
+  category?: string;
+  hasSpecificCargoReadyDate?: boolean;
   cargoReadyDate?: string;
-  cargoReadyDateRawText?: string;  // 兼容旧代码
-  additionalRequirement?: string;  // 附加要求
-  
-  bookingConfirmed: BookingStatus;
+  cargoReadyDateDetails?: string;
   remark?: string;
-  rejectedReason?: string;
-  actualReason?: string;
-  
-  containerLines?: ContainerLine[];
+}
+
+export interface ReferencePreview {
+  referenceNumber: string;
+  referenceMonth?: string;
+  monthlySequence?: number;
+  serialNumber?: number;
+  productAbbr?: string;
 }
 
 // ==========================================
-// 询价搜索参数
+// Search / filter params
 // ==========================================
 
 export interface EnquirySearchParams {
-  referenceNumber?: string;
-  keyword?: string;  // 添加关键字搜索
+  keyword?: string;
   status?: EnquiryStatus;
   productCode?: ProductCode;
-  salesCountryCode?: string;
-  salesCountryCodes?: string[];  // 多选国家
-  salesPicId?: number;
   cargoTypeCode?: string;
-  cargoTypes?: string[];  // 多选货物类型
-  bookingConfirmed?: BookingStatus;
-  assignedCnOfficeCode?: string;  // CN Office筛选
+  salesCountryCode?: string;
+  assignedCnOffice?: string;
+  coreNonCore?: CoreNonCore;
   dateFrom?: string;
   dateTo?: string;
   page?: number;
@@ -396,64 +418,53 @@ export interface EnquirySearchParams {
 }
 
 // ==========================================
-// 旧版兼容类型
+// Status-change payload
 // ==========================================
 
-// Mapping the CSV columns to a clean data structure
+export interface StatusChangePayload {
+  status: EnquiryStatus;
+  reason?: string;
+  reasonText?: string;
+}
+
+// ==========================================
+// Legacy / CSV record type (kept for Table.tsx compat)
+// ==========================================
+
 export interface EnquiryRecord {
   id: string;
-  // Section 1: General Info (Columns A-E)
   enquiryReceivedDate: string;
-  issueDate: string;
-  referenceNumber: string; // e.g., CN2401006-A
-  product: ProductType;
+  enquiryCreatedDate: string;
+  referenceNumber: string;
+  product: string;
   status: EnquiryStatus;
-  
-  // Section 2: Sales & Admin (Columns F-J)
-  cnPricingAdmin: string;
   salesCountry: string;
   salesOffice: string;
-  salesPic: string; // Person In Charge
-  assignedCnOffices: string;
-
-  // Section 3: Cargo Details (Columns K-Q + X)
-  cargoType: string; // e.g., AIR, LCL
+  salesPic: string;
+  assignedCnOffice: string;
+  cargoType: string;
   volumeCbm: number;
   quantity: number;
-  quantityUnit: string; // KG, CTN
-  quantityTeu?: number;
+  quantityUnit: string;
   commodity: string;
   hazSpecialEquipment?: string;
-  additionalRequirement?: string; // Column X
-
-  // Section 4: Route (Columns R-T)
-  pol: string; // Port of Loading
-  pod: string; // Port of Discharge
+  cargoReadyDateDetails?: string;
+  pol: string;
+  pod: string;
   podCountry: string;
-  
-  // Section 5: Business Logic (Columns U-V)
   coreNonCore: string;
-  category: string; // 1. Freight, 2. Freight + Origin...
-
-  // Section 6: Timeline & Pricing (Columns W, Y-AC)
+  category: string;
   cargoReadyDate?: string;
   firstQuotationSent?: string;
   firstOfferOceanFrg?: string;
   firstOfferAirFrgKg?: string;
   latestOfferOceanFrg?: string;
   latestOfferAirFrgKg?: string;
-
-  // Section 7: Outcome (Columns AD-AG)
-  bookingConfirmed: BookingStatus;
   remark?: string;
-  rejectedReason?: string;
-  actualReason?: string;
 }
 
 // ==========================================
-// Report 统计类型
-// ==========================================
-// Report Module Types
+// Report / Dashboard types
 // ==========================================
 
 export interface DashboardOverview {
@@ -473,7 +484,10 @@ export interface StatusBreakdown {
 
 export interface MonthlyTrend {
   month: string;
-  count: number;
+  count?: number;
+  totalEnquiries?: number;
+  quoted?: number;
+  confirmed?: number;
   change?: number;
 }
 
@@ -486,31 +500,39 @@ export interface LocationStat {
   percentage?: string;
 }
 
-// ==========================================
-// Dashboard 过滤和对比类型
-// ==========================================
-
 export interface DashboardFilterParams {
-  startDate: string; // YYYY-MM-DD
-  endDate: string; // YYYY-MM-DD
-  coreFlags?: ('CORE' | 'NON_CORE')[];
+  startDate: string;
+  endDate: string;
+  coreFlags?: ('Core' | 'Non_Core')[];
   cnOffice?: string;
-  products?: string[];   // e.g. ['AIR', 'SEA']
-  countries?: string[];  // e.g. ['FR', 'UK', 'DE']
+  products?: string[];
+  countries?: string[];
 }
 
 export interface CNOfficeStat {
   officeName: string;
   totalEnquiries: number;
-  yes: number;        // 已确认 (Booking Confirmed = 'Yes')
-  rejected: number;   // 已拒绝 (Booking Confirmed = 'Rejected')
-  invalid: number;    // 无效 (Booking Confirmed = 'Invalid')
-  pending: number;    // 待定 (Booking Confirmed = 'Pending')
-  conversionRate: number;
+  quoted: number;
+  confirmed: number;
+  yes: number;
+  rejected: number;
+  invalid: number;
+  pending: number;
+  conversionRate: string;
+}
+
+export interface DashboardStats {
+  overview: DashboardOverview;
+  statusBreakdown: { [status: string]: StatusBreakdown };
+  monthlyTrend: MonthlyTrend[];
+  topCountries: LocationStat[];
+  topOrigins: LocationStat[];
+  topDestinations: LocationStat[];
+  cargoTypes: LocationStat[];
+  cnOfficeStats?: CNOfficeStat[];
 }
 
 export interface DashboardStatsWithFilter extends DashboardStats {
-  cnOfficeStats?: CNOfficeStat[];
   filterApplied?: DashboardFilterParams;
 }
 
@@ -518,11 +540,11 @@ export type ComparisonType = 'MONTHLY' | 'QUARTERLY';
 
 export interface PeriodComparisonRequest {
   comparisonType: ComparisonType;
-  periods: string[]; // ["2026-01", "2026-02"] or ["2025-Q4", "2026-Q1"]
-  coreFlags?: ('CORE' | 'NON_CORE')[];
+  periods: string[];
+  coreFlags?: ('Core' | 'Non_Core')[];
   cnOffice?: string;
-  countryIds?: number[];    // 目的国 ID 列表
-  productCodes?: string[];  // 产品类型代码列表
+  countryIds?: number[];
+  productCodes?: string[];
 }
 
 export interface PeriodStats {
@@ -533,7 +555,7 @@ export interface PeriodStats {
   quoted: number;
   confirmed: number;
   conversionRate: number;
-  changeFromPrevious?: number; // percentage
+  changeFromPrevious?: number;
 }
 
 export interface ComparisonSummary {
@@ -546,13 +568,11 @@ export interface ComparisonSummary {
 export interface ComparisonResult {
   periodStats: PeriodStats[];
   summary: ComparisonSummary;
-  trendData: {
-    [key: string]: number[]; // 'totalEnquiries', 'quoted', 'confirmed'
-  };
+  trendData: { [key: string]: number[] };
 }
 
 // ==========================================
-// RBAC 类型定义
+// RBAC types
 // ==========================================
 
 export interface LoginRequest {
@@ -593,6 +613,7 @@ export interface AuditLog {
   resourceId?: number;
   oldValue?: string;
   newValue?: string;
+  details?: string;
   ipAddress?: string;
   userAgent?: string;
   timestamp: string;
@@ -600,24 +621,19 @@ export interface AuditLog {
   status: 'SUCCESS' | 'FAILED';
 }
 
-export interface DashboardStats {
-  overview: DashboardOverview;
-  statusBreakdown: { [status: string]: StatusBreakdown };
-  monthlyTrend: MonthlyTrend[];
-  topCountries: LocationStat[];
-  topOrigins: LocationStat[];
-  topDestinations: LocationStat[];
-  cargoTypes: LocationStat[];
-}
+// ==========================================
+// Monthly / Country report data
+// ==========================================
 
 export interface MonthlyReportData {
   month: string;
   summary: {
     totalEnquiries: number;
     quotedCount: number;
-    bookingConfirmedCount: number;
-    rejectionCount: number;
-    bookingRate: string;
+    securedCount: number;
+    lostCount: number;
+    cancelledCount: number;
+    conversionRate: string;
     quoteRate: string;
   };
   byCountry: Array<{
@@ -625,7 +641,7 @@ export interface MonthlyReportData {
     countryName: string;
     enquiryCount: number;
     quotedCount: number;
-    bookedCount: number;
+    securedCount: number;
     conversionRate: string;
   }>;
   byCargoType: Array<{
@@ -633,7 +649,7 @@ export interface MonthlyReportData {
     enquiryCount: number;
     percentage: string;
     quotedCount: number;
-    bookedCount: number;
+    securedCount: number;
   }>;
   bySalesOffice: Array<{
     officeId: number;
@@ -641,11 +657,6 @@ export interface MonthlyReportData {
     enquiryCount: number;
     quotedCount: number;
     conversionRate: string;
-  }>;
-  bookingStatus: Array<{
-    status: string;
-    count: number;
-    percentage: string;
   }>;
 }
 
@@ -655,7 +666,7 @@ export interface CountryReportData {
   summary: {
     totalEnquiries: number;
     quotedCount: number;
-    bookedCount: number;
+    securedCount: number;
     conversionRate: string;
   };
   cargoDistribution: Array<{
@@ -663,7 +674,7 @@ export interface CountryReportData {
     percentage: number;
     count: number;
   }>;
-  bookingStatusDistribution: Array<{
+  statusDistribution: Array<{
     status: string;
     percentage: number;
     count: number;

@@ -12,223 +12,202 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * 字典数据控制器 - 提供 Country, Port, SalesPic, SalesOffice 等字典数据
+ * 字典数据控制器 v3 — 符合 API 端点规范
  */
 @RestController
 @RequestMapping("/api/dict")
 @RequiredArgsConstructor
 @Slf4j
-
 public class DictController {
     
     private final CountryRepository countryRepository;
     private final PortRepository portRepository;
     private final SalesPicRepository salesPicRepository;
     private final SalesOfficeRepository salesOfficeRepository;
-    private final CnOfficeRepository cnOfficeRepository;
+    private final SalesCountryRepository salesCountryRepository;
     private final ContainerTypeRepository containerTypeRepository;
     private final CargoTypeRepository cargoTypeRepository;
     private final ProductRepository productRepository;
+    private final ProductCargoAllowedRepository productCargoAllowedRepository;
+    private final CancelledReasonRepository cancelledReasonRepository;
+    private final LostReasonRepository lostReasonRepository;
     
-    // ========== Country 国家 ==========
+    // ========== Product 产品 ==========
     
-    @GetMapping("/countries")
-    public ResponseEntity<List<DictDTO>> getAllCountries() {
-        log.info("GET /api/dict/countries");
-        List<DictDTO> result = countryRepository.findByIsActiveTrueOrderByCountryNameEnAsc()
-            .stream()
-            .map(DictDTO::fromCountry)
-            .collect(Collectors.toList());
+    /**
+     * GET /api/dict/products — 产品类型列表
+     */
+    @GetMapping("/products")
+    public ResponseEntity<List<Product>> getAllProducts() {
+        log.info("GET /api/dict/products");
+        List<Product> result = productRepository.findByIsActiveTrueOrderBySortOrderAsc();
         return ResponseEntity.ok(result);
     }
     
-    // ========== Port 港口 ==========
+    // ========== Cargo Type ==========
     
+    /**
+     * GET /api/dict/cargo-types?productCode=SEA — 按产品过滤Cargo类型
+     */
+    @GetMapping("/cargo-types")
+    public ResponseEntity<List<CargoType>> getCargoTypes(
+            @RequestParam(required = false) String productCode) {
+        log.info("GET /api/dict/cargo-types?productCode={}", productCode);
+        
+        if (productCode != null && !productCode.isBlank()) {
+            // 查找 allowed cargo type codes
+            List<String> allowedCodes = productCargoAllowedRepository
+                    .findCargoTypeCodesByProductCode(productCode);
+            List<CargoType> result = cargoTypeRepository.findByIsActiveTrue()
+                    .stream()
+                    .filter(ct -> allowedCodes.contains(ct.getCode()))
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(result);
+        }
+        
+        return ResponseEntity.ok(cargoTypeRepository.findByIsActiveTrue());
+    }
+    
+    // ========== Sales Country ==========
+    
+    /**
+     * GET /api/dict/sales-countries — 销售国家列表
+     */
+    @GetMapping("/sales-countries")
+    public ResponseEntity<List<DictDTO>> getSalesCountries() {
+        log.info("GET /api/dict/sales-countries");
+        List<DictDTO> result = salesCountryRepository.findByIsActiveTrueOrderBySortOrderAsc()
+                .stream()
+                .map(sc -> new DictDTO(sc.getCode(), sc.getName()))
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(result);
+    }
+    
+    // ========== Sales PIC ==========
+    
+    /**
+     * GET /api/dict/sales-pics?countryCode=Z-UK — 按国家过滤PIC列表
+     */
+    @GetMapping("/sales-pics")
+    public ResponseEntity<List<DictDTO.SalesPicDTO>> getSalesPics(
+            @RequestParam(required = false) String countryCode) {
+        log.info("GET /api/dict/sales-pics?countryCode={}", countryCode);
+        
+        List<SalesPic> pics;
+        if (countryCode != null && !countryCode.isBlank()) {
+            pics = salesPicRepository.findActiveSalesPicsByCountry(countryCode);
+        } else {
+            pics = salesPicRepository.findByIsActiveTrue();
+        }
+        
+        List<DictDTO.SalesPicDTO> result = pics.stream()
+                .map(pic -> {
+                    SalesOffice office = salesOfficeRepository.findById(pic.getSalesOfficeId()).orElse(null);
+                    return DictDTO.fromSalesPic(pic, office);
+                })
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(result);
+    }
+    
+    // ========== Sales Office ==========
+    
+    /**
+     * GET /api/dict/sales-offices?picId=123 — 按PIC获取Office（1:1）
+     */
+    @GetMapping("/sales-offices")
+    public ResponseEntity<?> getSalesOffices(
+            @RequestParam(required = false) Integer picId) {
+        log.info("GET /api/dict/sales-offices?picId={}", picId);
+        
+        if (picId != null) {
+            // 按 PIC 获取对应 Office（1:1映射）
+            return salesPicRepository.findById(picId)
+                    .flatMap(pic -> salesOfficeRepository.findById(pic.getSalesOfficeId()))
+                    .map(office -> ResponseEntity.ok((Object) office))
+                    .orElse(ResponseEntity.notFound().build());
+        }
+        
+        List<DictDTO> result = salesOfficeRepository.findByIsActiveTrueOrderByNameAsc()
+                .stream()
+                .map(DictDTO::fromSalesOffice)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(result);
+    }
+    
+    // ========== Port 端口 ==========
+    
+    /**
+     * GET /api/ports?mode=AIR&query=sha — 端口搜索（按mode过滤）
+     * 注意：此端点路径在 /api/ports（不在 /api/dict 下）
+     */
     @GetMapping("/ports")
-    public ResponseEntity<List<DictDTO.PortDTO>> getAllPorts() {
-        log.info("GET /api/dict/ports");
-        List<DictDTO.PortDTO> result = portRepository.findAll()
-            .stream()
-            .filter(Port::getIsActive)
-            .map(DictDTO::fromPort)
-            .collect(Collectors.toList());
+    public ResponseEntity<List<DictDTO.PortDTO>> searchPorts(
+            @RequestParam(required = false) String mode,
+            @RequestParam(required = false, defaultValue = "") String query) {
+        log.info("GET /api/dict/ports?mode={}&query={}", mode, query);
+        
+        List<Port> ports;
+        if (query != null && !query.trim().isEmpty()) {
+            ports = portRepository.searchPorts(query);
+        } else {
+            ports = portRepository.findAll();
+        }
+        
+        List<DictDTO.PortDTO> result = ports.stream()
+                .filter(Port::getIsActive)
+                .filter(p -> mode == null || mode.isEmpty() 
+                        || p.getPortType().name().equalsIgnoreCase(mode))
+                .map(DictDTO::fromPort)
+                .collect(Collectors.toList());
         return ResponseEntity.ok(result);
     }
 
     @GetMapping("/ports/{id}")
     public ResponseEntity<Port> getPortById(@PathVariable Integer id) {
-        log.info("GET /api/dict/ports/{}", id);
         return portRepository.findById(id)
-            .filter(Port::getIsActive)
-            .map(ResponseEntity::ok)
-            .orElse(ResponseEntity.notFound().build());
+                .filter(Port::getIsActive)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
     
-    @GetMapping("/ports/country/{countryCode}")
-    public ResponseEntity<List<DictDTO.PortDTO>> getPortsByCountry(@PathVariable String countryCode) {
-        log.info("GET /api/dict/ports/country/{}", countryCode);
-        List<DictDTO.PortDTO> result = portRepository.findActivePortsByCountry(countryCode)
-            .stream()
-            .map(DictDTO::fromPort)
-            .collect(Collectors.toList());
+    // ========== Cancelled & Lost Reasons ==========
+    
+    /**
+     * GET /api/dict/cancelled-reasons
+     */
+    @GetMapping("/cancelled-reasons")
+    public ResponseEntity<List<CancelledReason>> getCancelledReasons() {
+        log.info("GET /api/dict/cancelled-reasons");
+        return ResponseEntity.ok(cancelledReasonRepository.findAllByOrderBySortOrderAsc());
+    }
+    
+    /**
+     * GET /api/dict/lost-reasons
+     */
+    @GetMapping("/lost-reasons")
+    public ResponseEntity<List<LostReason>> getLostReasons() {
+        log.info("GET /api/dict/lost-reasons");
+        return ResponseEntity.ok(lostReasonRepository.findAllByOrderBySortOrderAsc());
+    }
+    
+    // ========== 兼容旧端点 ==========
+    
+    @GetMapping("/countries")
+    public ResponseEntity<List<DictDTO>> getAllCountries() {
+        List<DictDTO> result = countryRepository.findByIsActiveTrueOrderByCountryNameEnAsc()
+                .stream()
+                .map(DictDTO::fromCountry)
+                .collect(Collectors.toList());
         return ResponseEntity.ok(result);
     }
-    
-    @GetMapping("/ports/search")
-    public ResponseEntity<List<DictDTO.PortDTO>> searchPorts(@RequestParam String keyword) {
-        log.info("GET /api/dict/ports/search?keyword={}", keyword);
-        List<DictDTO.PortDTO> result = portRepository.searchPorts(keyword)
-            .stream()
-            .map(DictDTO::fromPort)
-            .collect(Collectors.toList());
-        return ResponseEntity.ok(result);
-    }
-
-    @GetMapping("/ports/search-v2")
-    public ResponseEntity<List<DictDTO.PortDTO>> searchPortsV2(
-        @RequestParam(required = false) String portType,
-        @RequestParam(defaultValue = "") String keyword
-    ) {
-        log.info("GET /api/dict/ports/search-v2?portType={}&keyword={}", portType, keyword);
-        List<Port> ports;
-        if (keyword != null && !keyword.trim().isEmpty()) {
-            ports = portRepository.searchPorts(keyword);
-        } else {
-            ports = portRepository.findAll();
-        }
-        List<DictDTO.PortDTO> result = ports.stream()
-            .filter(Port::getIsActive)
-            .filter(p -> portType == null || portType.isEmpty() || p.getPortType().name().equalsIgnoreCase(portType))
-            .map(DictDTO::fromPort)
-            .collect(Collectors.toList());
-        return ResponseEntity.ok(result);
-    }
-    
-    // ========== SalesPic 销售人员 ==========
-    
-    @GetMapping("/sales-countries")
-    public ResponseEntity<List<DictDTO>> getSalesCountries() {
-        log.info("GET /api/dict/sales-countries");
-        // 获取所有有销售人员的国家（去重）
-        List<String> countryCodes = salesPicRepository.findDistinctCountryCodes();
-        List<DictDTO> result = new java.util.ArrayList<>();
-        for (String countryCode : countryCodes) {
-            Country country = countryRepository.findByCountryCode(countryCode).orElse(null);
-            DictDTO item = new DictDTO(
-                countryCode,
-                country != null ? country.getCountryNameEn() : countryCode
-            );
-            result.add(item);
-        }
-        return ResponseEntity.ok(result);
-    }
-    
-    @GetMapping("/sales-pics")
-    public ResponseEntity<List<DictDTO.SalesPicDTO>> getAllSalesPics() {
-        log.info("GET /api/dict/sales-pics");
-        List<DictDTO.SalesPicDTO> result = salesPicRepository.findByIsActiveTrue()
-            .stream()
-            .map(pic -> {
-                SalesOffice office = salesOfficeRepository.findById(pic.getSalesOfficeId()).orElse(null);
-                return DictDTO.fromSalesPic(pic, office);
-            })
-            .collect(Collectors.toList());
-        return ResponseEntity.ok(result);
-    }
-    
-    @GetMapping("/sales-pics/country/{countryCode}")
-    public ResponseEntity<List<DictDTO.SalesPicDTO>> getSalesPicsByCountry(@PathVariable String countryCode) {
-        log.info("GET /api/dict/sales-pics/country/{}", countryCode);
-        List<DictDTO.SalesPicDTO> result = salesPicRepository.findActiveSalesPicsByCountry(countryCode)
-            .stream()
-            .map(pic -> {
-                SalesOffice office = salesOfficeRepository.findById(pic.getSalesOfficeId()).orElse(null);
-                return DictDTO.fromSalesPic(pic, office);
-            })
-            .collect(Collectors.toList());
-        return ResponseEntity.ok(result);
-    }
-    
-    // ========== SalesOffice 销售办公室 ==========
-    
-    @GetMapping("/sales-offices")
-    public ResponseEntity<List<DictDTO>> getAllSalesOffices() {
-        log.info("GET /api/dict/sales-offices");
-        List<DictDTO> result = salesOfficeRepository.findByIsActiveTrueOrderByNameAsc()
-            .stream()
-            .map(DictDTO::fromSalesOffice)
-            .collect(Collectors.toList());
-        return ResponseEntity.ok(result);
-    }
-
-    @GetMapping("/sales-offices/{id}")
-    public ResponseEntity<SalesOffice> getSalesOfficeById(@PathVariable Integer id) {
-        log.info("GET /api/dict/sales-offices/{}", id);
-        return salesOfficeRepository.findById(id)
-            .map(ResponseEntity::ok)
-            .orElse(ResponseEntity.notFound().build());
-    }
-    
-    // ========== CN Office 中国办公室 ==========
-    
-    @GetMapping("/cn-offices")
-    public ResponseEntity<List<DictDTO>> getAllCnOffices() {
-        log.info("GET /api/dict/cn-offices");
-        List<DictDTO> result = cnOfficeRepository.findByIsActiveTrueOrderByNameAsc()
-            .stream()
-            .map(DictDTO::fromCnOffice)
-            .collect(Collectors.toList());
-        return ResponseEntity.ok(result);
-    }
-    
-    // ========== Container Type 集装箱类型 ==========
     
     @GetMapping("/container-types")
     public ResponseEntity<List<DictDTO.ContainerTypeDTO>> getAllContainerTypes() {
-        log.info("GET /api/dict/container-types");
         List<DictDTO.ContainerTypeDTO> result = containerTypeRepository.findByIsActiveTrueOrderByContainerCodeAsc()
-            .stream()
-            .map(DictDTO::fromContainerType)
-            .collect(Collectors.toList());
-        return ResponseEntity.ok(result);
-    }
-    
-    // ========== Cargo Type 货物类型 ==========
-    
-    @GetMapping("/cargo-types")
-    public ResponseEntity<List<DictDTO>> getAllCargoTypes() {
-        log.info("GET /api/dict/cargo-types");
-        List<DictDTO> result = cargoTypeRepository.findByIsActiveTrue()
-            .stream()
-            .map(DictDTO::fromCargoType)
-            .collect(Collectors.toList());
-        return ResponseEntity.ok(result);
-    }
-    
-    @GetMapping("/cargo-types/offer-type/{offerType}")
-    public ResponseEntity<List<DictDTO>> getCargoTypesByOfferType(@PathVariable String offerType) {
-        log.info("GET /api/dict/cargo-types/offer-type/{}", offerType);
-        try {
-            CargoType.OfferType type = CargoType.OfferType.valueOf(offerType.toUpperCase());
-            List<DictDTO> result = cargoTypeRepository.findByOfferTypeAndIsActiveTrue(type)
                 .stream()
-                .map(DictDTO::fromCargoType)
+                .map(DictDTO::fromContainerType)
                 .collect(Collectors.toList());
-            return ResponseEntity.ok(result);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
-    
-    // ========== Product 产品 ==========
-    
-    @GetMapping("/products")
-    public ResponseEntity<List<DictDTO>> getAllProducts() {
-        log.info("GET /api/dict/products");
-        List<DictDTO> result = productRepository.findByIsActiveTrueOrderByNameAsc()
-            .stream()
-            .map(DictDTO::fromProduct)
-            .collect(Collectors.toList());
         return ResponseEntity.ok(result);
     }
 }
+    

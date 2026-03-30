@@ -2,14 +2,15 @@ package com.logitrack.backend.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
-import java.time.LocalDateTime;
+import lombok.NoArgsConstructor;
 
 /**
- * 询价-起运港关联表（多对多）
+ * 询价-起运港关联表 v3
  */
 @Entity
 @Table(name = "enquiry_pol")
 @Data
+@NoArgsConstructor
 public class EnquiryPol {
     
     @Id
@@ -21,10 +22,4 @@ public class EnquiryPol {
     
     @Column(name = "port_id", nullable = false)
     private Integer portId;
-    
-    @Column(name = "sequence", nullable = false)
-    private Integer sequence = 1;  // 顺序，1=主要港口
-    
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
 }

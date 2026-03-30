@@ -89,10 +89,10 @@ public class StatisticsService {
         int totalPrevious = previous.size();
         
         int quotedCurrent = (int) current.stream()
-            .filter(e -> e.getStatus() == Enquiry.EnquiryStatus.Quoted)
+            .filter(e -> e.getStatus() == Enquiry.EnquiryStatus.Quoted_Pending)
             .count();
         int quotedPrevious = (int) previous.stream()
-            .filter(e -> e.getStatus() == Enquiry.EnquiryStatus.Quoted)
+            .filter(e -> e.getStatus() == Enquiry.EnquiryStatus.Quoted_Pending)
             .count();
         
         int pendingCurrent = (int) current.stream()
@@ -100,10 +100,10 @@ public class StatisticsService {
             .count();
         
         int confirmedCurrent = (int) current.stream()
-            .filter(e -> e.getBookingConfirmed() == Enquiry.BookingConfirmed.Yes)
+            .filter(e -> e.getStatus() == Enquiry.EnquiryStatus.Secured)
             .count();
         int confirmedPrevious = (int) previous.stream()
-            .filter(e -> e.getBookingConfirmed() == Enquiry.BookingConfirmed.Yes)
+            .filter(e -> e.getStatus() == Enquiry.EnquiryStatus.Secured)
             .count();
         
         return DashboardOverviewDTO.builder()
@@ -127,7 +127,7 @@ public class StatisticsService {
         }
         
         Map<String, Long> statusCounts = enquiries.stream()
-            .collect(Collectors.groupingBy(e -> e.getStatus().name(), Collectors.counting()));
+            .collect(Collectors.groupingBy(e -> e.getStatus().toJsonValue(), Collectors.counting()));
         
         Map<String, StatusBreakdownDTO> breakdown = new HashMap<>();
         statusCounts.forEach((status, count) -> {
@@ -181,8 +181,8 @@ public class StatisticsService {
         }
         
         Map<String, Long> countryCounts = enquiries.stream()
-            .filter(e -> e.getPodCountryCode() != null && !e.getPodCountryCode().isEmpty())
-            .collect(Collectors.groupingBy(Enquiry::getPodCountryCode, Collectors.counting()));
+            .filter(e -> e.getPodCountry() != null && !e.getPodCountry().isEmpty())
+            .collect(Collectors.groupingBy(Enquiry::getPodCountry, Collectors.counting()));
         
         return countryCounts.entrySet().stream()
             .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
@@ -329,14 +329,14 @@ public class StatisticsService {
         // Apply core flag filter
         if (coreFlags != null && !coreFlags.isEmpty()) {
             enquiries = enquiries.stream()
-                .filter(e -> e.getCoreFlag() != null && coreFlags.contains(e.getCoreFlag().name()))
+                .filter(e -> e.getCoreNonCore() != null && coreFlags.contains(e.getCoreNonCore().name()))
                 .collect(Collectors.toList());
         }
         
         // Apply CN office filter
         if (cnOffice != null && !cnOffice.isEmpty()) {
             enquiries = enquiries.stream()
-                .filter(e -> cnOffice.equals(e.getAssignedCnOfficeCode()))
+                .filter(e -> cnOffice.equals(e.getAssignedCnOffice()))
                 .collect(Collectors.toList());
         }
 
@@ -379,11 +379,11 @@ public class StatisticsService {
             List<Enquiry> monthEnquiries = getFilteredEnquiries(monthStart, monthEnd, coreFlags, cnOffice, products, countries);
             
             int quoted = (int) monthEnquiries.stream()
-                .filter(e -> e.getStatus() == Enquiry.EnquiryStatus.Quoted)
+                .filter(e -> e.getStatus() == Enquiry.EnquiryStatus.Quoted_Pending)
                 .count();
             
             int confirmed = (int) monthEnquiries.stream()
-                .filter(e -> e.getBookingConfirmed() == Enquiry.BookingConfirmed.Yes)
+                .filter(e -> e.getStatus() == Enquiry.EnquiryStatus.Secured)
                 .count();
             
             trend.add(MonthlyTrendDTO.builder()
@@ -417,7 +417,7 @@ public class StatisticsService {
         Map<String, OfficeStats> officeMap = new HashMap<>();
         
         for (Enquiry e : enquiries) {
-            String office = e.getAssignedCnOfficeCode();
+            String office = e.getAssignedCnOffice();
             if (office == null || office.isEmpty()) {
                 office = "Unassigned";
             }
@@ -425,30 +425,19 @@ public class StatisticsService {
             OfficeStats stats = officeMap.computeIfAbsent(office, k -> new OfficeStats());
             stats.total++;
             
-            if (e.getStatus() == Enquiry.EnquiryStatus.Quoted) {
+            Enquiry.EnquiryStatus st = e.getStatus();
+            if (st == Enquiry.EnquiryStatus.Quoted_Pending) {
                 stats.quoted++;
-            }
-            
-            Enquiry.BookingConfirmed bookingConfirmed = e.getBookingConfirmed();
-            if (bookingConfirmed == null) {
                 stats.pending++;
+            } else if (st == Enquiry.EnquiryStatus.Secured) {
+                stats.confirmed++;
+                stats.yes++;
+            } else if (st == Enquiry.EnquiryStatus.Lost) {
+                stats.rejected++;
+            } else if (st == Enquiry.EnquiryStatus.Cancelled) {
+                stats.invalid++;
             } else {
-                switch (bookingConfirmed) {
-                    case Yes:
-                        stats.confirmed++;
-                        stats.yes++;
-                        break;
-                    case Rejected:
-                        stats.rejected++;
-                        break;
-                    case Invalid:
-                        stats.invalid++;
-                        break;
-                    case Pending:
-                    default:
-                        stats.pending++;
-                        break;
-                }
+                stats.pending++;
             }
         }
         
@@ -502,44 +491,41 @@ public class StatisticsService {
 
         // 2. 按 CN Office 过滤
         enquiries = enquiries.stream()
-                .filter(e -> officeName.equals(e.getAssignedCnOfficeCode()))
+                .filter(e -> officeName.equals(e.getAssignedCnOffice()))
                 .collect(Collectors.toList());
 
-        // 3. 按 bookingStatus 过滤
+        // 3. 按 status 过滤 (v3: bookingStatus maps to EnquiryStatus)
         enquiries = enquiries.stream()
                 .filter(e -> {
-                    Enquiry.BookingConfirmed bc = e.getBookingConfirmed();
+                    Enquiry.EnquiryStatus st = e.getStatus();
                     if ("Pending".equalsIgnoreCase(bookingStatus)) {
-                        return bc == null || bc == Enquiry.BookingConfirmed.Pending;
-                    } else if ("Yes".equalsIgnoreCase(bookingStatus)) {
-                        return bc == Enquiry.BookingConfirmed.Yes;
-                    } else if ("Rejected".equalsIgnoreCase(bookingStatus)) {
-                        return bc == Enquiry.BookingConfirmed.Rejected;
-                    } else if ("Invalid".equalsIgnoreCase(bookingStatus)) {
-                        return bc == Enquiry.BookingConfirmed.Invalid;
+                        return st == Enquiry.EnquiryStatus.New || st == Enquiry.EnquiryStatus.Quoted_Pending;
+                    } else if ("Yes".equalsIgnoreCase(bookingStatus) || "Secured".equalsIgnoreCase(bookingStatus)) {
+                        return st == Enquiry.EnquiryStatus.Secured;
+                    } else if ("Rejected".equalsIgnoreCase(bookingStatus) || "Lost".equalsIgnoreCase(bookingStatus)) {
+                        return st == Enquiry.EnquiryStatus.Lost;
+                    } else if ("Invalid".equalsIgnoreCase(bookingStatus) || "Cancelled".equalsIgnoreCase(bookingStatus)) {
+                        return st == Enquiry.EnquiryStatus.Cancelled;
                     }
                     return false;
                 })
                 .collect(Collectors.toList());
 
-        // 4. 转换为前端 EnquiryListItem 兼容格式（只保留列表展示所需字段）
+        // 4. 转换为前端兼容格式
         return enquiries.stream().map(e -> {
             Map<String, Object> item = new HashMap<>();
             item.put("id", e.getId());
-            item.put("referenceNumber", e.getReferenceNumber());
+            item.put("referenceNumber", e.getRefNumber());
             item.put("enquiryReceivedDate",
                     e.getEnquiryReceivedDate() != null ? e.getEnquiryReceivedDate().toString() : null);
-            item.put("issueDate",
-                    e.getIssueDate() != null ? e.getIssueDate().toString() : null);
-            item.put("status", e.getStatus() != null ? e.getStatus().name() : null);
+            item.put("enquiryCreatedDate",
+                    e.getEnquiryCreatedDate() != null ? e.getEnquiryCreatedDate().toString() : null);
+            item.put("status", e.getStatus() != null ? e.getStatus().toJsonValue() : null);
             item.put("productCode", e.getProductCode());
             item.put("salesCountryCode", e.getSalesCountryCode());
             item.put("cargoTypeCode", e.getCargoTypeCode());
             item.put("commodity", e.getCommodity());
-            item.put("assignedCnOfficeCode", e.getAssignedCnOfficeCode());
-            item.put("bookingConfirmed",
-                    e.getBookingConfirmed() != null ? e.getBookingConfirmed().name() : "Pending");
-            item.put("quantityTeu", e.getQuantityTeu());
+            item.put("assignedCnOffice", e.getAssignedCnOffice());
             return item;
         }).collect(Collectors.toList());
     }

@@ -24,7 +24,7 @@ export const DashboardFilters: React.FC<DashboardFiltersProps> = ({
   const [showFilters, setShowFilters] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [selectedCoreFlags, setSelectedCoreFlags] = useState<('CORE' | 'NON_CORE')[]>([]);
+  const [selectedCoreFlags, setSelectedCoreFlags] = useState<('Core' | 'Non_Core')[]>([]);
   const [cnOffice, setCnOffice] = useState('');
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
@@ -36,6 +36,8 @@ export const DashboardFilters: React.FC<DashboardFiltersProps> = ({
     { value: 'SEA-AIR', label: 'SEA-AIR' },
     { value: 'RAIL', label: 'RAIL' },
     { value: 'RAIL-SEA', label: 'RAIL-SEA' },
+    { value: 'RAIL-AIR', label: 'RAIL-AIR' },
+    { value: 'AIR-RAIL-SEA', label: 'AIR-RAIL-SEA' },
   ];
 
   useEffect(() => {
@@ -80,7 +82,7 @@ export const DashboardFilters: React.FC<DashboardFiltersProps> = ({
     onClearFilter();
   };
 
-  const toggleCoreFlag = (flag: 'CORE' | 'NON_CORE') => {
+  const toggleCoreFlag = (flag: 'Core' | 'Non_Core') => {
     setSelectedCoreFlags((prev) =>
       prev.includes(flag) ? prev.filter((f) => f !== flag) : [...prev, flag]
     );
@@ -148,25 +150,25 @@ export const DashboardFilters: React.FC<DashboardFiltersProps> = ({
             </label>
             <div className="flex space-x-3">
               <button
-                onClick={() => toggleCoreFlag('CORE')}
+                onClick={() => toggleCoreFlag('Core')}
                 className={`flex items-center px-4 py-2 border rounded-lg transition ${
-                  selectedCoreFlags.includes('CORE')
+                  selectedCoreFlags.includes('Core')
                     ? 'bg-blue-500 text-white border-blue-500'
                     : 'bg-white text-gray-700 border-gray-300 hover:border-blue-500'
                 }`}
               >
-                {selectedCoreFlags.includes('CORE') && <Check className="h-4 w-4 mr-1" />}
+                {selectedCoreFlags.includes('Core') && <Check className="h-4 w-4 mr-1" />}
                 CORE
               </button>
               <button
-                onClick={() => toggleCoreFlag('NON_CORE')}
+                onClick={() => toggleCoreFlag('Non_Core')}
                 className={`flex items-center px-4 py-2 border rounded-lg transition ${
-                  selectedCoreFlags.includes('NON_CORE')
+                  selectedCoreFlags.includes('Non_Core')
                     ? 'bg-blue-500 text-white border-blue-500'
                     : 'bg-white text-gray-700 border-gray-300 hover:border-blue-500'
                 }`}
               >
-                {selectedCoreFlags.includes('NON_CORE') && <Check className="h-4 w-4 mr-1" />}
+                {selectedCoreFlags.includes('Non_Core') && <Check className="h-4 w-4 mr-1" />}
                 NON CORE
               </button>
             </div>

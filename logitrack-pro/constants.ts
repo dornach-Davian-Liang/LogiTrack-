@@ -1,15 +1,160 @@
-export const PRODUCTS = ['AIR', 'SEA', 'RAIL', 'TRUCK'];
-export const STATUSES = ['New', 'Quoted', 'Pending'];
-export const BOOKING_STATUSES = ['Yes', 'Rejected', 'Pending'];
-export const CORE_STATUSES = ['CORE', 'NON CORE'];
-export const QUANTITY_UNITS = ['KG', 'CBM', 'CTNS', 'PLTS', 'PKGS'];
+// ============================================================
+// LogiTrack Pro - Constants v3
+// ============================================================
 
-export const CATEGORIES = [
-  "1. Freight",
-  "2. Freight + Origin Charge/EXW",
-  "3. Freight + Origin Charge/EXW+Dest. Charges",
-  "4. Origin Charges/EXW",
-  "5. LCL"
+import type { ProductCode, EnquiryStatus, OfferType, SubMode, CoreNonCore } from './types';
+
+// ==========================================
+// Product definitions (7 types)
+// ==========================================
+
+export const PRODUCTS: ProductCode[] = [
+  'AIR',
+  'SEA',
+  'SEA-AIR',
+  'RAIL',
+  'RAIL-SEA',
+  'RAIL-AIR',
+  'AIR-RAIL-SEA',
 ];
 
-export const ASSIGNED_OFFICES = ['HONG KONG', 'SHANGHAI', 'SHENZHEN', 'NINGBO', 'QINGDAO', 'XIAMEN', 'TIANJIN', 'DALIAN', 'BEIJING'];
+/** Reference-number abbreviation per product */
+export const PRODUCT_ABBR: Record<ProductCode, string> = {
+  AIR: 'A',
+  SEA: 'S',
+  'SEA-AIR': 'SA',
+  RAIL: 'R',
+  'RAIL-SEA': 'RS',
+  'RAIL-AIR': 'RA',
+  'AIR-RAIL-SEA': 'ARS',
+};
+
+/** Products that use Route-Group (mixed-mode) UI */
+export const MIXED_MODE_PRODUCTS: ProductCode[] = [
+  'SEA-AIR',
+  'RAIL-SEA',
+  'RAIL-AIR',
+  'AIR-RAIL-SEA',
+];
+
+/** Sub-mode sequence per mixed product */
+export const PRODUCT_SUBMODE_MAP: Record<string, SubMode[]> = {
+  'SEA-AIR': ['SEA', 'AIR'],
+  'RAIL-SEA': ['RAIL', 'SEA'],
+  'RAIL-AIR': ['RAIL', 'AIR'],
+  'AIR-RAIL-SEA': ['AIR', 'RAIL', 'SEA'],
+};
+
+// ==========================================
+// Status definitions (5 values)
+// ==========================================
+
+export const STATUSES: EnquiryStatus[] = [
+  'New',
+  'Quoted & Pending',
+  'Secured',
+  'Lost',
+  'Cancelled',
+];
+
+/** Color mapping for status badges */
+export const STATUS_COLORS: Record<EnquiryStatus, string> = {
+  'New': 'bg-blue-100 text-blue-800',
+  'Quoted & Pending': 'bg-yellow-100 text-yellow-800',
+  'Secured': 'bg-green-100 text-green-800',
+  'Lost': 'bg-red-100 text-red-800',
+  'Cancelled': 'bg-gray-100 text-gray-800',
+};
+
+// ==========================================
+// Cargo / Offer types (4 values)
+// ==========================================
+
+export const OFFER_TYPES: OfferType[] = ['FCL', 'LCL', 'AIR', 'BUYER-CONSOL'];
+
+/** Which cargo types need container info (in Offer Price Details) */
+export const CONTAINER_CARGO_TYPES: OfferType[] = ['FCL', 'BUYER-CONSOL'];
+
+// ==========================================
+// Product → allowed Cargo Type matrix
+// ==========================================
+
+export const PRODUCT_CARGO_MAP: Record<ProductCode, OfferType[]> = {
+  AIR:            ['AIR'],
+  SEA:            ['FCL', 'LCL', 'BUYER-CONSOL'],
+  'SEA-AIR':      ['LCL', 'AIR'],
+  RAIL:           ['FCL', 'LCL'],
+  'RAIL-SEA':     ['FCL', 'LCL'],
+  'RAIL-AIR':     ['LCL', 'AIR'],
+  'AIR-RAIL-SEA': ['FCL', 'LCL', 'AIR'],
+};
+
+// ==========================================
+// Core / Non-Core
+// ==========================================
+
+export const CORE_STATUSES: CoreNonCore[] = ['Core', 'Non-Core'];
+
+// ==========================================
+// Category (scope of service)
+// ==========================================
+
+export const CATEGORIES = [
+  { code: 'FREIGHT', label: '1. Freight' },
+  { code: 'FREIGHT_ORIGIN_EXW', label: '2. Freight + Origin Charge/EXW' },
+  { code: 'FREIGHT_ORIGIN_DEST', label: '3. Freight + Origin Charge/EXW + Dest. Charges' },
+  { code: 'ORIGIN_EXW', label: '4. Origin Charges/EXW' },
+  { code: 'LCL', label: '5. LCL' },
+  { code: 'EXW_LOCATION', label: '6. EXW Location' },
+];
+
+// ==========================================
+// Quantity UOM
+// ==========================================
+
+export const QUANTITY_UNITS = ['KG', 'CBM', 'CTNS', 'PLTS', 'PKGS', 'PCS', 'SET'];
+
+// ==========================================
+// CN Offices (static, for filters/dropdowns)
+// ==========================================
+
+export const ASSIGNED_OFFICES = [
+  'HONG KONG',
+  'SHANGHAI',
+  'SHENZHEN',
+  'NINGBO',
+  'QINGDAO',
+  'XIAMEN',
+  'TIANJIN',
+  'DALIAN',
+  'BEIJING',
+];
+
+// ==========================================
+// Sub-mode → port type mapping
+// ==========================================
+
+export const SUBMODE_PORT_TYPE: Record<SubMode, 'AIR' | 'SEA'> = {
+  AIR: 'AIR',
+  SEA: 'SEA',
+  RAIL: 'SEA', // RAIL uses sea-port codes
+};
+
+// ==========================================
+// Helpers
+// ==========================================
+
+/** Is this product a mixed-mode product? */
+export function isMixedProduct(code: ProductCode): boolean {
+  return MIXED_MODE_PRODUCTS.includes(code);
+}
+
+/** Get allowed cargo types for a product */
+export function getAllowedCargoTypes(productCode: ProductCode): OfferType[] {
+  return PRODUCT_CARGO_MAP[productCode] || [];
+}
+
+/** Does this cargo type need container details? */
+export function needsContainerDetails(offerType: OfferType): boolean {
+  return CONTAINER_CARGO_TYPES.includes(offerType);
+}

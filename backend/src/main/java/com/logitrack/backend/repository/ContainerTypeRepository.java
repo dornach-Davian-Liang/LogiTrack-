@@ -14,5 +14,8 @@ public interface ContainerTypeRepository extends JpaRepository<ContainerType, In
     
     List<ContainerType> findByIsActiveTrueOrderByContainerCodeAsc();
     
+    /** 全量查询（含 inactive），按 containerCode 字母序 — 供管理页面使用 */
+    List<ContainerType> findAllByOrderByContainerCodeAsc();
+    
     Optional<ContainerType> findByContainerCode(String containerCode);
 }

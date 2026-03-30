@@ -22,6 +22,10 @@
   - [M11: 历史数据迁移与校验 (2026-03-03)](#m11-历史数据迁移与校验-2026-03-03)
   - [M12: 增强报表弹窗数据修复 (2026-03-04)](#m12-增强报表弹窗数据修复-2026-03-04)
   - [M13: 时期对比报告增强与趋势图表全面升级 (2026-03-04)](#m13-时期对比报告增强与趋势图表全面升级-2026-03-04)
+  - [M14: AI 数据分析问答助手 Phase 1-2 (2026-03-12 ~ 2026-03-25)](#m14-ai-数据分析问答助手-phase-1-2-2026-03-12--2026-03-25)
+  - [M18: V3 Phase 5 — 用户验收测试 & 功能修复 (2026-03-25)](#m18-v3-phase-5--用户验收测试--功能修复-2026-03-25)
+  - [M22: 状态编辑 & 状态流转解锁 (2026-03-26)](#m22-状态编辑--状态流转解锁-2026-03-26)
+  - [M23: 主数据重导入 & Status自动选择逻辑修正 (2026-03-27)](#m23-主数据重导入--status自动选择逻辑修正--polpod显示名称-2026-03-27)
 
 ---
 
@@ -43,6 +47,14 @@
 | M11 | 2026-03-03 | - | 历史数据迁移与多港口修复 | 5 |
 | M12 | 2026-03-04 | - | 增强报表弹窗数据修复 | 4 |
 | M13 | 2026-03-04 | - | 时期对比报告增强与趋势图表全面升级 | 3 |
+| M14 | 2026-03-12 ~ 03-25 | - | AI 数据分析问答助手 Phase 1-2（Function Calling + Chat UI + Recharts 图表 + 报表跳转） | 7 |
+| M14-V3 | 2026-03-01 ~ 03-25 | - | V3重大重构: 30天实施计划 Phase 1-3 (Day 1-25) | ~50 |
+| M15 | 2026-03-26 | - | V3 Phase 4.1: 功能测试 + Bug修复 + 类型对齐 (Day 26-27) | 15 |
+| M16 | 2026-03-24 | - | V3 Phase 4.2: 集成测试 + 回归 + 状态映射修复 (Day 28-29) | 8 |
+| M17 | 2026-03-24 | - | V3 Phase 4.3: 最终审计 + 上线准备 (Day 30) | 7 |
+| M18 | 2026-03-25 | - | V3 Phase 5: 用户验收测试 + OfferPriceTable 重写 + 混合模式修复 | 6 |
+| M22 | 2026-03-26 | - | 状态编辑 & 状态流转解锁: Edit页Status/Reason可编辑 + 终态可回退 | 4 |
+| M23 | 2026-03-27 | - | 主数据重导入 + Status自动选择基于实际报价 + POL/POD显示名称修复 | 4 |
 
 ---
 
@@ -1865,4 +1877,791 @@ export interface PeriodComparisonRequest {
 }
 ```
 
+---
 
+### M14: AI 数据分析问答助手 Phase 1-2 (2026-03-12 ~ 2026-03-25)
+
+**作者**: Davian Liang  
+**日期**: 2026-03-12 ~ 2026-03-25  
+**AI 模型**: DeepSeek V3 (`deepseek-chat`) / 备用 claude-sonnet-4-6 via n1n.ai
+
+#### 🎯 目标需求
+在 LogiTrack 系统中集成 AI 数据分析问答助手，实现以下四阶段功能路线图：
+
+| 阶段 | 功能 | 状态 |
+|------|------|------|
+| Phase 1 | Function Calling 框架（后端 10 个分析函数） | ✅ 完成 |
+| Phase 2 | Chat UI + Recharts 图表渲染 + 报表联动导航 | ✅ 完成 |
+| Phase 3 | Text-to-SQL 自由查询（安全白名单层） | ⬜ 待开发 |
+| Phase 4 | 多模型优化、缓存、流式响应 | ⬜ 待开发 |
+
+---
+
+#### ✨ Phase 1 — Function Calling 框架
+
+##### 1.1 后端新增文件
+
+**`AiChatController.java`**（新建）
+```java
+@RestController
+@RequestMapping("/api/ai")
+public class AiChatController {
+    @GetMapping("/ping")   // AI 服务健康检查
+    @PostMapping("/chat")  // 主对话入口（携带 history 上下文）
+}
+```
+
+**`AiChatService.java`**（新建）
+- 向 DeepSeek / claude API 发送带 Function Calling tools 描述的请求
+- 解析 `tool_calls` 响应，调用 `AiAnalysisFunctions.call(funcName, argsJson)`
+- 二次请求把函数返回值作为 `tool` 消息传回 AI 生成最终回答
+- 返回 `AiChatResponse`（含 `reply`、`functionCalled`、`chartData`、`suggestions`）
+- 双模型兼容：标准 OpenAI `tools` 格式（DeepSeek）与 Anthropic `tools` 格式（Claude）
+
+**`AiAnalysisFunctions.java`**（新建，790 行）
+
+实现 10 个统计分析函数：
+
+| 函数名 | 功能描述 | 返回 chartData key |
+|--------|----------|-------------------|
+| `get_enquiry_overview` | 指定月份询价总览（含环比） | `month`, `totalEnquiries`, `confirmed`, `conversionRate` |
+| `get_monthly_trend` | 最近 N 个月趋势序列 | `trend[]`（month/totalEnquiries/confirmed/conversionRate） |
+| `get_conversion_rate` | 指定期间转化率 + 按办公室分组 | `byOffice[]` |
+| `get_cargo_type_breakdown` | 货运类型构成（FCL/LCL/AIR） | `cargoTypeBreakdown[]`（cargoType/count/percentage） |
+| `get_destination_analysis` | Top-N 目的国询价量排名 | `topDestinations[]`（country/count/percentage） |
+| `get_cn_office_performance` | 各 CN 办公室询价量与转化率 | `cnOfficePerformance[]`（office/total/confirmed/conversionRate） |
+| `get_period_comparison` | 多期（月/季度）询价量对比 | `periods[]`（period/totalEnquiries/confirmed/conversionRate） |
+| `get_product_breakdown` | 产品类型分布（AIR/SEA/RAIL） | `productBreakdown[]`（product/count/percentage） |
+| `get_core_vs_non_core` | CORE 与 NON-CORE 询价对比 | `CORE`/`NON_CORE` 对象（total/confirmed/conversionRate） |
+| `get_cross_analysis` | 多维度交叉分析（办公室/货运类型/目的地/产品，支持多条件过滤） | `data[]`（group/total/quoted/confirmed/conversionRate） |
+
+**`AiChatRequest.java` / `AiChatResponse.java`**（新建 DTO）
+```java
+public class AiChatResponse {
+    private String reply;           // AI 自然语言回答
+    private String functionCalled;  // 调用的函数名
+    private String chartData;       // 函数返回值（JSON 字符串，用于前端图表）
+    private List<String> suggestions; // AI 推荐的后续问题
+    private String error;
+}
+```
+
+##### 1.2 AI 安全防护规则（System Prompt）
+- 严格限制：不返回客户姓名/联系方式/邮箱、不返回具体报价数字、不执行 SQL、不推断未来利润
+- 数据来源：仅通过 10 个白名单函数，不直接访问数据库
+- 边界回复：对超出范围的问题礼貌拒绝并建议替代问法
+
+##### 1.3 前端 AI API 服务（新建）
+**`services/aiApi.ts`**
+```typescript
+export interface ChatResponse {
+  reply: string;
+  functionCalled?: string;
+  chartData?: string;
+  suggestions?: string[];
+  error?: string;
+}
+// aiApi.ping()  — 健康检查
+// aiApi.chat({ message, history }) — 发送消息
+```
+
+##### 1.4 配置（`application.properties`）
+```properties
+# 当前激活：DeepSeek V3
+ai.provider=deepseek
+ai.api-key=sk-56e308880de742d38009ec392fbe458d
+ai.model=deepseek-chat
+ai.endpoint=https://api.deepseek.com/chat/completions
+# 备用：claude-sonnet-4-6 via n1n.ai
+# ai.model=claude-sonnet-4-6
+# ai.endpoint=https://api.n1n.ai/v1/chat/completions
+```
+
+##### 1.5 测试结果
+- **DeepSeek V3**：18/18 场景全部通过 ✅
+- **claude-sonnet-4-6**：18/18 场景全部通过 ✅
+- 测试场景覆盖：基础数据查询（B1-B3）、边界/幻觉防护（H1-H4）、安全防护（S1-S5）、复杂分析（C1-C4）
+
+---
+
+#### ✨ Phase 2 — Chat UI + Recharts 图表 + 报表联动导航
+
+##### 2.1 新增主面板（新建）
+**`components/ai/AIChatPanel.tsx`**
+- 布局：顶部状态栏 + 消息列表区（`overflow-y-auto`）+ 快捷问题 + 底部输入框
+- 状态管理：`messages: DisplayMessage[]`（含 `chartData`、`functionCalled`、`isLoading` 扩展字段）
+- 历史上下文：自动过滤 welcome/loading 消息，传入 `history` 参数维持多轮对话
+- 快捷问题：6 个预设问题按钮（本月总量、近6月趋势、CN办公室、FCL/LCL/AIR、CORE/NON-CORE、跨类型转化率）
+- **导航 Prop**：
+```typescript
+interface AIChatPanelProps {
+  onNavigateToDashboard?: (filter: Partial<DashboardFilterParams>) => void;
+}
+```
+- **`buildDashboardFilter()` 辅助函数**：从 `chartData` JSON 自动提取日期范围，支持：
+  - `trend[].month`（`YYYY-MM` 格式，取首尾月）
+  - `periods[].period`（月度格式）
+  - `period: "YYYY-MM-DD ~ YYYY-MM-DD"`（字符串切割）
+  - `month: "YYYY-MM"`（单月视图）
+  - 默认 fallback：最近 6 个月
+
+##### 2.2 消息气泡（重写图表区域）
+**`components/ai/MessageBubble.tsx`**
+
+新增 `AiChartWidget` 组件，当助手回复含 `chartData` 时自动渲染对应图表：
+
+**图表类型自动识别（`detectChartType`）**：
+
+| 后端返回 key | 识别类型 | 渲染组件 |
+|-------------|---------|----------|
+| `trend[]` | `line-trend` | `LineTrendChart` |
+| `periods[]` | `bar-comparison` | `BarComparisonChart` |
+| `cargoTypeBreakdown[]` / `topDestinations[]` / `productBreakdown[]` | `bar-breakdown` | `CssBarChart` |
+| `cnOfficePerformance[]` / `byOffice[]` / `offices[]` | `bar-office` | `CssBarChart` |
+| `data[]`（交叉分析） | `bar-group` | `CssBarChart` |
+| 无以上 key | `none`（有 onNavigate 时仍显示按钮） | — |
+
+**三种图表组件**：
+
+- **`LineTrendChart`**（Recharts `ComposedChart`）
+  - 双 Y 轴：左轴询价量（蓝色柱 `#3B82F6` + 绿色柱 `#10B981`），右轴转化率（琥珀折线 `#F59E0B`）
+  - X 轴：月份字符串，自定义 `CustomTooltip`
+  
+- **`BarComparisonChart`**（Recharts `ComposedChart`）
+  - 与 `LineTrendChart` 相同布局，X 轴为 period 字符串
+  
+- **`CssBarChart`**（纯 CSS，替代 Recharts 水平柱图）
+  - 用 `<div>` 进度条代替 SVG，兼容性更好、渲染必定可见
+  - 双层进度条：蓝色（询价量）+ 绿色（已确认）+ 右侧转化率文字
+  - 最多展示 10 条，自动截断
+
+**`AiChartWidget` 布局结构**（由上至下）：
+```
+┌──────────────────────────────────────────┐
+│ 📊 数据图表              （标题，无按钮） │
+├──────────────────────────────────────────┤
+│  图表内容（LineTrendChart / CssBarChart）│
+├──────────────────────────────────────────┤
+│ [🔗 前往报表详情] （footer，仅有回调时） │
+└──────────────────────────────────────────┘
+```
+> **关键设计**：导航按钮位于 **底部 footer**，确保自动滚动后用户看到图表内容再看到按钮。
+
+##### 2.3 App.tsx 导航回调（修改）
+**`App.tsx`** — `case 'ai-chat'`：
+```tsx
+<AIChatPanel
+  onNavigateToDashboard={(filter) => {
+    if (filter.startDate && filter.endDate) {
+      setEnhancedDashboardFilter({
+        startDate: filter.startDate,
+        endDate: filter.endDate,
+        ...filter,
+      });
+    }
+    setCurrentView('report-enhanced');
+  }}
+/>
+```
+- 点击「前往报表详情」→ 自动提取日期范围填入 `enhancedDashboardFilter` → 跳转增强报表视图
+- `EnhancedDashboard` 的 `savedFilter` prop 会在挂载时自动应用筛选条件
+
+---
+
+#### 🐛 修复记录
+
+| 问题 | 根因 | 修复方式 |
+|------|------|----------|
+| 图表不显示 | `detectChartType` 字段名与后端不匹配（`cargoBreakdown` vs `cargoTypeBreakdown` 等） | 补充所有后端实际返回 key 的识别逻辑 |
+| 图表区域不可见 | 导航按钮在 widget 头部，聊天自动滚动使图表内容落在视口外 | 将按钮移至底部 footer |
+| 水平柱图空白 | Recharts v3 `BarChart + layout="vertical"` SVG 尺寸计算异常 | 替换为纯 CSS 进度条（`CssBarChart`） |
+| `buildDashboardFilter` 只支持 trend/periods | 其他 6 个函数返回 `period: "start ~ end"` 或 `month` 格式未处理 | 添加 `~` 分割和 `YYYY-MM` 单月格式解析 |
+
+---
+
+#### 📁 变更文件清单
+
+| 文件 | 状态 | 说明 |
+|------|------|------|
+| `backend/src/.../ai/AiChatController.java` | **新建** | REST 端点 `/api/ai/ping` + `/api/ai/chat` |
+| `backend/src/.../ai/AiChatService.java` | **新建** | Function Calling 核心调度逻辑，双模型兼容 |
+| `backend/src/.../ai/AiAnalysisFunctions.java` | **新建** | 10 个统计分析函数实现（790 行）|
+| `backend/src/.../dto/AiChatRequest.java` | **新建** | 请求 DTO |
+| `backend/src/.../dto/AiChatResponse.java` | **新建** | 响应 DTO（reply/functionCalled/chartData/suggestions）|
+| `backend/src/main/resources/application.properties` | **修改** | AI provider/model/endpoint/api-key 配置 |
+| `logitrack-pro/services/aiApi.ts` | **新建** | 前端 AI API 服务（ping + chat）|
+| `logitrack-pro/components/ai/AIChatPanel.tsx` | **新建** | 主对话面板（含 onNavigateToDashboard prop + buildDashboardFilter）|
+| `logitrack-pro/components/ai/MessageBubble.tsx` | **新建** | 对话气泡 + AiChartWidget + LineTrendChart + BarComparisonChart + CssBarChart |
+| `logitrack-pro/App.tsx` | **修改** | ai-chat case 传入导航回调；enhancedDashboardFilter 联动 |
+| `docs/AI_ASSISTANT_PROGRESS.md` | **新建** | AI 助手功能规划与进度文档 |
+
+---
+
+#### 📊 技术指标
+
+| 指标 | 数值 |
+|------|------|
+| 新增后端代码行数 | ~1,050 行（Java）|
+| 新增前端代码行数 | ~870 行（TSX/TS）|
+| AI Function Calling 函数数量 | 10 个 |
+| 测试通过率 | 18/18（DeepSeek V3 + claude-sonnet-4-6 各独立验证）|
+| TypeScript 新增错误 | 0 |
+| 支持图表类型 | 5 种（折线/柱状/对比柱/CSS进度条/交叉分组）|
+
+---
+
+### M14-V3: V3 重大重构 — 30天实施计划 Phase 1-3 (Day 1-25)
+
+**日期**: 2026-03-01 ~ 2026-03-25
+**核心功能**: 全面重构 LogiTrack 系统，对齐 V3 数据模型
+
+#### 📝 变更说明 (详见各阶段文档)
+- **Phase 1 (Day 1-10)**: 数据库迁移 (V3 5-状态模型)、全部 Entity/Repository/Service/Controller 更新、前端 types.ts + api.ts 重写、~190 TS 编译错误修复
+- **Phase 2 (Day 11-16)**: 5个新 V3 UI 组件 (StatusChangeDialog, RouteGroupEditor, PriceDetailsTable, ContainerDetailsDialog, OfferDialog)
+- **Phase 3 (Day 17-25)**: Offer 数据模型重构 (3 DTO)、Price Details 矩阵完善 (PortSearchInput, dual-mode)、Container Details 弹窗增强 (dropdown + summaries)、OfferDialog 自动生成、EnquiryDetail offers tab 增强
+
+---
+
+### M15: V3 Phase 4.1 — 功能测试 + Bug修复 + 类型对齐 (Day 26-27)
+
+**日期**: 2026-03-26
+**核心功能**: 功能测试、关键 Bug 修复、前后端类型一致性对齐
+
+#### 📝 变更说明
+
+##### 1. 遗留代码清理
+- **OfferManagement.tsx** — 完全重写: 从 274 行遗留死代码 → V3 独立 Offer 管理面板 (表格 + OfferDialog 集成)
+
+##### 2. 后端单元测试 (11 tests, all passing)
+- **OfferServiceTest.java** (NEW) — 10 个测试方法:
+  - `createOfferFromDTO`: 基础 FCL、空行过滤、容器详情、isLatest 管理
+  - `updateOfferFromDTO`: 完整价格行替换
+  - `deleteOffer`: 成功 + 未找到
+  - `autoGeneratePriceLines`: 正常模式 POL×POD 笛卡尔积、空港口处理
+  - `OfferCreateDTO.filterEmptyLines`: 空行过滤
+- **StatisticsServiceTest.java** — 重写: 旧测试使用已删除的 `BookingConfirmed` 枚举, 改为 V3 5-状态模型
+
+##### 3. JPA 枚举映射修复 (3 个 AttributeConverter)
+| 转换器 | Java 枚举值 | 数据库值 |
+|--------|------------|----------|
+| `EnquiryStatusConverter` | `Quoted_Pending` | `Quoted & Pending` |
+| `CoreNonCoreConverter` | `Non_Core` | `Non-Core` |
+| `OfferTypeConverter` | `BUYER_CONSOL` | `BUYER-CONSOL` |
+
+- `Enquiry.java`: `@Enumerated(EnumType.STRING)` → `@Convert(converter=...)` (status, coreNonCore, offerType)
+- `Offer.java`: 同上 (offerType)
+
+##### 4. Jackson JSON 序列化修复
+- 3 个枚举类型添加 `@JsonValue` + `@JsonCreator` 注解
+- 确保 JSON 输出与数据库 ENUM 值一致 (如 `"Quoted & Pending"` 而非 `"Quoted_Pending"`)
+
+##### 5. line_teu 计算修复
+- `OfferContainerDetail.lineTeu`: 从 `insertable=false, updatable=false` 改为可写
+- `OfferService`: 新增 `detail.setLineTeu(teuValue * numberOfContainers)` 计算逻辑
+
+##### 6. 前后端字段名对齐 (5 处不匹配)
+| 前端旧字段名 | 后端实际字段名 | 影响文件 |
+|--------------|---------------|---------|
+| `cancelledText` | `cancelledReasonText` | types.ts |
+| `lostText` | `lostReasonText` | types.ts |
+| `quantityUom` | `uom` | types.ts, EnquiryDetail.tsx, EnquiryForm.tsx |
+| `categoryCode` | `category` | types.ts, EnquiryDetail.tsx, EnquiryForm.tsx, Table.tsx |
+| `additionalRequirement` | `cargoReadyDateDetails` | types.ts, EnquiryDetail.tsx, EnquiryForm.tsx, Table.tsx, Form.tsx |
+
+##### 7. E2E API 测试验证
+- ✅ 创建测试询价 (id=6, ref=CN2603002-S, status=New)
+- ✅ 创建 FCL Offer (Container: 20GP×5, TEU=1.00, price=2000)
+- ✅ 状态自动提升 (New → Quoted & Pending)
+- ✅ 更新 Offer (类型变更 + 新增价格行)
+- ✅ 删除 Offer (级联删除验证)
+
+##### 8. 编译验证
+- ✅ TypeScript: `tsc --noEmit` — 0 errors
+- ✅ Vite build: 2366 modules → dist/ 生成成功
+- ✅ Maven compile: clean (0 errors)
+- ✅ Maven test: 11/11 pass, BUILD SUCCESS
+
+#### 📁 变更文件清单
+| 文件 | 状态 | 说明 |
+|------|------|------|
+| `OfferManagement.tsx` | **重写** | V3 offer 管理面板 |
+| `OfferServiceTest.java` | **新建** | 10 个单元测试 |
+| `StatisticsServiceTest.java` | **重写** | V3 状态模型测试 |
+| `EnquiryStatusConverter.java` | **新建** | JPA Status 转换器 |
+| `CoreNonCoreConverter.java` | **新建** | JPA CoreNonCore 转换器 |
+| `OfferTypeConverter.java` | **新建** | JPA OfferType 转换器 |
+| `Enquiry.java` | **修改** | @Convert + @JsonValue/@JsonCreator |
+| `Offer.java` | **修改** | @Convert for offerType |
+| `OfferContainerDetail.java` | **修改** | lineTeu 可写 |
+| `OfferService.java` | **修改** | lineTeu 计算逻辑 |
+| `types.ts` | **修改** | 5 个字段名修正 |
+| `EnquiryDetail.tsx` | **修改** | 3 个字段引用修正 |
+| `EnquiryForm.tsx` | **修改** | 3 个字段引用修正 |
+| `Table.tsx` | **修改** | 1 个字段引用修正 |
+| `Form.tsx` | **修改** | 1 个字段引用修正 |
+
+---
+
+### M16: V3 Phase 4.2 — 集成测试 + 回归 + 状态映射修复 (Day 28-29)
+
+**日期**: 2026-03-24
+**核心功能**: 全面集成审计、V3 状态/产品/货物类型映射修复
+
+#### 📝 变更说明
+
+##### 1. 后端 StatisticsService 状态键修复
+- `buildStatusBreakdown()`: `e.getStatus().name()` → `e.getStatus().toJsonValue()`
+  - 修复: JSON 键从 `"Quoted_Pending"` 变为 `"Quoted & Pending"`，与前端 `EnquiryStatus` 类型一致
+- `getEnquiroesForOffice()`: 同上修复 `item.put("status", ...)` 逻辑
+
+##### 2. Dashboard 状态标签/颜色映射 (3 个文件)
+| 文件 | 修复内容 |
+|------|---------|
+| `EnhancedDashboard.tsx` | `'Quoted'`→`'Quoted & Pending'`, `'Confirmed'`→`'Secured'` (标签+颜色) |
+| `Dashboard.tsx` | 同上 |
+| `Table.tsx` | `StatusBadge` 组件: 旧3状态 → V3 5状态 |
+
+##### 3. 搜索/筛选选项补全
+| 文件 | 修复内容 |
+|------|---------|
+| `EnquiryList.tsx` | Cargo Type 下拉添加 `BUYER-CONSOL` |
+| `ComparisonReport.tsx` | Product 选项添加 `RAIL-AIR`, `AIR-RAIL-SEA` |
+| `DashboardFilters.tsx` | Product 选项添加 `RAIL-AIR`, `AIR-RAIL-SEA` |
+
+##### 4. Legacy dataService.ts 清理
+- 移除: `bookingConfirmed`, `rejectedReason`, `actualReason` (V3 不存在的字段)
+- 修正: `additionalRequirement` → `cargoReadyDateDetails`
+- 修正: `item.categoryCode` → `item.category`
+- 修正: `item.quantityUomCode` → `item.uom`
+
+##### 5. 验证结果
+| 检查项 | 结果 |
+|--------|------|
+| TypeScript `tsc --noEmit` | **0 errors** |
+| Vite build | **成功** (2366 modules) |
+| Maven test | **11/11 pass, BUILD SUCCESS** |
+| Dashboard API | `statusBreakdown` 键为 `"Quoted & Pending"` ✅ |
+| Enquiry API | `status` 值为 `"Quoted & Pending"` ✅ |
+| AI Chat | `get_enquiry_overview` 正常调用 ✅ |
+
+#### 📁 变更文件清单
+| 文件 | 状态 | 说明 |
+|------|------|------|
+| `StatisticsService.java` | **修改** | 2 处 `.name()` → `.toJsonValue()` |
+| `EnhancedDashboard.tsx` | **修改** | V3 状态标签+颜色 |
+| `Dashboard.tsx` | **修改** | V3 状态标签+颜色 |
+| `Table.tsx` | **修改** | StatusBadge V3 5状态 |
+| `EnquiryList.tsx` | **修改** | +BUYER-CONSOL 选项 |
+| `ComparisonReport.tsx` | **修改** | +RAIL-AIR, AIR-RAIL-SEA |
+| `DashboardFilters.tsx` | **修改** | +RAIL-AIR, AIR-RAIL-SEA |
+| `dataService.ts` | **修改** | 移除废弃字段, 修正字段名 |
+
+---
+
+### M17: V3 Phase 4.3 — 最终审计 + 上线准备 (Day 30)
+
+**日期**: 2026-03-24
+**核心功能**: 最终生产就绪性审计、关键功能修复、上线清单
+
+#### 📝 变更说明
+
+##### 1. [CRITICAL] 询价列表筛选功能修复
+- **问题**: `EnquiryController.getAllEnquiries()` 仅接受 `keyword` 参数，忽略前端发送的 `status`, `productCode`, `cargoTypeCode`, `salesCountryCode`, `assignedCnOffice`, `coreNonCore`, `dateFrom`, `dateTo` 等所有筛选参数 — **列表页所有筛选器均无效**
+- **修复**:
+  - 新建 `EnquirySpecification.java` — JPA Criteria API 动态条件查询
+  - `EnquiryService.getEnquiriesFiltered()` — 新增带条件分页查询方法
+  - `EnquiryController.getAllEnquiries()` — 添加 10 个 `@RequestParam`，支持 `sortDir` + `sortOrder` 双参数名
+
+##### 2. [CRITICAL] 排序参数名修复
+- **问题**: 前端发送 `sortDir`，后端期望 `sortOrder`，排序方向永远默认降序
+- **修复**: 后端同时接受 `sortDir` 和 `sortOrder`，优先使用 `sortOrder`
+
+##### 3. [CRITICAL] 统计端点 TODO 存根安全化
+- **问题**: `/api/statistics/monthly`, `/country`, `/export` 返回 200 + 占位文本，可能导致前端解析错误
+- **修复**: 改为返回 `501 Not Implemented`，前端不会误解析
+
+##### 4. [MEDIUM] App.tsx 状态颜色 — 5 状态完整映射
+- 从 3 分支扩展为 5 分支: New (蓝), Quoted & Pending (黄), Secured (绿), Lost (红), Cancelled (灰)
+
+##### 5. [MEDIUM] EnquiryDetail 状态颜色统一
+- 与 `constants.ts STATUS_COLORS` 一致: Quoted & Pending 从绿→黄, Lost 从黄→红, Cancelled 从红→灰
+
+##### 6. [MEDIUM] 移除废弃 Containers 标签页
+- `TabType` 从 5 个减为 4 个 (`basic | cargo | route | offers`)
+- 删除 Container Lines 标签页按钮和内容面板
+
+#### 📋 上线就绪检查清单
+
+| 项目 | 状态 | 说明 |
+|------|------|------|
+| TypeScript 编译 | ✅ 0 errors | `tsc --noEmit` |
+| Vite 生产构建 | ✅ 2366 modules | `npm run build` → dist/ |
+| Maven 编译 | ✅ BUILD SUCCESS | `mvn compile` |
+| 后端单元测试 | ✅ 11/11 pass | OfferServiceTest(10) + StatisticsServiceTest(1) |
+| 后端 JAR 构建 | ✅ logitrack-backend-1.0.0.jar | `mvn package` |
+| API 列表筛选 | ✅ status/cargo/keyword/sort 均生效 | E2E 验证 |
+| Dashboard 状态键 | ✅ "Quoted & Pending" | `toJsonValue()` |
+| AI 模块 | ✅ get_enquiry_overview 正常 | 已验证 Day 28-29 |
+| 枚举映射 | ✅ 3 个 JPA Converter | Enquiry/Offer/CoreNonCore |
+| JSON 序列化 | ✅ @JsonValue/@JsonCreator | 全部 3 个枚举 |
+| 前端字段名 | ✅ 与后端 JSON 一致 | 5 处修正 (Day 26-27) |
+| 状态标签/颜色 | ✅ V3 统一 | 6 组件使用 5-状态映射 |
+| 产品选项 | ✅ 全 7 种 | 报表/筛选器 |
+| 货物类型选项 | ✅ 全 4 种 (含 BUYER-CONSOL) | 列表筛选器 |
+
+#### 📁 变更文件清单
+| 文件 | 状态 | 说明 |
+|------|------|------|
+| `EnquirySpecification.java` | **新建** | JPA 动态条件查询 |
+| `EnquiryService.java` | **修改** | +getEnquiriesFiltered() |
+| `EnquiryController.java` | **修改** | +10 筛选参数, sortDir/sortOrder 兼容 |
+| `StatisticsController.java` | **修改** | 3 个 TODO 存根 → 501 |
+| `App.tsx` | **修改** | 5 状态颜色完整映射 |
+| `EnquiryDetail.tsx` | **修改** | 统一颜色 + 移除 Containers 标签页 |
+
+---
+
+### M18: V3 Phase 5 — 用户验收测试 & 功能修复 (2026-03-25)
+
+**日期**: 2026-03-25
+**核心功能**: 用户验收测试中发现 9 个功能问题的完整修复，OfferPriceTable 组件重写，混合模式 Route Group 全面联动修复
+
+#### 🎯 目标需求
+
+用户在浏览器中进行实际操作测试（选择 RAIL-SEA 产品、创建 FCL 报价、填写容器明细），通过截图反馈发现以下三批共 9 个功能问题：
+
+**第一批 — OfferPriceTable 功能缺失**:
+1. `[+ Add Container Type]` 按钮缺失 — 无法添加特殊箱型列 (RF/OT/FR)
+2. Total TEU 核算缺失 — 仅单个 Container Detail 有 TEU，无全局汇总
+3. 容器类型未关联 DB — 硬编码字符串而非 `container_types` 表数据
+
+**第二批 — 混合模式 Route Group 问题**:
+4. Route Group 2 (SEA) 在 Price Details 中不显示 — 所有行归入 "Route Group 1"
+5. 港口名显示为 Port#104 — Route Group 选中的港口未同步到主 ports 状态
+6. 三层 POL/POD 冗余 — 混合模式同时显示顶层选择器和 Route Group 选择器
+7. Route Group POD 未触发 POD Country 国家映射
+
+**第三批 — 验证与布局**:
+8. 保存失败 "Please select POL" — 隐藏顶层选择器后验证逻辑未适配
+9. POD Country 混合模式下显示位置不当
+
+#### ✨ 主要功能
+
+##### 1. OfferPriceTable 组件完全重写 (543 行)
+
+| 特性 | 实现 |
+|------|------|
+| 动态容器列 | 默认 4 列 (20GP/40GP/40HQ/45HQ) + `[+ Add Container Type]` 从 DB 加载更多 |
+| AddContainerTypePicker | 浮动下拉选择器，显示 DB 中未添加的箱型 + TEU 值 |
+| 可移除额外列 | 非默认列 hover 显示红色 × 按钮 |
+| Total TEU | 表头右上角 `📦 Total TEU: x.xx` 徽章 |
+| Line TEU | 每行最右列显示单行 TEU 合计 |
+| ContainerDetailDialog | 弹窗编辑: 数量/货重/箱价 + 实时 TEU 计算 |
+| TEU DB 关联 | `teuLookup` 从 `containerTypes` prop 构建 (来自 `container_types.teu_value`) |
+| 混合模式分组 | 按 `routeGroupId` → `groupIndex` 分组，每组独立表格 + 图标标签 |
+| 端口名解析 | `getPortLabel()` 从主 ports 状态解析 |
+
+##### 2. Route Group 分组逻辑修复
+
+- **根因**: `routeGroupId` 使用 `rg.id` (新建时为 `undefined`)，导致所有行归入同一组
+- **修复**: 改用 `rg.groupIndex` (始终为 0, 1, 2... 有效值)
+- **影响**: `EnquiryForm.generatePriceLinesFromPorts()` + `OfferPriceTable` 分组匹配
+
+##### 3. 港口状态同步机制
+
+- `RouteGroupEditor` onChange 回调中新增 `ensurePortsLoaded(allPortIds)`
+- 将 Route Group 中所有选中的港口 ID 异步加载到 `EnquiryForm` 的 `ports` 状态
+- 确保 `OfferPriceTable.getPortLabel()` 能正确解析港口名称
+
+##### 4. Route Information 条件布局
+
+- **非混合模式**: 显示顶层 POL/POD 多选器 + POD Country
+- **混合模式**: 隐藏顶层 POL/POD → 仅显示 RouteGroupEditor + POD Country (位于 Route Groups 下方)
+- 使用 `isMixedProduct()` 控制条件渲染
+
+##### 5. 保存验证逻辑分支
+
+- **混合模式**: 验证每个 Route Group 的 POL/POD → 自动汇总去重到顶层 `polIds/podIds` → 后端无需改动
+- **普通模式**: 原有验证 polIds/podIds 非空
+
+##### 6. POD Country 自动映射增强
+
+- Route Group 变更时自动调用 `updatePodCountries(allPodIds)`
+- 支持多国显示: "Andorra, United Arab Emirates" (逗号分隔)
+- 混合模式提示文字: "Select POD in Route Groups above"
+
+#### 📁 变更文件清单
+
+| 文件 | 状态 | 行数 | 说明 |
+|------|------|------|------|
+| `OfferPriceTable.tsx` | **重写** | 543 | 动态容器列 + TEU 计算 + DB 关联 + 分组修复 |
+| `EnquiryForm.tsx` | **修改** | 1437 | 混合模式验证 + UI 布局 + POD Country 联动 |
+| `RouteGroupEditor.tsx` | 无变更 | 224 | 通过 onChange 回调增强联动 |
+| `02-FUNCTIONAL-DESIGN.md` | **更新** | +150 | §16 V3 Phase 5 实施记录 |
+| `03-FRONTEND-GUIDE.md` | **更新** | +200 | §9 前端实现记录 + Bug 修复总结 |
+| `05-IMPLEMENTATION-PLAN.md` | **更新** | +40 | §9 阶段 5 测试修复清单 |
+
+#### 📊 统计信息
+- **修复 Bug**: 9 个
+- **重写组件**: 1 个 (OfferPriceTable.tsx, 543 行)
+- **修改组件**: 1 个 (EnquiryForm.tsx, ~150 行变更)
+- **文档更新**: 3 个 redesign 文档 + MILESTONE_CHANGELOG
+- **TypeScript 编译**: 0 errors
+- **后端**: 无需改动 (API 已就绪)
+
+#### 📋 验证检查清单
+
+| 项目 | 状态 | 说明 |
+|------|------|------|
+| TypeScript 0 errors | ✅ | OfferPriceTable + EnquiryForm |
+| 前端正常运行 | ✅ | Vite dev server port 3000 |
+| 后端 API 正常 | ✅ | `/api/dict/container-types` 返回 11 条 |
+| `[+ Add Container Type]` | ✅ | 从 DB 加载，选中添加列 |
+| Total TEU 计算 | ✅ | 多行多容器汇总正确 |
+| Route Group 分组 | ✅ | RAIL + SEA 独立表格 |
+| 港口名称正确 | ✅ | 无 Port#104 |
+| 混合模式无冗余 POL/POD | ✅ | 顶层隐藏 |
+| POD Country 映射 | ✅ | Route Group 联动 |
+| 保存验证通过 | ✅ | 混合模式 + 普通模式 |
+---
+
+## M20: UI 修复 + CORE 自动映射 + Edit/Copy/Increase 功能修复 (2026-03-26)
+
+### 变更概述
+
+针对 4 个问题的全面修复和测试，覆盖 UI 改名、Detail 页面展示、CORE/NON-CORE 自动映射、
+以及 Edit/Copy/Increase 三大功能的 FK 约束错误修复。
+
+### 问题 1: Oversize Cargo 复选框改名
+
+**文件**: `OfferPriceTable.tsx`
+
+- `"Oversize Cargo"` → `"Contains Oversized Cargo"`
+- 仅标签文本修改，逻辑不变
+
+### 问题 2: View Details 页面展示 Contains Oversized Cargo
+
+**文件**: `EnquiryDetail.tsx`
+
+- 在 Cargo Details tab 的 Hazardous 字段上方新增条件展示块
+- 当 `enquiry.isOversizeCargo === true` 时显示醒目的 amber 色警示提示
+- 展示文案: "⚠️ Contains Oversized Cargo"
+
+### 问题 3: CORE / NON-CORE 自动映射
+
+**文件**: `EnquiryForm.tsx`, `types.ts`
+
+**实现逻辑**:
+- `Country` 类型新增 `isCore?: boolean` 字段（后端已返回）
+- `handleCountryChange()` 增强：选择 Sales Country 时自动查找 `allCountries` 匹配 `isCore`
+  - 匹配到 country → `isCore ? 'Core' : 'Non-Core'`
+  - 未匹配（AGENTS/OTHERS/TBA）→ `'Non-Core'`
+- 设置 `coreFlagWarning` 提示用户自动映射结果（✅ Auto: Core / ⚠️ No match → Non-Core）
+- 用户仍可手动覆盖
+
+### 问题 4: Edit / Copy / Increase 功能修复
+
+#### 4a. Edit (PUT) 修复
+
+**文件**: `EnquiryService.java` — `updateEnquiry()` 完全重写
+
+**根因**: 3 个独立问题
+1. **Hibernate orphan 错误**: 直接 `save(enquiry)` 导致 `"all-delete-orphan was no longer referenced"`
+   - **修复**: 改为操作 `existing`（managed entity），逐字段 set，保留 JPA 集合引用
+2. **FK 约束（DELETE route groups）**: 删除 route groups 时 price lines 仍引用旧 ID
+   - **修复**: 调整操作顺序 — 先 `offers.clear()` + `flush()` → 再删 route groups → 再建新的
+3. **FK 约束（INSERT price lines）**: 旧 `routeGroupId` 值被原样插入但对应的 route group 已重建
+   - **修复**: 更新模式下 **所有** price lines 的 `routeGroupId` 都通过 `sortOrder → groupIndexToIdMap` 重新映射
+
+**关键代码流程**:
+```
+Step 1: existing.getOffers().clear() → saveAndFlush()   // 释放 FK 引用
+Step 2: routeGroupRepository.deleteByEnquiryId() → flush()  // 安全删除
+Step 3: saveRouteGroupsAndReturn() → groupIndexToIdMap      // 新建并映射
+Step 4: for(pendingOffers) → map sortOrder → realId → add to existing
+Step 5: enquiryRepository.save(existing)
+```
+
+#### 4b. Copy 修复
+
+**文件**: `EnquiryList.tsx`
+
+- 新增 `cleanChildIds()` 函数，深度清理所有子记录 ID
+  - `routeGroups[].id = undefined, enquiryId = undefined`
+  - `offers[].id = undefined`
+  - `priceLines[].id = undefined, routeGroupId = undefined`
+  - `containerDetails[].id = undefined`
+- `handleCopy()` 和 `handleIncrease()` 都调用 `cleanChildIds()`
+
+#### 4c. Increase 修复
+
+**文件**: `EnquiryList.tsx`, `EnquiryForm.tsx`
+
+- `handleIncrease()` 增传 `monthlySequence`, `serialNumber`, `productAbbr` 到 form data
+  - `serialNumber > 0` 是后端判断 increase 模式的标志
+- `handleSubmit()` 新建模式下仅在 `serialNumber <= 0 || undefined` 时删除 `refNumber`
+  - increase 模式保留 `refNumber`，后端据此生成正确的 increase 编号
+
+### API 测试结果 (CN2603015-RS, id=25)
+
+| 操作 | 状态 | 验证结果 |
+|------|------|----------|
+| GET /api/enquiries/25 | ✅ 200 | 所有字段完整返回 |
+| PUT /api/enquiries/25 (Edit) | ✅ 200 | 多字段修改持久化成功，routeGroupId 正确重映射 |
+| POST /api/enquiries (Copy) | ✅ 201 | 新 ref=CN2603016-RS，子记录完整无 FK 错误 |
+| POST /api/enquiries (Increase) | ✅ 201 | ref=CN2603015-RS1，serial=1 正确递增 |
+| GET 验证 (Edit 后) | ✅ | core/oversize/commodity/category/hazardous/volume/qty/uom/remark 全部持久化 |
+
+### 修改文件清单
+
+| 文件 | 变更 |
+|------|------|
+| `OfferPriceTable.tsx` | "Oversize Cargo" → "Contains Oversized Cargo" |
+| `EnquiryDetail.tsx` | 新增 Contains Oversized Cargo 条件展示块 |
+| `EnquiryForm.tsx` | handleCountryChange 增加 CORE 自动映射 + handleSubmit increase 模式保留 refNumber |
+| `EnquiryList.tsx` | 新增 cleanChildIds() + handleIncrease 传递 serialNumber/monthlySequence |
+| `EnquiryService.java` | updateEnquiry() 完全重写（managed entity + 正确 FK 操作顺序） |
+| `types.ts` | Country 接口新增 isCore 字段 |
+
+---
+
+## M22: 状态编辑 & 状态流转解锁 (2026-03-26)
+
+> **核心问题**: Edit Enquiry 页面无法修改 Status 和 Reason；Enquiry Details 的 Change Status 弹窗对 Lost/Secured/Cancelled 等终态显示 "terminal state and cannot be changed"，无法回退状态。
+> **测试数据**: CN2603018-ARS (id=29, 状态 Lost, lost_reason=CANCEL_NVOCC)
+
+### 问题根因
+
+| # | 问题 | 根因 |
+|---|------|------|
+| 1 | Edit 页面 Status 无法修改 | Status 下拉框有 `disabled={formData.offers.length > 0}` 条件 — CN2603018-ARS 有 1 条 offer，所以永远禁用 |
+| 2 | Edit 页面 Reason 无法修改 | Lost Reason / Cancelled Reason 字段使用 `<input disabled />`，始终只读 |
+| 3 | Details 页 Change Status 显示终态不可变 | `StatusChangeDialog` 的 `ALLOWED_TRANSITIONS` 对 Lost/Secured/Cancelled 配置为空数组 `[]` |
+| 4 | 后端拒绝终态状态回退 | `validateStatusTransition()` 的 default 分支直接 throw "Cannot change status from: Lost" |
+
+### 修复方案
+
+#### 1. 前端 EnquiryForm.tsx — Status 始终可编辑 + Reason 下拉可修改
+
+**文件**: `logitrack-pro/components/enquiry/EnquiryForm.tsx`
+
+- **移除 Status 下拉框 disabled 条件** — 不再因有 offers 而禁用 Status 修改
+- **新增 CancelledReasonDict / LostReasonDict 类型导入** — 用于 reason 下拉数据
+- **loadMasterData() 新增加载 cancelledReasons、lostReasons** — 与 salesCountries 等一起 Promise.all 并行加载
+- **Lost 状态**: 显示 Lost Reason 下拉 (dict_lost_reason) + Additional details 文本框，均可编辑
+- **Cancelled 状态**: 显示 Cancelled Reason 下拉 (dict_cancelled_reason) + Additional details 文本框，均可编辑
+- **Status 切换联动**: 从 Lost 切到其他状态时自动清空 lostReason/lostReasonText；从 Cancelled 切走时清空 cancelledReason/cancelledReasonText
+
+#### 2. 前端 StatusChangeDialog.tsx — 允许终态回退
+
+**文件**: `logitrack-pro/components/enquiry/StatusChangeDialog.tsx`
+
+ALLOWED_TRANSITIONS 新增终态的可用转换：
+
+```typescript
+// 修改前
+'Secured': [],
+'Lost': [],
+'Cancelled': [],
+
+// 修改后
+'Secured': ['Lost', 'Cancelled'],
+'Lost': ['New', 'Quoted & Pending', 'Cancelled'],
+'Cancelled': ['New', 'Quoted & Pending'],
+```
+
+#### 3. 后端 EnquiryService.java — validateStatusTransition 支持回退
+
+**文件**: `backend/.../service/EnquiryService.java`
+
+```java
+// 新增规则：
+case Secured:   → Lost (允许)
+case Lost:      → New / Quoted & Pending (允许重新激活)
+case Cancelled: → New / Quoted & Pending (允许重新激活)
+// + 新增 from == to 检查（同状态不允许）
+```
+
+- **changeStatus() 清理逻辑**: 转到非 Lost/Cancelled 状态时，自动清空对应 reason 字段
+  - → Lost: 清空 cancelledReason/cancelledReasonText
+  - → Cancelled: 清空 lostReason/lostReasonText
+  - → New/Quoted & Pending/Secured: 清空全部 reason 字段
+
+### API 测试结果 (CN2603018-ARS, id=29)
+
+| 操作 | 状态 | 验证 |
+|------|------|------|
+| PATCH Lost → Quoted & Pending | ✅ 200 | reason 字段已自动清空 |
+| PATCH Quoted & Pending → Lost (带 reason) | ✅ 200 | reason 正确写入 |
+
+### 状态流转规则（更新后）
+
+```
+New → Quoted & Pending → Secured
+                      → Lost    → New / Quoted & Pending
+                      → Cancelled → New / Quoted & Pending
+Secured → Lost / Cancelled
+任意状态 → Cancelled（始终允许）
+```
+
+### 修改文件清单
+
+| 文件 | 变更 |
+|------|------|
+| `EnquiryForm.tsx` | Status 移除 disabled、加载 reason 字典、reason 下拉可编辑 |
+| `StatusChangeDialog.tsx` | ALLOWED_TRANSITIONS 增加 Secured/Lost/Cancelled 的回退路径 |
+| `EnquiryService.java` | validateStatusTransition 支持 Secured→Lost, Lost→New/Q&P, Cancelled→New/Q&P; changeStatus 清理 reason |
+
+---
+
+## M23: 主数据重导入 & Status自动选择逻辑修正 & POL/POD显示名称 (2026-03-27)
+
+### 概述
+
+本次变更包含三项：  
+1. **Country + Port 表数据重导入** — 清空并从 `Country and Port.csv` 重新导入 96 个国家、163 个 SEA 港口、156 个 AIR 港口  
+2. **Sales Country + Office + Pic 表数据重导入** — 清空并从 `Sales Contry+Office+salePic.csv` 重新导入 13 个销售国家、231 个办事处、592 个销售人员  
+3. **Status 自动选择逻辑** — 改为根据 Offer 是否填写了实际报价 来判断（而非仅判断 Offer 是否存在），无论 cargoType 类型  
+4. **POL/POD 显示名称** — 修复 `DictDTO.fromPort()` 不再重复拼接 countryCode，直接使用 CSV 中的 Display name
+
+### 1. Country + Port 数据重导入
+
+- **脚本**: `database/reimport_all_master_data.py`
+- **CSV**: `Country and Port.csv` (Tab 分隔, SEA 在 parts[0,2,4,6], AIR 在 parts[13,15,17,19])
+- **处理**: `SET FOREIGN_KEY_CHECKS = 0` → `TRUNCATE country, port` → 逐行导入 → `SET FOREIGN_KEY_CHECKS = 1`
+- **结果**: 96 countries, 163 SEA ports, 156 AIR ports
+
+### 2. Sales 数据重导入
+
+- **CSV**: `Sales Contry+Office+salePic.csv` (逗号分隔: SALECOUNTRY, SALESOFFICE, SALESPIC)
+- **处理**: 清空 `dict_sales_country`, `dict_sales_office`, `dict_sales_pic`, `sales_pic` → 逐行导入
+- **结果**: 13 sales countries, 231 offices, 592 PICs
+- **修复**: `dict_sales_office.name_norm` 改为 `CC:OFFICE_NAME` 格式避免跨国家重复; 移除 `sales_pic.uk_sales_pic_country_name` 唯一约束
+
+### 3. Status 自动选择逻辑
+
+**问题**: 原逻辑只要 Offer 存在就自动置为 "Quoted & Pending"，不区分是否填写了实际价格  
+**修复**:
+
+#### 前端 (`EnquiryForm.tsx`)
+- 新增 `hasActualPricing(offers)` 辅助函数，检查任意 Offer 的 priceLines 是否含有实际价格值 (price > 0 / perCbm > 0 / minCharge > 0 / localCharge > 0 / priceText 非空 / containerPrice > 0)
+- `useEffect` 监听 offers 变化：有报价 + status="New" → 自动切 "Quoted & Pending"；无报价 + status="Quoted & Pending" → 自动回退 "New"
+
+#### 后端 (`OfferService.java`)
+- 新增 `hasPricingInDTO(List<OfferPriceLineDTO>)` — 利用 `OfferPriceLineDTO.isEmpty()` 反转判断
+- 新增 `hasPricingInLines(List<OfferPriceLine>)` — 检查 Entity 层价格字段
+- `createOfferFromDTO` / `createOffer` 中仅当检测到实际报价数据时才将 status 从 New 升级为 Quoted_Pending
+
+### 4. POL/POD 显示名称修复
+
+**问题**: `DictDTO.fromPort()` 将 `portName + ", " + countryCode` 拼接，导致 "Durres, Albania, AL" 双重国家信息  
+**修复**: `fromPort()` 直接返回 `portName` 作为 label，因 CSV Display name 已含国家名称
+
+### 修改文件清单
+
+| 文件 | 变更 |
+|------|------|
+| `database/reimport_all_master_data.py` | 新建：全量主数据重导入脚本 |
+| `EnquiryForm.tsx` | Status 自动选择：基于 hasActualPricing() 判断而非 offers.length > 0；新增双向逻辑 |
+| `OfferService.java` | 新增 hasPricingInDTO / hasPricingInLines 辅助方法；Status 升级仅在有实际报价时触发 |
+| `DictDTO.java` | fromPort() 移除 countryCode 拼接，直接使用 portName 作为 label |

@@ -1,6 +1,6 @@
 // ============================================================
-// LogiTrack Pro - API 服务层
-// 询价管理和报价管理的完整 API 接口
+// LogiTrack Pro - API 服务层 (v3)
+// Aligned with schema_v3 backend controllers
 // ============================================================
 
 import {
@@ -11,8 +11,8 @@ import {
   EnquiryStatus,
   ReferencePreview,
   Offer,
-  OfferFormData,
-  ContainerLine,
+  OfferPriceLine,
+  OfferCreatePayload,
   Country,
   Port,
   SalesOffice,
@@ -23,8 +23,10 @@ import {
   ProductDict,
   UomDict,
   CategoryDict,
+  CancelledReasonDict,
+  LostReasonDict,
+  StatusChangePayload,
   PagedResponse,
-  ApiResponse,
   PortType,
   SelectOption,
   PortSelectOption,
@@ -32,6 +34,15 @@ import {
   ContainerTypeSelectOption,
   LoginRequest,
   LoginResponse,
+  ProductCode,
+  CoreNonCore,
+  DashboardStats,
+  DashboardFilterParams,
+  PeriodComparisonRequest,
+  ComparisonResult,
+  MonthlyReportData,
+  CountryReportData,
+  ExportOptions,
 } from '../types';
 
 // ==========================================
@@ -39,18 +50,6 @@ import {
 // ==========================================
 
 const API_BASE_URL = '/api';
-const USE_MOCK_DATA = false; // 关闭MOCK，使用真实数据库
-
-// ==========================================
-// 认证 API
-// ==========================================
-
-export const authApi = {
-  login: async (payload: LoginRequest) => request<LoginResponse>('/auth/login', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  }),
-};
 
 // ==========================================
 // 通用请求方法
@@ -61,7 +60,7 @@ async function request<T>(
   options: RequestInit = {}
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
-  
+
   const defaultHeaders: HeadersInit = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -72,16 +71,14 @@ async function request<T>(
     (defaultHeaders as any)['Authorization'] = `Bearer ${token}`;
   }
 
-  // ✅ 添加用户信息请求头用于审计日志
+  // 用户信息请求头 → 审计日志
   const userStr = localStorage.getItem('user');
   if (userStr) {
     try {
       const user = JSON.parse(userStr);
-      // 设置用户名（必需，后端用于审计日志的username字段）
       if (user.username) {
         (defaultHeaders as any)['X-Username'] = user.username;
       }
-      // 设置用户角色（用于审计日志的userRole字段）
       if (user.roles && user.roles.length > 0) {
         (defaultHeaders as any)['X-User-Role'] = user.roles[0];
       }
@@ -109,7 +106,7 @@ async function request<T>(
     throw new Error(`API Error: ${response.status} - ${errorText}`);
   }
 
-  // 204 No Content 或 200 无 body（如 DELETE 成功响应）直接返回 undefined
+  // 204 No Content 或 空 body
   const contentType = response.headers.get('content-type');
   const contentLength = response.headers.get('content-length');
   if (
@@ -125,579 +122,185 @@ async function request<T>(
 }
 
 // ==========================================
-// Mock 数据
+// 认证 API
 // ==========================================
 
-const MOCK_COUNTRIES: Country[] = [
-  { id: 1, countryCode: 'FR', countryNameEn: 'FRANCE', countryNameCn: '法国', isActive: true, isCore: true },
-  { id: 2, countryCode: 'UK', countryNameEn: 'UNITED KINGDOM', countryNameCn: '英国', isActive: true, isCore: true },
-  { id: 3, countryCode: 'DE', countryNameEn: 'GERMANY', countryNameCn: '德国', isActive: true, isCore: true },
-  { id: 4, countryCode: 'BE', countryNameEn: 'BELGIUM', countryNameCn: '比利时', isActive: true, isCore: true },
-  { id: 5, countryCode: 'NL', countryNameEn: 'NETHERLANDS', countryNameCn: '荷兰', isActive: true, isCore: true },
-  { id: 6, countryCode: 'CN', countryNameEn: 'CHINA', countryNameCn: '中国', isActive: true, isCore: true },
-  { id: 7, countryCode: 'AGENTS', countryNameEn: 'AGENTS', isActive: true, isCore: false },
-];
+export const authApi = {
+  login: async (payload: LoginRequest) =>
+    request<LoginResponse>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
 
-const MOCK_SALES_OFFICES: SalesOffice[] = [
-  { id: 1, code: 'FR-ZF', name: 'ZIEGLER FRANCE', countryCode: 'FR', isActive: true },
-  { id: 2, code: 'UK-ZU', name: 'ZIEGLER UK', countryCode: 'UK', isActive: true },
-  { id: 3, code: 'DE-ZD', name: 'ZIEGLER GERMANY', countryCode: 'DE', isActive: true },
-  { id: 4, code: 'BE-ZB', name: 'ZIEGLER BELGIUM', countryCode: 'BE', isActive: true },
-  { id: 5, code: 'NL-ZN', name: 'ZIEGLER NETHERLANDS', countryCode: 'NL', isActive: true },
-  { id: 6, code: 'AG-AFS', name: 'AGENTS FORWARDING', countryCode: 'AGENTS', isActive: true },
-];
-
-const MOCK_SALES_PICS: SalesPic[] = [
-  { id: 1, name: 'JEAN DUPONT', countryCode: 'FR', salesOfficeId: 1, salesOfficeName: 'ZIEGLER FRANCE', salesOfficeCode: 'FR-ZF', isActive: true },
-  { id: 2, name: 'MARIE MARTIN', countryCode: 'FR', salesOfficeId: 1, salesOfficeName: 'ZIEGLER FRANCE', salesOfficeCode: 'FR-ZF', isActive: true },
-  { id: 3, name: 'JOHN SMITH', countryCode: 'UK', salesOfficeId: 2, salesOfficeName: 'ZIEGLER UK', salesOfficeCode: 'UK-ZU', isActive: true },
-  { id: 4, name: 'JAMES BROWN', countryCode: 'UK', salesOfficeId: 2, salesOfficeName: 'ZIEGLER UK', salesOfficeCode: 'UK-ZU', isActive: true },
-  { id: 5, name: 'HANS MUELLER', countryCode: 'DE', salesOfficeId: 3, salesOfficeName: 'ZIEGLER GERMANY', salesOfficeCode: 'DE-ZD', isActive: true },
-  { id: 6, name: 'AGENT SMITH', countryCode: 'AGENTS', salesOfficeId: 6, salesOfficeName: 'AGENTS FORWARDING', salesOfficeCode: 'AG-AFS', isActive: true },
-];
-
-const MOCK_PORTS: Port[] = [
-  { id: 1, portCode: 'CNSHA', portName: 'Shanghai', portType: 'SEA', countryCode: 'CN', city: 'Shanghai', isActive: true },
-  { id: 2, portCode: 'CNSZX', portName: 'Shenzhen', portType: 'SEA', countryCode: 'CN', city: 'Shenzhen', isActive: true },
-  { id: 3, portCode: 'CNNBO', portName: 'Ningbo', portType: 'SEA', countryCode: 'CN', city: 'Ningbo', isActive: true },
-  { id: 4, portCode: 'HKHKG', portName: 'Hong Kong', portType: 'SEA', countryCode: 'CN', city: 'Hong Kong', isActive: true },
-  { id: 5, portCode: 'FRLEH', portName: 'Le Havre', portType: 'SEA', countryCode: 'FR', city: 'Le Havre', isActive: true },
-  { id: 6, portCode: 'GBFXT', portName: 'Felixstowe', portType: 'SEA', countryCode: 'UK', city: 'Felixstowe', isActive: true },
-  { id: 7, portCode: 'DEHAM', portName: 'Hamburg', portType: 'SEA', countryCode: 'DE', city: 'Hamburg', isActive: true },
-  { id: 8, portCode: 'NLRTM', portName: 'Rotterdam', portType: 'SEA', countryCode: 'NL', city: 'Rotterdam', isActive: true },
-  { id: 9, portCode: 'BEANR', portName: 'Antwerp', portType: 'SEA', countryCode: 'BE', city: 'Antwerp', isActive: true },
-  // 机场
-  { id: 101, portCode: 'PVG', portName: 'Shanghai Pudong International', portType: 'AIR', countryCode: 'CN', city: 'Shanghai', isActive: true },
-  { id: 102, portCode: 'HKG', portName: 'Hong Kong International', portType: 'AIR', countryCode: 'CN', city: 'Hong Kong', isActive: true },
-  { id: 103, portCode: 'CDG', portName: 'Paris Charles de Gaulle', portType: 'AIR', countryCode: 'FR', city: 'Paris', isActive: true },
-  { id: 104, portCode: 'LHR', portName: 'London Heathrow', portType: 'AIR', countryCode: 'UK', city: 'London', isActive: true },
-  { id: 105, portCode: 'FRA', portName: 'Frankfurt Airport', portType: 'AIR', countryCode: 'DE', city: 'Frankfurt', isActive: true },
-  { id: 106, portCode: 'AMS', portName: 'Amsterdam Schiphol', portType: 'AIR', countryCode: 'NL', city: 'Amsterdam', isActive: true },
-];
-
-const MOCK_CONTAINER_TYPES: ContainerType[] = [
-  { id: 1, containerCode: '20GP', containerName: "20' General Purpose", teuValue: 1.00, lengthFeet: 20, isSpecial: false, isActive: true },
-  { id: 2, containerCode: '40GP', containerName: "40' General Purpose", teuValue: 2.00, lengthFeet: 40, isSpecial: false, isActive: true },
-  { id: 3, containerCode: '40HQ', containerName: "40' High Cube", teuValue: 2.00, lengthFeet: 40, isSpecial: false, isActive: true },
-  { id: 4, containerCode: '40HC', containerName: "40' High Cube", teuValue: 2.00, lengthFeet: 40, isSpecial: false, isActive: true },
-  { id: 5, containerCode: '45HQ', containerName: "45' High Cube", teuValue: 2.25, lengthFeet: 45, isSpecial: false, isActive: true },
-  { id: 6, containerCode: '20RF', containerName: "20' Reefer", teuValue: 1.00, lengthFeet: 20, isSpecial: true, isActive: true },
-  { id: 7, containerCode: '40RF', containerName: "40' Reefer", teuValue: 2.00, lengthFeet: 40, isSpecial: true, isActive: true },
-  { id: 8, containerCode: '20OT', containerName: "20' Open Top", teuValue: 1.00, lengthFeet: 20, isSpecial: true, isActive: true },
-  { id: 9, containerCode: '40OT', containerName: "40' Open Top", teuValue: 2.00, lengthFeet: 40, isSpecial: true, isActive: true },
-  { id: 10, containerCode: '20FR', containerName: "20' Flat Rack", teuValue: 1.00, lengthFeet: 20, isSpecial: true, isActive: true },
-  { id: 11, containerCode: '40FR', containerName: "40' Flat Rack", teuValue: 2.00, lengthFeet: 40, isSpecial: true, isActive: true },
-];
-
-const MOCK_CN_OFFICES: CnOffice[] = [
-  { code: 'SHANGHAI', name: 'Shanghai', isActive: true },
-  { code: 'SHENZHEN', name: 'Shenzhen', isActive: true },
-  { code: 'NINGBO', name: 'Ningbo', isActive: true },
-  { code: 'HONG KONG', name: 'Hong Kong', isActive: true },
-  { code: 'TIANJIN', name: 'Tianjin', isActive: true },
-  { code: 'QINGDAO', name: 'Qingdao', isActive: true },
-  { code: 'XIAMEN', name: 'Xiamen', isActive: true },
-  { code: 'CN-MULTI', name: 'CN-Multi', isActive: true },
-];
-
-const MOCK_CARGO_TYPES: CargoTypeDict[] = [
-  { code: 'AIR', name: 'Air Freight', offerType: 'AIR', isActive: true },
-  { code: 'FCL', name: 'Full Container Load', offerType: 'OCEAN', isActive: true },
-  { code: 'LCL', name: 'Less than Container Load', offerType: 'OCEAN', isActive: true },
-  { code: 'RAIL', name: 'Rail Freight', offerType: 'OTHER', isActive: true },
-  { code: 'SEA', name: 'Sea Freight', offerType: 'OCEAN', isActive: true },
-];
-
-const MOCK_PRODUCTS: ProductDict[] = [
-  { code: 'AIR', name: 'Air Freight', abbr: 'A', isActive: true },
-  { code: 'SEA', name: 'Sea Freight', abbr: 'S', isActive: true },
-  { code: 'SEA-AIR', name: 'Sea-Air Combined', abbr: 'SA', isActive: true },
-  { code: 'RAIL', name: 'Rail Freight', abbr: 'R', isActive: true },
-  { code: 'RAIL-SEA', name: 'Rail-Sea Combined', abbr: 'RS', isActive: true },
-];
-
-const MOCK_UOMS: UomDict[] = [
-  { code: 'KG', name: 'Kilogram', isActive: true },
-  { code: 'PCS', name: 'Pieces', isActive: true },
-  { code: 'CTN', name: 'Cartons', isActive: true },
-  { code: 'PLT', name: 'Pallets', isActive: true },
-  { code: 'SET', name: 'Sets', isActive: true },
-];
-
-const MOCK_CATEGORIES: CategoryDict[] = [
-  { code: 'ORIGIN_CHARGES_EXW', name: 'Origin Charges & EXW', isActive: true },
-  { code: 'OCEAN_FREIGHT', name: 'Ocean Freight', isActive: true },
-  { code: 'AIR_FREIGHT', name: 'Air Freight', isActive: true },
-  { code: 'AIR_FREIGHT_ORIGIN', name: 'Air Freight + Origin Charge & EXW', isActive: true },
-  { code: 'OCEAN_FREIGHT_ORIGIN', name: 'Ocean Freight + Origin Charges & EXW', isActive: true },
-  { code: 'LCL', name: 'LCL', isActive: true },
-  { code: 'DEST_CHARGES', name: 'Dest. Charges', isActive: true },
-];
-
-// Mock 询价数据
-let MOCK_ENQUIRIES: Enquiry[] = [
-  {
-    id: 1,
-    referenceNumber: 'CN2601001-S',
-    enquiryReceivedDate: '2026-01-15',
-    issueDate: '2026-01-15',
-    referenceMonth: '2601',
-    monthlySequence: 1,
-    serialNumber: 0,
-    productCode: 'SEA',
-    productAbbr: 'S',
-    status: 'Quoted',
-    cnPricingAdmin: 'Susana Wong',
-    salesCountryCode: 'FR',
-    salesOfficeId: 1,
-    salesOfficeName: 'ZIEGLER FRANCE',
-    salesOfficeCode: 'FR-ZF',
-    salesPicId: 1,
-    salesPicName: 'JEAN DUPONT',
-    assignedCnOfficeCode: 'SHANGHAI',
-    cargoTypeCode: 'FCL',
-    volumeCbm: 120.5,
-    quantity: 2,
-    quantityUomCode: 'CTN',
-    quantityTeu: 4.0,
-    commodity: 'Electronics components for automotive industry',
-    polId: 1,
-    polName: 'Shanghai',
-    polCode: 'CNSHA',
-    podId: 5,
-    podName: 'Le Havre',
-    podCode: 'FRLEH',
-    podCountryCode: 'FR',
-    podCountryName: 'FRANCE',
-    coreFlag: 'CORE',
-    categoryCode: 'OCEAN_FREIGHT',
-    cargoReadyDate: '2026-01-20',
-    bookingConfirmed: 'Pending',
-    containerLines: [
-      { id: 1, enquiryId: 1, containerTypeId: 3, containerCode: '40HQ', containerQty: 2, teuPerUnit: 2.0, teuTotal: 4.0 },
-    ],
-    offers: [
-      { id: 1, enquiryId: 1, offerType: 'OCEAN', sequenceNo: 1, isLatest: true, sentDate: '2026-01-16', price: 2500, priceText: 'USD 2,500 all-in', isRejectedPrice: false },
-    ],
-  },
-  {
-    id: 2,
-    referenceNumber: 'CN2601002-A',
-    enquiryReceivedDate: '2026-01-16',
-    issueDate: '2026-01-16',
-    referenceMonth: '2601',
-    monthlySequence: 2,
-    serialNumber: 0,
-    productCode: 'AIR',
-    productAbbr: 'A',
-    status: 'New',
-    cnPricingAdmin: 'Susana Wong',
-    salesCountryCode: 'UK',
-    salesOfficeId: 2,
-    salesOfficeName: 'ZIEGLER UK',
-    salesOfficeCode: 'UK-ZU',
-    salesPicId: 3,
-    salesPicName: 'JOHN SMITH',
-    assignedCnOfficeCode: 'HONG KONG',
-    cargoTypeCode: 'AIR',
-    volumeCbm: 2.5,
-    quantity: 350,
-    quantityUomCode: 'KG',
-    commodity: 'LED lighting fixtures',
-    polId: 102,
-    polName: 'Hong Kong International',
-    polCode: 'HKG',
-    podId: 104,
-    podName: 'London Heathrow',
-    podCode: 'LHR',
-    podCountryCode: 'UK',
-    podCountryName: 'UNITED KINGDOM',
-    coreFlag: 'NON_CORE',
-    categoryCode: 'AIR_FREIGHT_ORIGIN',
-    cargoReadyDate: '2026-01-25',
-    bookingConfirmed: 'Pending',
-  },
-  {
-    id: 3,
-    referenceNumber: 'CN2601003-S',
-    enquiryReceivedDate: '2026-01-17',
-    issueDate: '2026-01-17',
-    referenceMonth: '2601',
-    monthlySequence: 3,
-    serialNumber: 0,
-    productCode: 'SEA',
-    productAbbr: 'S',
-    status: 'Quoted',
-    cnPricingAdmin: 'Susana Wong',
-    salesCountryCode: 'DE',
-    salesOfficeId: 3,
-    salesOfficeName: 'ZIEGLER GERMANY',
-    salesOfficeCode: 'DE-ZD',
-    salesPicId: 5,
-    salesPicName: 'HANS MUELLER',
-    assignedCnOfficeCode: 'NINGBO',
-    cargoTypeCode: 'FCL',
-    volumeCbm: 66.0,
-    quantity: 1,
-    quantityUomCode: 'CTN',
-    quantityTeu: 2.0,
-    commodity: 'Furniture parts',
-    polId: 3,
-    polName: 'Ningbo',
-    polCode: 'CNNBO',
-    podId: 7,
-    podName: 'Hamburg',
-    podCode: 'DEHAM',
-    podCountryCode: 'DE',
-    podCountryName: 'GERMANY',
-    coreFlag: 'CORE',
-    categoryCode: 'OCEAN_FREIGHT_ORIGIN',
-    cargoReadyDate: '2026-01-22',
-    bookingConfirmed: 'Yes',
-    remark: 'Regular customer - priority handling',
-    containerLines: [
-      { id: 2, enquiryId: 3, containerTypeId: 3, containerCode: '40HQ', containerQty: 1, teuPerUnit: 2.0, teuTotal: 2.0 },
-    ],
-    offers: [
-      { id: 2, enquiryId: 3, offerType: 'OCEAN', sequenceNo: 1, isLatest: false, sentDate: '2026-01-18', price: 1800, priceText: 'USD 1,800', isRejectedPrice: false },
-      { id: 3, enquiryId: 3, offerType: 'OCEAN', sequenceNo: 2, isLatest: true, sentDate: '2026-01-19', price: 1650, priceText: 'USD 1,650 negotiated', isRejectedPrice: false },
-    ],
-  },
-];
-
-let MOCK_ID_COUNTER = 4;
-let MOCK_OFFER_ID_COUNTER = 4;
+  checkPermission: async (userId: number, permission: string) =>
+    request<{ allowed: boolean }>(
+      `/auth/check-permission?userId=${userId}&permission=${encodeURIComponent(permission)}`
+    ),
+};
 
 // ==========================================
-// 主数据 API
+// 主数据 / 字典 API
 // ==========================================
 
 export const masterDataApi = {
-  /** 获取所有国家列表 (用于POD Country映射等) */
-  getAllCountries: async (): Promise<SelectOption[]> => {
-    if (USE_MOCK_DATA) {
-      return MOCK_COUNTRIES
-        .filter(c => c.isActive)
-        .map(c => ({
-          value: c.countryCode,
-          label: c.countryNameEn,
-        }));
-    }
-    return request<SelectOption[]>('/dict/countries');
-  },
+  // ---- Dict lookups (GET /dict/...) ----
 
-  /** 获取销售国家列表 (用于级联选择第一层) */
-  getSalesCountries: async (): Promise<SelectOption[]> => {
-    if (USE_MOCK_DATA) {
-      // 从 sales_pic 表获取不重复的国家代码
-      const countryCodes = [...new Set(MOCK_SALES_PICS.map(p => p.countryCode))];
-      return countryCodes.map(code => {
-        const country = MOCK_COUNTRIES.find(c => c.countryCode === code);
-        return {
-          value: code,
-          label: country?.countryNameEn || code,
-        };
-      });
-    }
-    return request<SelectOption[]>('/dict/sales-countries');
-  },
+  /** 国家列表 (POD Country 等) */
+  getAllCountries: async (): Promise<SelectOption[]> =>
+    request<SelectOption[]>('/dict/countries'),
 
-  /** 获取销售 PIC 列表 (按国家过滤，用于级联选择第二层) */
-  getSalesPicsByCountry: async (countryCode: string): Promise<SalesPicSelectOption[]> => {
-    if (USE_MOCK_DATA) {
-      return MOCK_SALES_PICS
-        .filter(p => p.countryCode === countryCode && p.isActive)
-        .map(p => ({
-          value: p.id,
-          label: p.name,
-          countryCode: p.countryCode,
-          officeId: p.salesOfficeId,
-          officeName: p.salesOfficeName || '',
-          officeCode: p.salesOfficeCode || '',
-        }));
-    }
-    return request<SalesPicSelectOption[]>(`/dict/sales-pics/country/${countryCode}`);
-  },
+  /** 销售国家列表 (级联选择第一层) */
+  getSalesCountries: async (): Promise<SelectOption[]> =>
+    request<SelectOption[]>('/dict/sales-countries'),
 
-  /** 获取销售办公室信息 */
-  getSalesOfficeById: async (id: number): Promise<SalesOffice | null> => {
-    if (USE_MOCK_DATA) {
-      return MOCK_SALES_OFFICES.find(o => o.id === id) || null;
-    }
-    return request<SalesOffice>(`/dict/sales-offices/${id}`);
-  },
+  /** 按国家获取 Sales PIC 列表 (级联选择第二层) */
+  getSalesPicsByCountry: async (countryCode: string): Promise<SalesPicSelectOption[]> =>
+    request<SalesPicSelectOption[]>(`/dict/sales-pics?countryCode=${encodeURIComponent(countryCode)}`),
 
-  /** 获取港口列表 (按类型过滤，支持搜索) */
-  searchPorts: async (portType: PortType, keyword: string): Promise<PortSelectOption[]> => {
-    if (USE_MOCK_DATA) {
-      const filtered = MOCK_PORTS.filter(p => 
-        p.portType === portType && 
-        p.isActive &&
-        (keyword.length < 2 || 
-          p.portCode.toLowerCase().includes(keyword.toLowerCase()) ||
-          p.portName.toLowerCase().includes(keyword.toLowerCase()) ||
-          p.city?.toLowerCase().includes(keyword.toLowerCase()))
-      );
-      return filtered.slice(0, 50).map(p => ({
-        value: p.id,
-        label: `[${p.portCode}] ${p.portName}${p.countryCode ? `, ${p.countryCode}` : ''}`,
-        portCode: p.portCode,
-        portType: p.portType,
-        countryCode: p.countryCode,
-      }));
-    }
-    return request<PortSelectOption[]>(`/dict/ports/search-v2?portType=${portType}&keyword=${encodeURIComponent(keyword)}`);
-  },
+  /** 根据 picId 获取所属 Sales Office */
+  getSalesOfficeByPicId: async (picId: number): Promise<SalesOffice | null> =>
+    request<SalesOffice>(`/dict/sales-offices?picId=${picId}`),
 
-  /** 获取港口详情 */
-  getPortById: async (id: number): Promise<Port | null> => {
-    if (USE_MOCK_DATA) {
-      return MOCK_PORTS.find(p => p.id === id) || null;
-    }
-    return request<Port>(`/dict/ports/${id}`);
-  },
+  /** 按 Sales Office ID 获取信息 (兼容旧调用) */
+  getSalesOfficeById: async (id: number): Promise<SalesOffice | null> =>
+    request<SalesOffice>(`/master/sales-offices`).then((list: any) => {
+      if (Array.isArray(list)) return list.find((o: SalesOffice) => o.id === id) || null;
+      return list;
+    }),
 
-  /** 获取箱型列表 */
-  getContainerTypes: async (): Promise<ContainerTypeSelectOption[]> => {
-    if (USE_MOCK_DATA) {
-      return MOCK_CONTAINER_TYPES
-        .filter(c => c.isActive)
-        .map(c => ({
-          value: c.id,
-          label: `${c.containerCode} - ${c.containerName}`,
-          teuValue: c.teuValue,
-          isSpecial: c.isSpecial,
-        }));
-    }
-    return request<ContainerTypeSelectOption[]>('/dict/container-types');
-  },
+  /** 搜索港口 (按 mode + keyword) */
+  searchPorts: async (portType: PortType, keyword: string): Promise<PortSelectOption[]> =>
+    request<PortSelectOption[]>(
+      `/dict/ports?mode=${encodeURIComponent(portType)}&query=${encodeURIComponent(keyword)}`
+    ),
 
-  /** 获取 CN 办公室列表 */
-  getCnOffices: async (): Promise<SelectOption[]> => {
-    if (USE_MOCK_DATA) {
-      return MOCK_CN_OFFICES
-        .filter(o => o.isActive)
-        .map(o => ({ value: o.code, label: o.name }));
-    }
-    return request<SelectOption[]>('/dict/cn-offices');
-  },
+  /** 港口详情 */
+  getPortById: async (id: number): Promise<Port | null> =>
+    request<Port>(`/dict/ports/${id}`),
 
-  /** 获取货物类型列表 */
-  getCargoTypes: async (): Promise<CargoTypeDict[]> => {
-    if (USE_MOCK_DATA) {
-      return MOCK_CARGO_TYPES.filter(c => c.isActive);
-    }
-    return request<CargoTypeDict[]>('/dict/cargo-types');
-  },
+  /** 箱型列表 */
+  getContainerTypes: async (): Promise<ContainerTypeSelectOption[]> =>
+    request<ContainerTypeSelectOption[]>('/dict/container-types'),
 
-  /** 获取产品类型列表 */
-  getProducts: async (): Promise<ProductDict[]> => {
-    if (USE_MOCK_DATA) {
-      return MOCK_PRODUCTS.filter(p => p.isActive);
-    }
-    return request<ProductDict[]>('/dict/products');
-  },
+  /** CN 办公室列表 */
+  getCnOffices: async (): Promise<SelectOption[]> =>
+    request<SelectOption[]>('/dict/cn-offices').catch(() => {
+      // 如果 /dict/cn-offices 不存在，回退到硬编码
+      const offices: CnOffice[] = [
+        { code: 'SHANGHAI', name: 'Shanghai', isActive: true },
+        { code: 'SHENZHEN', name: 'Shenzhen', isActive: true },
+        { code: 'NINGBO', name: 'Ningbo', isActive: true },
+        { code: 'HONG KONG', name: 'Hong Kong', isActive: true },
+        { code: 'TIANJIN', name: 'Tianjin', isActive: true },
+        { code: 'QINGDAO', name: 'Qingdao', isActive: true },
+        { code: 'XIAMEN', name: 'Xiamen', isActive: true },
+        { code: 'CN-MULTI', name: 'CN-Multi', isActive: true },
+      ];
+      return offices.filter(o => o.isActive).map(o => ({ value: o.code, label: o.name }));
+    }),
 
-  /** 获取单位列表 */
-  getUoms: async (): Promise<SelectOption[]> => {
-    if (USE_MOCK_DATA) {
-      return MOCK_UOMS
-        .filter(u => u.isActive)
-        .map(u => ({ value: u.code, label: u.name }));
-    }
-    return request<SelectOption[]>('/dict/uoms');
-  },
+  /** 货物类型列表 (可按 productCode 过滤) */
+  getCargoTypes: async (productCode?: string): Promise<CargoTypeDict[]> =>
+    request<CargoTypeDict[]>(
+      `/dict/cargo-types${productCode ? '?productCode=' + encodeURIComponent(productCode) : ''}`
+    ),
 
-  /** 获取分类列表 */
-  getCategories: async (): Promise<SelectOption[]> => {
-    if (USE_MOCK_DATA) {
-      return MOCK_CATEGORIES
-        .filter(c => c.isActive)
-        .map(c => ({ value: c.code, label: c.name }));
-    }
-    return request<SelectOption[]>('/dict/categories');
-  },
+  /** 产品类型列表 */
+  getProducts: async (): Promise<ProductDict[]> =>
+    request<ProductDict[]>('/dict/products'),
 
-  // --- Management API Methods ---
+  /** 单位列表 */
+  getUoms: async (): Promise<SelectOption[]> =>
+    request<SelectOption[]>('/dict/uoms').catch(() => {
+      const uoms: UomDict[] = [
+        { code: 'KG', name: 'Kilogram', isActive: true },
+        { code: 'PCS', name: 'Pieces', isActive: true },
+        { code: 'CTN', name: 'Cartons', isActive: true },
+        { code: 'PLT', name: 'Pallets', isActive: true },
+        { code: 'SET', name: 'Sets', isActive: true },
+      ];
+      return uoms.map(u => ({ value: u.code, label: u.name }));
+    }),
 
-  getCountries: async (): Promise<Country[]> => {
-    if (USE_MOCK_DATA) {
-      await new Promise(r => setTimeout(r, 200));
-      return [...MOCK_COUNTRIES];
-    }
-    return request<Country[]>('/master/countries');
-  },
-  
+  /** 分类列表 */
+  getCategories: async (): Promise<SelectOption[]> =>
+    request<SelectOption[]>('/dict/categories').catch(() => {
+      const cats: CategoryDict[] = [
+        { code: 'ORIGIN_CHARGES', name: 'Origin Charges', isActive: true },
+        { code: 'EXW_LOCATION', name: 'EXW Location', isActive: true },
+        { code: 'OCEAN_FREIGHT', name: 'Ocean Freight', isActive: true },
+        { code: 'AIR_FREIGHT', name: 'Air Freight', isActive: true },
+        { code: 'DEST_CHARGES', name: 'Dest. Charges', isActive: true },
+        { code: 'SPECIAL', name: 'Special', isActive: true },
+      ];
+      return cats.map(c => ({ value: c.code, label: c.name }));
+    }),
+
+  /** 取消原因字典 */
+  getCancelledReasons: async (): Promise<CancelledReasonDict[]> =>
+    request<CancelledReasonDict[]>('/dict/cancelled-reasons'),
+
+  /** 流失原因字典 */
+  getLostReasons: async (): Promise<LostReasonDict[]> =>
+    request<LostReasonDict[]>('/dict/lost-reasons'),
+
+  // ---- Management CRUD (GET/POST/PUT/DELETE /master/...) ----
+
+  getCountries: async (): Promise<Country[]> =>
+    request<Country[]>('/master/countries'),
+
   saveCountry: async (country: Country): Promise<Country> => {
-    if (USE_MOCK_DATA) {
-      await new Promise(r => setTimeout(r, 300));
-      if (country.id) {
-        const index = MOCK_COUNTRIES.findIndex(c => c.id === country.id);
-        if (index !== -1) {
-          MOCK_COUNTRIES[index] = { ...country };
-          return MOCK_COUNTRIES[index];
-        }
-      } else {
-        // eslint-disable-next-line
-        const newCountry = { ...country, id: Math.max(...MOCK_COUNTRIES.map(c => c.id), 0) + 1 };
-        MOCK_COUNTRIES.push(newCountry);
-        return newCountry;
-      }
-      throw new Error('Country not saved');
-    }
     const method = country.id ? 'PUT' : 'POST';
     const url = country.id ? `/master/countries/${country.id}` : '/master/countries';
     return request<Country>(url, { method, body: JSON.stringify(country) });
   },
 
-  deleteCountry: async (id: number): Promise<void> => {
-    if (USE_MOCK_DATA) {
-        await new Promise(r => setTimeout(r, 300));
-        const index = MOCK_COUNTRIES.findIndex(c => c.id === id);
-        if (index !== -1) MOCK_COUNTRIES.splice(index, 1);
-        return;
-    }
-    return request<void>(`/master/countries/${id}`, { method: 'DELETE' });
-  },
+  deleteCountry: async (id: number): Promise<void> =>
+    request<void>(`/master/countries/${id}`, { method: 'DELETE' }),
 
-  getPorts: async (): Promise<Port[]> => {
-    if (USE_MOCK_DATA) {
-      await new Promise(r => setTimeout(r, 200));
-      return [...MOCK_PORTS];
-    }
-    return request<Port[]>('/master/ports');
-  },
+  getPorts: async (): Promise<Port[]> =>
+    request<Port[]>('/master/ports'),
 
   savePort: async (port: Port): Promise<Port> => {
-    if (USE_MOCK_DATA) {
-      await new Promise(r => setTimeout(r, 300));
-      if (port.id) {
-        const index = MOCK_PORTS.findIndex(p => p.id === port.id);
-        if (index !== -1) {
-          MOCK_PORTS[index] = { ...port };
-          return MOCK_PORTS[index];
-        }
-      } else {
-        const newPort = { ...port, id: Math.max(...MOCK_PORTS.map(p => p.id), 0) + 1 };
-        MOCK_PORTS.push(newPort);
-        return newPort;
-      }
-      throw new Error('Port not saved');
-    }
     const method = port.id ? 'PUT' : 'POST';
     const url = port.id ? `/master/ports/${port.id}` : '/master/ports';
     return request<Port>(url, { method, body: JSON.stringify(port) });
   },
 
-  deletePort: async (id: number): Promise<void> => {
-    if (USE_MOCK_DATA) {
-        await new Promise(r => setTimeout(r, 300));
-        const index = MOCK_PORTS.findIndex(p => p.id === id);
-        if (index !== -1) MOCK_PORTS.splice(index, 1);
-        return;
-    }
-    return request<void>(`/master/ports/${id}`, { method: 'DELETE' });
-  },
+  deletePort: async (id: number): Promise<void> =>
+    request<void>(`/master/ports/${id}`, { method: 'DELETE' }),
 
-  getSalesPics: async (): Promise<SalesPic[]> => {
-    if (USE_MOCK_DATA) {
-      await new Promise(r => setTimeout(r, 200));
-      return [...MOCK_SALES_PICS];
-    }
-    return request<SalesPic[]>('/master/sales-pics');
-  },
+  getSalesPics: async (): Promise<SalesPic[]> =>
+    request<SalesPic[]>('/master/sales-pics'),
 
   saveSalesPic: async (pic: SalesPic): Promise<SalesPic> => {
-    if (USE_MOCK_DATA) {
-      await new Promise(r => setTimeout(r, 300));
-      if (pic.id) {
-        const index = MOCK_SALES_PICS.findIndex(p => p.id === pic.id);
-        if (index !== -1) {
-          MOCK_SALES_PICS[index] = { ...pic };
-          return MOCK_SALES_PICS[index];
-        }
-      } else {
-        const newPic = { ...pic, id: Math.max(...MOCK_SALES_PICS.map(p => p.id), 0) + 1 };
-        MOCK_SALES_PICS.push(newPic);
-        return newPic;
-      }
-      throw new Error('Sales Pic not saved');
-    }
     const method = pic.id ? 'PUT' : 'POST';
     const url = pic.id ? `/master/sales-pics/${pic.id}` : '/master/sales-pics';
     return request<SalesPic>(url, { method, body: JSON.stringify(pic) });
   },
 
-  deleteSalesPic: async (id: number): Promise<void> => {
-    if (USE_MOCK_DATA) {
-        await new Promise(r => setTimeout(r, 300));
-        const index = MOCK_SALES_PICS.findIndex(p => p.id === id);
-        if (index !== -1) MOCK_SALES_PICS.splice(index, 1);
-        return;
-    }
-    return request<void>(`/master/sales-pics/${id}`, { method: 'DELETE' });
-  },
+  deleteSalesPic: async (id: number): Promise<void> =>
+    request<void>(`/master/sales-pics/${id}`, { method: 'DELETE' }),
 
-  getSalesOffices: async (): Promise<SalesOffice[]> => {
-     if (USE_MOCK_DATA) {
-      await new Promise(r => setTimeout(r, 200));
-      return [...MOCK_SALES_OFFICES];
-    }
-    return request<SalesOffice[]>('/master/sales-offices');
-  },
+  getSalesOffices: async (): Promise<SalesOffice[]> =>
+    request<SalesOffice[]>('/master/sales-offices'),
 
-  getContainerTypeList: async (): Promise<ContainerType[]> => {
-    if (USE_MOCK_DATA) {
-      await new Promise(r => setTimeout(r, 200));
-      return [...MOCK_CONTAINER_TYPES];
-    }
-    return request<ContainerType[]>('/master/container-types');
-  },
+  getContainerTypeList: async (): Promise<ContainerType[]> =>
+    request<ContainerType[]>('/master/container-types'),
 
   saveContainerType: async (ct: ContainerType): Promise<ContainerType> => {
-    if (USE_MOCK_DATA) {
-      await new Promise(r => setTimeout(r, 300));
-      if (ct.id) {
-        const index = MOCK_CONTAINER_TYPES.findIndex(c => c.id === ct.id);
-        if (index !== -1) {
-          MOCK_CONTAINER_TYPES[index] = { ...ct };
-          return MOCK_CONTAINER_TYPES[index];
-        }
-      } else {
-        const newCt = { ...ct, id: Math.max(...MOCK_CONTAINER_TYPES.map(c => c.id), 0) + 1 };
-        MOCK_CONTAINER_TYPES.push(newCt);
-        return newCt;
-      }
-       throw new Error('Container Type not saved');
-    }
     const method = ct.id ? 'PUT' : 'POST';
     const url = ct.id ? `/master/container-types/${ct.id}` : '/master/container-types';
     return request<ContainerType>(url, { method, body: JSON.stringify(ct) });
   },
 
-  deleteContainerType: async (id: number): Promise<void> => {
-    if (USE_MOCK_DATA) {
-        await new Promise(r => setTimeout(r, 300));
-        const index = MOCK_CONTAINER_TYPES.findIndex(c => c.id === id);
-        if (index !== -1) MOCK_CONTAINER_TYPES.splice(index, 1);
-        return;
-    }
-    return request<void>(`/master/container-types/${id}`, { method: 'DELETE' });
-  },
+  deleteContainerType: async (id: number): Promise<void> =>
+    request<void>(`/master/container-types/${id}`, { method: 'DELETE' }),
 
-  /** 获取CN Pricing Admin列表（仅启用的） */
+  /** CN Pricing Admin 列表 (仅 active) */
   getCnPricingAdmins: async (): Promise<SelectOption[]> => {
-    if (USE_MOCK_DATA) {
-      return [
-        { value: 'Janet Chan', label: 'Janet Chan' },
-        { value: 'Niki Guan', label: 'Niki Guan' },
-        { value: 'Susana Wong', label: 'Susana Wong' },
-        { value: 'Yuki Ying', label: 'Yuki Ying' },
-        { value: 'Yvonne Ho', label: 'Yvonne Ho' },
-      ];
-    }
     const admins = await request<any[]>('/master/cn-pricing-admins/active');
-    return admins.map(a => ({ value: a.name, label: a.name }));
+    return admins.map((a: any) => ({ value: a.name, label: a.name }));
   },
 };
 
@@ -706,523 +309,163 @@ export const masterDataApi = {
 // ==========================================
 
 export const enquiryApi = {
-  /** 获取询价列表 */
+  /** 获取询价分页列表 */
   getList: async (params?: EnquirySearchParams): Promise<PagedResponse<EnquiryListItem>> => {
-    if (USE_MOCK_DATA) {
-      await new Promise(r => setTimeout(r, 300)); // 模拟延迟
-      
-      let filtered = [...MOCK_ENQUIRIES];
-      
-      // 应用筛选
-      if (params?.keyword) {
-        const kw = params.keyword.toLowerCase();
-        filtered = filtered.filter(e => 
-          e.referenceNumber.toLowerCase().includes(kw) ||
-          e.commodity?.toLowerCase().includes(kw) ||
-          e.salesPicName?.toLowerCase().includes(kw)
-        );
-      }
-      // 兼容 search 参数
-      if ((params as any)?.search) {
-        const kw = ((params as any).search as string).toLowerCase();
-        filtered = filtered.filter(e => 
-          e.referenceNumber.toLowerCase().includes(kw) ||
-          e.commodity?.toLowerCase().includes(kw) ||
-          e.salesPicName?.toLowerCase().includes(kw)
-        );
-      }
-      if (params?.status?.length) {
-        filtered = filtered.filter(e => params.status!.includes(e.status));
-      }
-      // 兼容单个 status 参数
-      if ((params as any)?.status && typeof (params as any).status === 'string') {
-        filtered = filtered.filter(e => e.status === (params as any).status);
-      }
-      if (params?.cargoTypes?.length) {
-        filtered = filtered.filter(e => params.cargoTypes!.includes(e.cargoTypeCode));
-      }
-      // 兼容单个 cargoType 参数
-      if ((params as any)?.cargoType) {
-        filtered = filtered.filter(e => e.cargoTypeCode === (params as any).cargoType);
-      }
-      if (params?.salesCountryCodes?.length) {
-        filtered = filtered.filter(e => params.salesCountryCodes!.includes(e.salesCountryCode));
-      }
-      
-      // 排序
-      filtered.sort((a, b) => {
-        const aDate = new Date(a.issueDate).getTime();
-        const bDate = new Date(b.issueDate).getTime();
-        return params?.sortDir === 'asc' ? aDate - bDate : bDate - aDate;
-      });
-      
-      // 转换为列表项
-      const items: EnquiryListItem[] = filtered.map(e => ({
-        id: e.id!,
-        referenceNumber: e.referenceNumber,
-        enquiryReceivedDate: e.enquiryReceivedDate,
-        issueDate: e.issueDate,
-        status: e.status,
-        productAbbr: e.productAbbr,
-        salesCountryCode: e.salesCountryCode,
-        salesOfficeName: e.salesOfficeName,
-        salesPicName: e.salesPicName,
-        cargoTypeCode: e.cargoTypeCode,
-        polName: e.polName,
-        podName: e.podName,
-        podCountryName: e.podCountryName,
-        quantityTeu: e.quantityTeu,
-        bookingConfirmed: e.bookingConfirmed,
-        latestOfferDate: e.offers?.find((o: Offer) => o.isLatest)?.sentDate,
-        latestOfferPrice: e.offers?.find((o: Offer) => o.isLatest)?.priceText,
-        offerCount: e.offers?.length || 0,
-      }));
-      
-      const page = params?.page || (params as any)?.page || 0;
-      const size = params?.size || (params as any)?.pageSize || 20;
-      // 如果 page 是从1开始的，转换为从0开始
-      const pageIndex = page > 0 && !(params as any)?.pageSize ? page : Math.max(0, page - 1);
-      const start = pageIndex * size;
-      const paged = items.slice(start, start + size);
-      
-      return {
-        content: paged,
-        totalElements: items.length,
-        totalPages: Math.ceil(items.length / size),
-        page: pageIndex,
-        size,
-        number: pageIndex, // 兼容 Spring Boot PagedResponse
-      };
-    }
-    
-    const queryParams = new URLSearchParams();
-    if (params) {
-      Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
-          if (Array.isArray(value)) {
-            value.forEach(v => queryParams.append(key, v));
-          } else {
-            queryParams.append(key, String(value));
-          }
-        }
-      });
-    }
-    return request<PagedResponse<EnquiryListItem>>(`/enquiries?${queryParams.toString()}`);
+    const sp = new URLSearchParams();
+    if (params?.page !== undefined) sp.set('page', String(params.page));
+    if (params?.size !== undefined) sp.set('size', String(params.size));
+    if (params?.keyword) sp.set('keyword', params.keyword);
+    if (params?.status) sp.set('status', params.status);
+    if (params?.productCode) sp.set('productCode', params.productCode);
+    if (params?.cargoTypeCode) sp.set('cargoTypeCode', params.cargoTypeCode);
+    if (params?.salesCountryCode) sp.set('salesCountryCode', params.salesCountryCode);
+    if (params?.assignedCnOffice) sp.set('assignedCnOffice', params.assignedCnOffice);
+    if (params?.coreNonCore) sp.set('coreNonCore', params.coreNonCore);
+    if (params?.dateFrom) sp.set('dateFrom', params.dateFrom);
+    if (params?.dateTo) sp.set('dateTo', params.dateTo);
+    if (params?.sortBy) sp.set('sortBy', params.sortBy);
+    if (params?.sortDir) sp.set('sortDir', params.sortDir);
+    const qs = sp.toString();
+    return request<PagedResponse<EnquiryListItem>>(`/enquiries${qs ? '?' + qs : ''}`);
   },
 
   /** 获取询价详情 */
-  getById: async (id: number): Promise<Enquiry> => {
-    if (USE_MOCK_DATA) {
-      await new Promise(r => setTimeout(r, 200));
-      const enquiry = MOCK_ENQUIRIES.find(e => e.id === id);
-      if (!enquiry) throw new Error('Enquiry not found');
-      return { ...enquiry };
-    }
-    return request<Enquiry>(`/enquiries/${id}`);
-  },
+  getById: async (id: number): Promise<Enquiry> =>
+    request<Enquiry>(`/enquiries/${id}`),
 
-  /** 预览下一个询价编号 */
-  getNextReference: async (params: { issueDate?: string; productCode?: string }): Promise<ReferencePreview> => {
-    if (USE_MOCK_DATA) {
-      const issueDate = params.issueDate || new Date().toISOString().split('T')[0];
-      const date = new Date(issueDate);
-      const yy = date.getFullYear().toString().slice(-2);
-      const mm = String(date.getMonth() + 1).padStart(2, '0');
-      const referenceMonth = `${yy}${mm}`;
-      const abbrMap: Record<string, string> = {
-        AIR: 'A',
-        SEA: 'S',
-        'AIR-RAIL-SEA': 'ARS',
-        RAIL: 'R',
-        'RAIL-SEA': 'RS',
-      };
-      const productAbbr = abbrMap[params.productCode || ''] || 'X';
-      const maxSeq = Math.max(0, ...MOCK_ENQUIRIES.filter(e => e.referenceMonth === referenceMonth).map(e => e.monthlySequence || 0));
-      const monthlySequence = maxSeq + 1;
-      const referenceNumber = `CN${referenceMonth}${String(monthlySequence).padStart(3, '0')}-${productAbbr}`;
-      return { referenceNumber, referenceMonth, monthlySequence, serialNumber: 0, productAbbr };
-    }
+  /** 获取下一个参考编号预览 */
+  getNextReference: async (issueDate: string, productCode: ProductCode): Promise<ReferencePreview> =>
+    request<ReferencePreview>(
+      `/enquiries/reference/next?issueDate=${encodeURIComponent(issueDate)}&productCode=${encodeURIComponent(productCode)}`
+    ),
 
-    const query = new URLSearchParams();
-    if (params.issueDate) query.set('issueDate', params.issueDate);
-    if (params.productCode) query.set('productCode', params.productCode);
-    return request<ReferencePreview>(`/enquiries/reference/next?${query.toString()}`);
-  },
-
-  /** 预览递增编号（同月序 + serial +1） */
-  getIncreaseReference: async (id: number): Promise<ReferencePreview> => {
-    if (USE_MOCK_DATA) {
-      const original = MOCK_ENQUIRIES.find(e => e.id === id);
-      if (!original) throw new Error('Enquiry not found');
-      const referenceMonth = original.referenceMonth;
-      const monthlySequence = original.monthlySequence;
-      const productAbbr = original.productAbbr || 'X';
-      const maxSerial = Math.max(0, ...MOCK_ENQUIRIES.filter(e => e.referenceMonth === referenceMonth && e.monthlySequence === monthlySequence && (e.productAbbr || 'X') === productAbbr).map(e => e.serialNumber || 0));
-      const serialNumber = maxSerial + 1;
-      const referenceNumber = `CN${referenceMonth}${String(monthlySequence).padStart(3, '0')}-${productAbbr}${serialNumber}`;
-      return { referenceNumber, referenceMonth, monthlySequence, serialNumber, productAbbr };
-    }
-    return request<ReferencePreview>(`/enquiries/${id}/reference/increase`);
-  },
+  /** 基于现有询价获取递增参考编号 */
+  getIncreaseReference: async (enquiryId: number): Promise<ReferencePreview> =>
+    request<ReferencePreview>(`/enquiries/${enquiryId}/reference/increase`),
 
   /** 创建询价 */
-  create: async (data: EnquiryFormData): Promise<Enquiry> => {
-    if (USE_MOCK_DATA) {
-      await new Promise(r => setTimeout(r, 500));
-      
-      // 支持polIds/podIds数组，取第一个作为主要港口
-      const polId = data.polIds?.[0] || data.polId;
-      const podId = data.podIds?.[0] || data.podId;
-      
-      // 获取关联数据
-      const salesPic = MOCK_SALES_PICS.find(p => p.id === data.salesPicId);
-      const salesOffice = salesPic ? MOCK_SALES_OFFICES.find(o => o.id === salesPic.salesOfficeId) : null;
-      const pol = MOCK_PORTS.find(p => p.id === polId);
-      const pod = MOCK_PORTS.find(p => p.id === podId);
-      const podCountry = pod ? MOCK_COUNTRIES.find(c => c.countryCode === pod.countryCode) : null;
-      const product = MOCK_PRODUCTS.find(p => p.code === data.productCode);
-      
-      // 生成编号
-      const now = new Date();
-      const refMonth = data.referenceMonth || (now.toISOString().slice(2, 4) + now.toISOString().slice(5, 7));
-      const abbr = product?.abbr || 'X';
-      const isIncrease = !!(data.serialNumber && data.serialNumber > 0 && data.monthlySequence);
-
-      let seq = 0;
-      let serial = 0;
-      if (isIncrease) {
-        seq = data.monthlySequence as number;
-        const maxSerial = Math.max(
-          0,
-          ...MOCK_ENQUIRIES
-            .filter(e => e.referenceMonth === refMonth && e.monthlySequence === seq && (e.productAbbr || 'X') === abbr)
-            .map(e => e.serialNumber || 0)
-        );
-        serial = maxSerial + 1;
-      } else {
-        seq = MOCK_ENQUIRIES.filter(e => e.referenceMonth === refMonth).length + 1;
-      }
-
-      const refNumber = `CN${refMonth}${String(seq).padStart(3, '0')}-${abbr}${serial > 0 ? serial : ''}`;
-      
-      // 计算 TEU
-      let quantityTeu = 0;
-      if (data.containerLines?.length) {
-        quantityTeu = data.containerLines.reduce((sum: number, line: ContainerLine) => 
-          sum + ((line.quantity || 0) * (line.teuValue || 0)), 0);
-      }
-      
-      const newEnquiry: Enquiry = {
-        id: MOCK_ID_COUNTER++,
-        referenceNumber: refNumber,
-        enquiryReceivedDate: data.enquiryReceivedDate,
-        issueDate: data.issueDate || now.toISOString().split('T')[0],
-        referenceMonth: refMonth,
-        monthlySequence: seq,
-        serialNumber: serial,
-        productCode: data.productCode,
-        productAbbr: abbr,
-        status: data.status || 'New',
-        cnPricingAdmin: 'Susana Wong', // TODO: 从登录用户获取
-        salesCountryCode: data.salesCountryCode,
-        salesOfficeId: salesOffice?.id || 0,
-        salesOfficeName: salesOffice?.name,
-        salesOfficeCode: salesOffice?.code,
-        salesPicId: data.salesPicId,
-        salesPicName: salesPic?.name,
-        assignedCnOfficeCode: data.assignedCnOfficeCode,
-        cargoTypeCode: data.cargoTypeCode,
-        volumeCbm: data.volumeCbm,
-        quantity: data.quantity,
-        quantityUomCode: data.quantityUomCode,
-        quantityTeu,
-        commodity: data.commodity,
-        hazSpecialEquipment: data.hazSpecialEquipment,
-        polId: polId,
-        polName: pol?.portName,
-        polCode: pol?.portCode,
-        podId: podId,
-        podName: pod?.portName,
-        podCode: pod?.portCode,
-        podCountryCode: pod?.countryCode,
-        podCountryName: data.podCountryName || podCountry?.countryNameEn,
-        coreFlag: data.coreFlag,
-        categoryCode: data.categoryCode,
-        cargoReadyDate: data.cargoReadyDate,
-        cargoReadyDateRawText: data.cargoReadyDateRawText,
-        additionalRequirement: data.additionalRequirement,
-        bookingConfirmed: data.bookingConfirmed || 'Pending',
-        remark: data.remark,
-        containerLines: data.containerLines,
-        offers: [],
-      };
-      
-      MOCK_ENQUIRIES.unshift(newEnquiry);
-      return newEnquiry;
-    }
-    
-    return request<Enquiry>('/enquiries', {
+  create: async (data: EnquiryFormData): Promise<Enquiry> =>
+    request<Enquiry>('/enquiries', {
       method: 'POST',
       body: JSON.stringify(data),
-    });
-  },
+    }),
 
   /** 更新询价 */
-  update: async (id: number, data: Partial<EnquiryFormData>): Promise<Enquiry> => {
-    if (USE_MOCK_DATA) {
-      await new Promise(r => setTimeout(r, 400));
-      
-      const index = MOCK_ENQUIRIES.findIndex(e => e.id === id);
-      if (index === -1) throw new Error('Enquiry not found');
-      
-      const existing = MOCK_ENQUIRIES[index];
-      
-      // 获取关联数据
-      const salesPic = data.salesPicId ? MOCK_SALES_PICS.find(p => p.id === data.salesPicId) : null;
-      const salesOffice = salesPic ? MOCK_SALES_OFFICES.find(o => o.id === salesPic.salesOfficeId) : null;
-      const pol = data.polId ? MOCK_PORTS.find(p => p.id === data.polId) : null;
-      const pod = data.podId ? MOCK_PORTS.find(p => p.id === data.podId) : null;
-      const podCountry = pod ? MOCK_COUNTRIES.find(c => c.countryCode === pod.countryCode) : null;
-      
-      // 计算 TEU
-      let quantityTeu = existing.quantityTeu;
-      if (data.containerLines !== undefined) {
-        quantityTeu = data.containerLines.reduce((sum: number, line: ContainerLine) => 
-          sum + ((line.quantity || 0) * (line.teuValue || 0)), 0);
-      }
-      
-      // ✅ 编辑模式：确保必需字段都已包含，防止 NOT NULL 约束错误
-      const updated: Enquiry = {
-        ...existing,
-        ...data,
-        // 保留必需字段的原值如果新值为空
-        referenceNumber: data.referenceNumber || existing.referenceNumber,
-        referenceMonth: data.referenceMonth || existing.referenceMonth,
-        monthlySequence: data.monthlySequence ?? existing.monthlySequence,
-        serialNumber: data.serialNumber ?? existing.serialNumber,
-        productCode: data.productCode || existing.productCode,
-        productAbbr: data.productAbbr || existing.productAbbr,
-        status: data.status || existing.status,
-        cnPricingAdmin: data.cnPricingAdmin || existing.cnPricingAdmin,
-        salesCountryCode: data.salesCountryCode || existing.salesCountryCode,
-        salesOfficeId: data.salesOfficeId || existing.salesOfficeId,
-        assignedCnOfficeCode: data.assignedCnOfficeCode || existing.assignedCnOfficeCode,
-        cargoTypeCode: data.cargoTypeCode || existing.cargoTypeCode,
-        enquiryReceivedDate: data.enquiryReceivedDate || existing.enquiryReceivedDate,
-        issueDate: data.issueDate || existing.issueDate,
-        bookingConfirmed: data.bookingConfirmed || existing.bookingConfirmed,
-        // 关联数据
-        quantityTeu,
-        salesOfficeName: salesOffice?.name || existing.salesOfficeName,
-        salesOfficeCode: salesOffice?.code || existing.salesOfficeCode,
-        salesPicName: salesPic?.name || existing.salesPicName,
-        polName: pol?.portName || existing.polName,
-        polCode: pol?.portCode || existing.polCode,
-        podName: pod?.portName || existing.podName,
-        podCode: pod?.portCode || existing.podCode,
-        podCountryCode: pod?.countryCode || existing.podCountryCode,
-        podCountryName: podCountry?.countryNameEn || existing.podCountryName,
-        updatedAt: new Date().toISOString(),
-      };
-      
-      MOCK_ENQUIRIES[index] = updated;
-      return updated;
-    }
-    
-    return request<Enquiry>(`/enquiries/${id}`, {
+  update: async (id: number, data: Partial<EnquiryFormData>): Promise<Enquiry> =>
+    request<Enquiry>(`/enquiries/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
-    });
-  },
+    }),
+
+  /** 变更询价状态 (v3: New → Quoted & Pending → Secured / Lost / Cancelled) */
+  changeStatus: async (id: number, payload: StatusChangePayload): Promise<Enquiry> =>
+    request<Enquiry>(`/enquiries/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
 
   /** 删除询价 */
-  delete: async (id: number): Promise<void> => {
-    if (USE_MOCK_DATA) {
-      await new Promise(r => setTimeout(r, 300));
-      MOCK_ENQUIRIES = MOCK_ENQUIRIES.filter(e => e.id !== id);
-      return;
-    }
-    return request<void>(`/enquiries/${id}`, { method: 'DELETE' });
-  },
+  delete: async (id: number): Promise<void> =>
+    request<void>(`/enquiries/${id}`, { method: 'DELETE' }),
 
-  /** 复制询价为新询价 */
+  /** 复制询价为新询价 (客户端实现) */
   copy: async (id: number): Promise<Enquiry> => {
-    if (USE_MOCK_DATA) {
-      const original = await enquiryApi.getById(id);
-      const { 
-        id: _id, 
-        referenceNumber: _ref, 
-        offers: _offers, 
-        issueDate: _issue,
-        createdAt: _ca,
-        updatedAt: _ua,
-        ...copyData 
-      } = original;
-      
-      return enquiryApi.create({
-        ...copyData,
-        issueDate: new Date().toISOString().split('T')[0],
-        polPortType: 'SEA',
-        podPortType: 'SEA',
-        status: 'New',
-        bookingConfirmed: 'Pending',
-      } as unknown as EnquiryFormData);
-    }
-    return request<Enquiry>(`/enquiries/${id}/copy`, { method: 'POST' });
+    const original = await enquiryApi.getById(id);
+    const {
+      id: _id,
+      refNumber: _ref,
+      offers: _offers,
+      createdAt: _ca,
+      updatedAt: _ua,
+      ...copyFields
+    } = original;
+
+    const today = new Date().toISOString().split('T')[0];
+    return enquiryApi.create({
+      ...copyFields,
+      enquiryReceivedDate: today,
+      enquiryCreatedDate: today,
+      status: 'New',
+    } as EnquiryFormData);
   },
 
-  /** 获取列表(别名) - 兼容组件调用 */
+  /** 获取列表 (兼容旧组件参数) */
   list: async (params?: {
     page?: number;
     pageSize?: number;
-    size?: number; 
+    size?: number;
     search?: string;
     keyword?: string;
     status?: EnquiryStatus | EnquiryStatus[];
     cargoType?: string;
-    cargoTypes?: string[];
+    cargoTypeCode?: string;
     salesCountryCode?: string;
     salesPicId?: number;
-    polId?: number;
-    podId?: number;
-    coreFlag?: string;
+    coreNonCore?: CoreNonCore;
+    assignedCnOffice?: string;
     startDate?: string;
     endDate?: string;
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
   }): Promise<PagedResponse<EnquiryListItem>> => {
-    // 转换参数格式，过滤空值
-    const convertedParams: EnquirySearchParams = {
+    const converted: EnquirySearchParams = {
       page: params?.page || 0,
       size: params?.pageSize || params?.size || 20,
       keyword: params?.search || params?.keyword || undefined,
       status: Array.isArray(params?.status) ? params.status[0] : (params?.status || undefined),
-      cargoTypes: params?.cargoType ? [params.cargoType] : params?.cargoTypes,
+      cargoTypeCode: params?.cargoType || params?.cargoTypeCode || undefined,
       salesCountryCode: params?.salesCountryCode || undefined,
-      salesPicId: params?.salesPicId,
+      coreNonCore: params?.coreNonCore || undefined,
+      assignedCnOffice: params?.assignedCnOffice || undefined,
       dateFrom: params?.startDate || undefined,
       dateTo: params?.endDate || undefined,
       sortBy: params?.sortBy || undefined,
       sortDir: params?.sortOrder,
     };
-    return enquiryApi.getList(convertedParams);
+    return enquiryApi.getList(converted);
   },
+
+  /** 获取所有询价 (无分页) */
+  getAll: async (): Promise<Enquiry[]> =>
+    request<Enquiry[]>('/enquiries/all'),
 };
 
 // ==========================================
-// 报价 API
+// 报价 API (v3: priceLines + containerDetails)
 // ==========================================
 
 export const offerApi = {
   /** 获取询价的所有报价 */
-  getByEnquiryId: async (enquiryId: number): Promise<Offer[]> => {
-    if (USE_MOCK_DATA) {
-      await new Promise(r => setTimeout(r, 200));
-      const enquiry = MOCK_ENQUIRIES.find(e => e.id === enquiryId);
-      return enquiry?.offers || [];
-    }
-    return request<Offer[]>(`/enquiries/${enquiryId}/offers`);
-  },
+  getByEnquiryId: async (enquiryId: number): Promise<Offer[]> =>
+    request<Offer[]>(`/enquiries/${enquiryId}/offers`),
 
-  /** 添加报价 */
-  create: async (data: OfferFormData): Promise<Offer> => {
-    if (USE_MOCK_DATA) {
-      await new Promise(r => setTimeout(r, 400));
-      
-      const enquiry = MOCK_ENQUIRIES.find(e => e.id === data.enquiryId);
-      if (!enquiry) throw new Error('Enquiry not found');
-      
-      // 将之前的最新报价设为非最新
-      if (enquiry.offers) {
-        enquiry.offers.forEach((o: Offer) => {
-          if (o.offerType === data.offerType) {
-            o.isLatest = false;
-          }
-        });
-      } else {
-        enquiry.offers = [];
-      }
-      
-      const sequenceNo = (enquiry.offers.filter((o: Offer) => o.offerType === data.offerType).length) + 1;
-      
-      const newOffer: Offer = {
-        id: MOCK_OFFER_ID_COUNTER++,
-        enquiryId: data.enquiryId,
-        offerType: data.offerType,
-        sequenceNo,
-        isLatest: true,
-        sentDate: data.sentDate || new Date().toISOString().split('T')[0],
-        price: data.price,
-        priceText: data.priceText,
-        isRejectedPrice: false,
-        createdAt: new Date().toISOString(),
-      };
-      
-      enquiry.offers.push(newOffer);
-      
-      // 更新询价状态
-      if (enquiry.status === 'New') {
-        enquiry.status = 'Quoted';
-      }
-      
-      return newOffer;
-    }
-    
-    return request<Offer>(`/enquiries/${data.enquiryId}/offers`, {
+  /** 获取单个报价详情 */
+  getById: async (offerId: number): Promise<Offer> =>
+    request<Offer>(`/offers/${offerId}`),
+
+  /** 创建报价 (DTO, 含 priceLines + containerDetails) */
+  create: async (enquiryId: number, data: OfferCreatePayload): Promise<Offer> =>
+    request<Offer>(`/enquiries/${enquiryId}/offers`, {
       method: 'POST',
       body: JSON.stringify(data),
-    });
-  },
+    }),
 
-  /** 更新报价 */
-  update: async (offerId: number, data: Partial<Offer>): Promise<Offer> => {
-    if (USE_MOCK_DATA) {
-      await new Promise(r => setTimeout(r, 300));
-      
-      for (const enquiry of MOCK_ENQUIRIES) {
-        const offerIndex = enquiry.offers?.findIndex((o: Offer) => o.id === offerId);
-        if (offerIndex !== undefined && offerIndex >= 0 && enquiry.offers) {
-          enquiry.offers[offerIndex] = {
-            ...enquiry.offers[offerIndex],
-            ...data,
-            updatedAt: new Date().toISOString(),
-          };
-          return enquiry.offers[offerIndex];
-        }
-      }
-      throw new Error('Offer not found');
-    }
-    
-    return request<Offer>(`/offers/${offerId}`, {
+  /** 更新报价 (DTO, 全量替换 priceLines) */
+  update: async (offerId: number, data: OfferCreatePayload): Promise<Offer> =>
+    request<Offer>(`/offers/${offerId}`, {
       method: 'PUT',
       body: JSON.stringify(data),
-    });
-  },
+    }),
 
   /** 删除报价 */
-  delete: async (offerId: number): Promise<void> => {
-    if (USE_MOCK_DATA) {
-      await new Promise(r => setTimeout(r, 300));
-      
-      for (const enquiry of MOCK_ENQUIRIES) {
-        if (enquiry.offers) {
-          const index = enquiry.offers.findIndex((o: Offer) => o.id === offerId);
-          if (index >= 0) {
-            enquiry.offers.splice(index, 1);
-            // 如果删除的是最新报价，将上一个设为最新
-            if (enquiry.offers.length > 0) {
-              const lastOffer = enquiry.offers[enquiry.offers.length - 1];
-              lastOffer.isLatest = true;
-            }
-            return;
-          }
-        }
-      }
-      throw new Error('Offer not found');
-    }
-    
-    return request<void>(`/offers/${offerId}`, { method: 'DELETE' });
-  },
+  delete: async (offerId: number): Promise<void> =>
+    request<void>(`/offers/${offerId}`, { method: 'DELETE' }),
+
+  /** 自动生成价格行模板 (POL×POD 笛卡尔积) */
+  generatePriceLines: async (enquiryId: number): Promise<OfferPriceLine[]> =>
+    request<OfferPriceLine[]>(`/enquiries/${enquiryId}/generate-price-lines`, {
+      method: 'POST',
+    }),
 };
 
 // ==========================================
@@ -1230,42 +473,143 @@ export const offerApi = {
 // ==========================================
 
 export const statsApi = {
-  /** 获取仪表盘统计数据 */
-  getDashboardStats: async () => {
-    if (USE_MOCK_DATA) {
-      await new Promise(r => setTimeout(r, 200));
-      
-      const today = new Date().toISOString().split('T')[0];
-      const thisMonth = today.slice(2, 4) + today.slice(5, 7);
-      
-      const todayNew = MOCK_ENQUIRIES.filter(e => e.issueDate === today).length;
-      const newStatus = MOCK_ENQUIRIES.filter(e => e.status === 'New').length;
-      const thisMonthTotal = MOCK_ENQUIRIES.filter(e => e.referenceMonth === thisMonth).length;
-      const quoted = MOCK_ENQUIRIES.filter(e => e.status === 'Quoted').length;
-      const confirmed = MOCK_ENQUIRIES.filter(e => e.bookingConfirmed === 'Yes').length;
-      
-      return {
-        todayNew,
-        pendingQuote: newStatus,
-        thisMonthTotal,
-        quoteRate: thisMonthTotal > 0 ? Math.round((quoted / thisMonthTotal) * 100) : 0,
-        confirmRate: MOCK_ENQUIRIES.length > 0 ? Math.round((confirmed / MOCK_ENQUIRIES.length) * 100) : 0,
-        statusDistribution: {
-          New: newStatus,
-          Quoted: quoted,
-          Pending: MOCK_ENQUIRIES.filter(e => e.status === 'Pending').length,
-        },
-        cargoTypeDistribution: {
-          AIR: MOCK_ENQUIRIES.filter(e => e.cargoTypeCode === 'AIR').length,
-          FCL: MOCK_ENQUIRIES.filter(e => e.cargoTypeCode === 'FCL').length,
-          LCL: MOCK_ENQUIRIES.filter(e => e.cargoTypeCode === 'LCL').length,
-          RAIL: MOCK_ENQUIRIES.filter(e => e.cargoTypeCode === 'RAIL').length,
-          SEA: MOCK_ENQUIRIES.filter(e => e.cargoTypeCode === 'SEA').length,
-        },
-      };
-    }
-    
-    return request<any>('/stats/dashboard');
+  /** 仪表盘统计 (按月) */
+  getDashboardStats: async (month?: string): Promise<DashboardStats> =>
+    request<DashboardStats>(`/statistics/dashboard${month ? '?month=' + encodeURIComponent(month) : ''}`),
+
+  /** 仪表盘统计 (带筛选) */
+  getFilteredDashboard: async (params: DashboardFilterParams): Promise<DashboardStats> => {
+    const sp = new URLSearchParams();
+    if (params.startDate) sp.set('startDate', params.startDate);
+    if (params.endDate) sp.set('endDate', params.endDate);
+    if (params.coreFlags?.length) sp.set('coreFlags', params.coreFlags.join(','));
+    if (params.cnOffice) sp.set('cnOffice', params.cnOffice);
+    if (params.products?.length) sp.set('products', params.products.join(','));
+    if (params.countries?.length) sp.set('countries', params.countries.join(','));
+    return request<DashboardStats>(`/statistics/dashboard/filtered?${sp.toString()}`);
+  },
+
+  /** 办公室询价明细 */
+  getOfficeEnquiries: async (params: {
+    officeName: string;
+    bookingStatus?: string;
+    startDate?: string;
+    endDate?: string;
+    coreFlags?: string[];
+    products?: string[];
+    countries?: string[];
+  }): Promise<any[]> => {
+    const sp = new URLSearchParams();
+    sp.set('officeName', params.officeName);
+    if (params.bookingStatus) sp.set('bookingStatus', params.bookingStatus);
+    if (params.startDate) sp.set('startDate', params.startDate);
+    if (params.endDate) sp.set('endDate', params.endDate);
+    if (params.coreFlags?.length) sp.set('coreFlags', params.coreFlags.join(','));
+    if (params.products?.length) sp.set('products', params.products.join(','));
+    if (params.countries?.length) sp.set('countries', params.countries.join(','));
+    return request<any[]>(`/statistics/office-enquiries?${sp.toString()}`);
+  },
+
+  /** 月度报表 */
+  getMonthlyReport: async (year: number, month: number): Promise<MonthlyReportData> =>
+    request<MonthlyReportData>(`/statistics/monthly?year=${year}&month=${month}`),
+
+  /** 国家报表 */
+  getCountryReport: async (countryCode: string): Promise<CountryReportData> =>
+    request<CountryReportData>(`/statistics/country?countryCode=${encodeURIComponent(countryCode)}`),
+
+  /** 多期对比 */
+  getComparison: async (payload: PeriodComparisonRequest): Promise<ComparisonResult> =>
+    request<ComparisonResult>('/statistics/comparison', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  /** 导出报表 */
+  exportReport: async (options: ExportOptions): Promise<Blob> => {
+    const url = `${API_BASE_URL}/statistics/export`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(options),
+    });
+    if (!response.ok) throw new Error('Export failed');
+    return response.blob();
+  },
+};
+
+// ==========================================
+// 用户管理 API
+// ==========================================
+
+export const userApi = {
+  getAll: async (includeInactive = false) =>
+    request<any[]>(`/users?includeInactive=${includeInactive}`),
+
+  getById: async (id: number) =>
+    request<any>(`/users/${id}`),
+
+  create: async (data: any) =>
+    request<any>('/users', { method: 'POST', body: JSON.stringify(data) }),
+
+  update: async (id: number, data: any) =>
+    request<any>(`/users/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+
+  delete: async (id: number) =>
+    request<void>(`/users/${id}`, { method: 'DELETE' }),
+
+  getRoles: async () =>
+    request<any[]>('/users/roles'),
+
+  resetPassword: async (id: number) =>
+    request<any>(`/users/${id}/reset-password`, { method: 'POST' }),
+};
+
+// ==========================================
+// 审计日志 API
+// ==========================================
+
+export const auditLogApi = {
+  getList: async (params?: {
+    userId?: number;
+    action?: string;
+    resourceType?: string;
+    startTime?: string;
+    endTime?: string;
+    page?: number;
+    size?: number;
+  }) => {
+    const sp = new URLSearchParams();
+    if (params?.userId) sp.set('userId', String(params.userId));
+    if (params?.action) sp.set('action', params.action);
+    if (params?.resourceType) sp.set('resourceType', params.resourceType);
+    if (params?.startTime) sp.set('startTime', params.startTime);
+    if (params?.endTime) sp.set('endTime', params.endTime);
+    if (params?.page !== undefined) sp.set('page', String(params.page));
+    if (params?.size !== undefined) sp.set('size', String(params.size));
+    return request<any>(`/audit-logs?${sp.toString()}`);
+  },
+
+  getResourceHistory: async (resourceType: string, resourceId: number) =>
+    request<any[]>(`/audit-logs/resource-history?resourceType=${resourceType}&resourceId=${resourceId}`),
+
+  getByUser: async (userId: number, page = 0, size = 20) =>
+    request<any>(`/audit-logs/user/${userId}?page=${page}&size=${size}`),
+
+  export: async (params?: {
+    userId?: number;
+    action?: string;
+    resourceType?: string;
+    startTime?: string;
+    endTime?: string;
+  }) => {
+    const sp = new URLSearchParams();
+    if (params?.userId) sp.set('userId', String(params.userId));
+    if (params?.action) sp.set('action', params.action);
+    if (params?.resourceType) sp.set('resourceType', params.resourceType);
+    if (params?.startTime) sp.set('startTime', params.startTime);
+    if (params?.endTime) sp.set('endTime', params.endTime);
+    return request<any>(`/audit-logs/export?${sp.toString()}`);
   },
 };
 

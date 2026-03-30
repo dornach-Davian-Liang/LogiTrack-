@@ -111,7 +111,7 @@ const SalesPicList: React.FC = () => {
         (pic.salesOfficeCode ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (pic.salesOfficeName ?? '').toLowerCase().includes(searchTerm.toLowerCase());
       
-      const matchesCountry = !filterCountry || pic.countryCode === filterCountry;
+      const matchesCountry = !filterCountry || pic.salesCountryCode === filterCountry;
       const matchesOffice = !filterOffice || (pic.salesOfficeCode ?? '') === filterOffice;
       
       return matchesSearch && matchesCountry && matchesOffice;
@@ -216,7 +216,7 @@ const SalesPicList: React.FC = () => {
                   <User className="w-4 h-4 text-gray-400" />
                   {pic.name}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{pic.countryCode}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{pic.salesCountryCode}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{pic.salesOfficeName}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{pic.salesOfficeCode}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -328,8 +328,8 @@ const SalesPicList: React.FC = () => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Country</label>
                   <select
-                    value={editingPic.countryCode || ''}
-                    onChange={e => setEditingPic({ ...editingPic, countryCode: e.target.value })}
+                    value={editingPic.salesCountryCode || ''}
+                    onChange={e => setEditingPic({ ...editingPic, salesCountryCode: e.target.value })}
                     required
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
                   >

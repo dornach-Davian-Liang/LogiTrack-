@@ -1,310 +1,222 @@
-import React, { useState } from 'react';
-import { Plus, Edit, Trash2, X, Save } from 'lucide-react';
-import { Offer, OfferType, OfferFormData } from '../../types';
+import React, { useState, useCallback } from 'react';
+import { Plus, Edit, Trash2, DollarSign, Calendar, FileText, Star, Package } from 'lucide-react';
+import { Offer, OfferCreatePayload } from '../../types';
 import { offerApi } from '../../services/api';
+import { OfferDialog } from './OfferDialog';
 
-type OfferStatus = 'Draft' | 'Sent' | 'Confirmed' | 'Rejected';
+/**
+ * OfferManagement v3 — 独立报价管理面板
+ * 用于 EnquiryDetail 的 Offers 标签页外，
+ * 也可作为独立管理页面使用（如后台批量管理）
+ *
+ * 渲染 Offer 表格列表 + 复用 OfferDialog 进行创建/编辑
+ */
 
 interface OfferManagementProps {
   enquiryId: number;
+  enquiryRefNumber: string;
+  cargoTypeCode: string;
   offers: Offer[];
   onOffersUpdate: () => void;
+  canManage?: boolean;
 }
 
-export const OfferManagement: React.FC<OfferManagementProps> = ({ enquiryId, offers, onOffersUpdate }) => {
-  const [showForm, setShowForm] = useState(false);
-  const [editingOffer, setEditingOffer] = useState<Partial<Offer> | null>(null);
-  const [formData, setFormData] = useState<Partial<Offer>>({
-    enquiryId,
-    offerType: 'OCEAN',
-  });
+const OFFER_TYPE_COLORS: Record<string, string> = {
+  'FCL': 'bg-blue-100 text-blue-700',
+  'LCL': 'bg-green-100 text-green-700',
+  'AIR': 'bg-purple-100 text-purple-700',
+  'BUYER-CONSOL': 'bg-orange-100 text-orange-700',
+};
 
-  const handleNewOffer = () => {
-    const nextSequence = Math.max(0, ...offers.map(o => o.sequenceNo || 0)) + 1;
-    setFormData({
-      enquiryId,
-      sequenceNo: nextSequence,
-      offerType: 'OCEAN',
-      sentDate: new Date().toISOString().split('T')[0],
-    });
-    setEditingOffer(null);
-    setShowForm(true);
+export const OfferManagement: React.FC<OfferManagementProps> = ({
+  enquiryId,
+  enquiryRefNumber,
+  cargoTypeCode,
+  offers,
+  onOffersUpdate,
+  canManage = true,
+}) => {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingOffer, setEditingOffer] = useState<Offer | undefined>(undefined);
+
+  const handleAddOffer = () => {
+    setEditingOffer(undefined);
+    setIsDialogOpen(true);
   };
 
-  const handleEdit = (offer: Offer) => {
-    setFormData(offer);
+  const handleEditOffer = (offer: Offer) => {
     setEditingOffer(offer);
-    setShowForm(true);
+    setIsDialogOpen(true);
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDeleteOffer = async (offerId: number) => {
     if (!confirm('Are you sure you want to delete this offer?')) return;
-    
     try {
-      await offerApi.delete(id);
+      await offerApi.delete(offerId);
       onOffersUpdate();
     } catch (error) {
-      alert('Failed to delete offer');
-      console.error(error);
+      console.error('Failed to delete offer:', error);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    try {
-      if (editingOffer?.id) {
-        await offerApi.update(editingOffer.id, formData);
-      } else {
-        await offerApi.create(formData as OfferFormData);
-      }
-      setShowForm(false);
-      onOffersUpdate();
-    } catch (error) {
-      alert('Failed to save offer');
-      console.error(error);
+  const handleSaveOffer = useCallback(async (payload: OfferCreatePayload, existingId?: number) => {
+    if (existingId) {
+      await offerApi.update(existingId, payload);
+    } else {
+      await offerApi.create(enquiryId, payload);
     }
-  };
+    setIsDialogOpen(false);
+    onOffersUpdate();
+  }, [enquiryId, onOffersUpdate]);
 
-  const getStatusColor = (status?: string) => {
-    switch (status) {
-      case 'Draft': return 'bg-gray-100 text-gray-800';
-      case 'Sent': return 'bg-blue-100 text-blue-800';
-      case 'Confirmed': return 'bg-green-100 text-green-800';
-      case 'Rejected': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
+  const totalContainers = (offer: Offer) =>
+    (offer.priceLines || []).reduce((s, l) =>
+      s + (l.containerDetails || []).reduce((cs, d) => cs + (d.numberOfContainers || 0), 0), 0);
+
+  const totalTeu = (offer: Offer) =>
+    (offer.priceLines || []).reduce((s, l) =>
+      s + (l.containerDetails || []).reduce((cs, d) => cs + (d.numberOfContainers || 0) * (d.teuValue || 0), 0), 0);
 
   return (
     <div className="space-y-4">
+      {/* Header */}
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium text-gray-900">Offers</h3>
-        <button
-          onClick={handleNewOffer}
-          className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          New Offer
-        </button>
+        <div className="flex items-center gap-3">
+          <DollarSign className="w-5 h-5 text-emerald-600" />
+          <h3 className="text-lg font-semibold text-gray-900">
+            Offers ({offers.length})
+          </h3>
+        </div>
+        {canManage && (
+          <button
+            onClick={handleAddOffer}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition-colors"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            New Offer
+          </button>
+        )}
       </div>
 
-      {/* Offer List */}
+      {/* Offer Table */}
       {offers.length === 0 ? (
-        <div className="bg-white shadow rounded-lg p-8 text-center text-gray-500">
-          <p>No offers created yet</p>
-          <button onClick={handleNewOffer} className="mt-2 text-indigo-600 hover:underline">
-            Create your first offer
-          </button>
+        <div className="bg-white shadow rounded-xl p-12 text-center">
+          <DollarSign className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+          <p className="text-gray-500 mb-3">No offers created yet</p>
+          {canManage && (
+            <button
+              onClick={handleAddOffer}
+              className="text-emerald-600 hover:text-emerald-700 font-medium hover:underline"
+            >
+              Create your first offer →
+            </button>
+          )}
         </div>
       ) : (
-        <div className="bg-white shadow rounded-lg overflow-hidden">
+        <div className="bg-white shadow rounded-xl overflow-hidden border border-gray-100">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Offer #</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Carrier</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ocean Freight</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Valid Until</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Offer</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Type</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Routes</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Containers</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Remark</th>
+                {canManage && (
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                )}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
-              {offers.map((offer) => (
-                <tr key={offer.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    Offer #{offer.offerSequence}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {offer.carrierName}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    ${offer.oceanFreight}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-indigo-600">
-                    ${offer.totalAmount}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {offer.validUntil}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 text-xs font-semibold rounded ${getStatusColor(offer.status)}`}>
-                      {offer.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => handleEdit(offer)}
-                        className="text-blue-600 hover:text-blue-900"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(offer.id!)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+            <tbody className="divide-y divide-gray-100">
+              {offers.map((offer) => {
+                const ctrs = totalContainers(offer);
+                const teu = totalTeu(offer);
+                const isFCL = offer.offerType === 'FCL' || offer.offerType === 'BUYER-CONSOL';
+                return (
+                  <tr key={offer.id} className="hover:bg-gray-50/80 transition-colors">
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-gray-900">#{offer.sequenceNo}</span>
+                        {offer.isLatest && (
+                          <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className={`px-2 py-0.5 text-xs font-semibold rounded ${OFFER_TYPE_COLORS[offer.offerType] || 'bg-gray-100 text-gray-700'}`}>
+                        {offer.offerType}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                        {offer.offerDate || '—'}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                        <FileText className="w-3.5 h-3.5 text-gray-400" />
+                        <span>{offer.priceLines?.length || 0} line(s)</span>
+                        {offer.priceLines?.length > 0 && (
+                          <span className="text-xs text-gray-400" title={offer.priceLines.slice(0, 3).map(l => `${l.polName || '?'} → ${l.podName || '?'}`).join(', ')}>
+                            ({offer.priceLines.slice(0, 2).map(l => l.polName || '?').join(', ')}{offer.priceLines.length > 2 ? '...' : ''})
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm">
+                      {isFCL && ctrs > 0 ? (
+                        <div className="flex items-center gap-1.5 text-indigo-600">
+                          <Package className="w-3.5 h-3.5" />
+                          <span>{ctrs} ctrs / {teu.toFixed(1)} TEU</span>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-500 truncate max-w-[180px]" title={offer.remark || ''}>
+                      {offer.remark || '—'}
+                    </td>
+                    {canManage && (
+                      <td className="px-4 py-3 whitespace-nowrap text-right">
+                        <div className="flex justify-end gap-1">
+                          <button
+                            onClick={() => handleEditOffer(offer)}
+                            className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="Edit Offer"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteOffer(offer.id!)}
+                            className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Delete Offer"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
 
-      {/* Offer Form Modal */}
-      {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <div className="flex justify-between items-center border-b pb-4">
-                <h3 className="text-xl font-bold text-gray-900">
-                  {editingOffer ? 'Edit Offer' : 'New Offer'}
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Offer Sequence *</label>
-                  <input
-                    type="number"
-                    value={formData.offerSequence}
-                    onChange={(e) => setFormData({ ...formData, offerSequence: Number(e.target.value) })}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Status *</label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value as OfferStatus })}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                    required
-                  >
-                    <option value="Draft">Draft</option>
-                    <option value="Sent">Sent</option>
-                    <option value="Confirmed">Confirmed</option>
-                    <option value="Rejected">Rejected</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Carrier Name *</label>
-                  <input
-                    type="text"
-                    value={formData.carrierName || ''}
-                    onChange={(e) => setFormData({ ...formData, carrierName: e.target.value })}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Valid Until *</label>
-                  <input
-                    type="date"
-                    value={formData.validUntil || ''}
-                    onChange={(e) => setFormData({ ...formData, validUntil: e.target.value })}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Ocean Freight *</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.oceanFreight || ''}
-                    onChange={(e) => {
-                      const oceanFreight = Number(e.target.value);
-                      const otherCharges = formData.otherCharges || 0;
-                      setFormData({ 
-                        ...formData, 
-                        oceanFreight,
-                        totalAmount: oceanFreight + otherCharges
-                      });
-                    }}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Other Charges</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.otherCharges || ''}
-                    onChange={(e) => {
-                      const otherCharges = Number(e.target.value);
-                      const oceanFreight = formData.oceanFreight || 0;
-                      setFormData({ 
-                        ...formData, 
-                        otherCharges,
-                        totalAmount: oceanFreight + otherCharges
-                      });
-                    }}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  />
-                </div>
-
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700">Total Amount</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.totalAmount || 0}
-                    disabled
-                    className="mt-1 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm font-semibold text-lg"
-                  />
-                </div>
-
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700">Remarks</label>
-                  <textarea
-                    value={formData.remarks || ''}
-                    onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
-                    rows={3}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4 border-t">
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
-                >
-                  <Save className="w-4 h-4 mr-2" />
-                  Save Offer
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* OfferDialog v3 */}
+      <OfferDialog
+        enquiryId={enquiryId}
+        enquiryRefNumber={enquiryRefNumber}
+        cargoTypeCode={cargoTypeCode}
+        existingOffer={editingOffer}
+        offersCount={offers.length}
+        isOpen={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+        onSave={handleSaveOffer}
+      />
     </div>
   );
 };

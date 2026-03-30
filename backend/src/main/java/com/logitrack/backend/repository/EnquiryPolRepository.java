@@ -15,19 +15,9 @@ public interface EnquiryPolRepository extends JpaRepository<EnquiryPol, Long> {
     /**
      * 根据询价ID查找所有起运港
      */
-    List<EnquiryPol> findByEnquiryIdOrderBySequence(Long enquiryId);
+    List<EnquiryPol> findByEnquiryId(Long enquiryId);
     
-    /**
-     * 删除指定询价的所有起运港
-     */
     @Modifying
     @Query("DELETE FROM EnquiryPol ep WHERE ep.enquiryId = :enquiryId")
     void deleteByEnquiryId(@Param("enquiryId") Long enquiryId);
-    
-    /**
-     * 批量插入起运港
-     */
-    @Modifying
-    @Query(value = "INSERT INTO enquiry_pol (enquiry_id, port_id, sequence) VALUES (:enquiryId, :portId, :sequence)", nativeQuery = true)
-    void insertPol(@Param("enquiryId") Long enquiryId, @Param("portId") Integer portId, @Param("sequence") Integer sequence);
 }

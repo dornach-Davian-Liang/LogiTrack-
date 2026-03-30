@@ -15,19 +15,9 @@ public interface EnquiryPodRepository extends JpaRepository<EnquiryPod, Long> {
     /**
      * 根据询价ID查找所有目的港
      */
-    List<EnquiryPod> findByEnquiryIdOrderBySequence(Long enquiryId);
+    List<EnquiryPod> findByEnquiryId(Long enquiryId);
     
-    /**
-     * 删除指定询价的所有目的港
-     */
     @Modifying
     @Query("DELETE FROM EnquiryPod ep WHERE ep.enquiryId = :enquiryId")
     void deleteByEnquiryId(@Param("enquiryId") Long enquiryId);
-    
-    /**
-     * 批量插入目的港
-     */
-    @Modifying
-    @Query(value = "INSERT INTO enquiry_pod (enquiry_id, port_id, sequence) VALUES (:enquiryId, :portId, :sequence)", nativeQuery = true)
-    void insertPod(@Param("enquiryId") Long enquiryId, @Param("portId") Integer portId, @Param("sequence") Integer sequence);
 }

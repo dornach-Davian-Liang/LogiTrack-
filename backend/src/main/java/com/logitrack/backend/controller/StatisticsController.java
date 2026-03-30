@@ -6,6 +6,7 @@ import com.logitrack.backend.service.StatisticsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -143,58 +144,41 @@ public class StatisticsController {
     }
 
     /**
-     * GET /api/statistics/monthly - Get monthly report
-     * @param year Year parameter
-     * @param month Month parameter (1-12)
-     * @return Monthly report data
+     * GET /api/statistics/monthly - Get monthly report (reserved, not yet exposed in UI)
      */
     @GetMapping("/monthly")
     public ResponseEntity<?> getMonthlyReport(
             @RequestParam int year,
             @RequestParam int month) {
-        
-        log.info("GET /api/statistics/monthly - year={}, month={}", year, month);
-        
-        // TODO: Implement monthly report logic
-        return ResponseEntity.ok().body(Map.of(
-            "message", "Monthly report endpoint - implementation pending",
+        log.info("GET /api/statistics/monthly - year={}, month={} (not implemented)", year, month);
+        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).body(Map.of(
+            "error", "Monthly report endpoint not yet implemented",
             "year", year,
             "month", month
         ));
     }
     
     /**
-     * GET /api/statistics/country - Get country-based report
-     * @param countryCode Optional country code filter
-     * @return Country report data
+     * GET /api/statistics/country - Get country-based report (reserved, not yet exposed in UI)
      */
     @GetMapping("/country")
     public ResponseEntity<?> getCountryReport(
             @RequestParam(required = false) String countryCode) {
-        
-        log.info("GET /api/statistics/country - countryCode={}", countryCode);
-        
-        // TODO: Implement country report logic
-        return ResponseEntity.ok().body(Map.of(
-            "message", "Country report endpoint - implementation pending",
+        log.info("GET /api/statistics/country - countryCode={} (not implemented)", countryCode);
+        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).body(Map.of(
+            "error", "Country report endpoint not yet implemented",
             "countryCode", countryCode != null ? countryCode : "all"
         ));
     }
     
     /**
-     * POST /api/statistics/export - Export report data
-     * @param exportOptions Export configuration
-     * @return Export file or export ID
+     * POST /api/statistics/export - Export report data (reserved, not yet exposed in UI)
      */
     @PostMapping("/export")
     public ResponseEntity<?> exportReport(@RequestBody Map<String, Object> exportOptions) {
-        
-        log.info("POST /api/statistics/export - options={}", exportOptions);
-        
-        // TODO: Implement export logic
-        return ResponseEntity.ok().body(Map.of(
-            "message", "Export endpoint - implementation pending",
-            "exportId", "EXP-" + System.currentTimeMillis()
+        log.info("POST /api/statistics/export (not implemented)");
+        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).body(Map.of(
+            "error", "Export endpoint not yet implemented"
         ));
     }
     

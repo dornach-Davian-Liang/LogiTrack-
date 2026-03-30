@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Edit, Trash2, Plus, Package, Ship, User, Calendar, FileText, DollarSign } from 'lucide-react';
-import { Enquiry, Offer, ContainerTypeSelectOption, SalesPicSelectOption, Port, SelectOption, SalesOffice } from '../../types';
+import { ArrowLeft, Edit, Trash2, Plus, Package, Ship, User, Calendar, FileText, DollarSign, RefreshCw } from 'lucide-react';
+import { Enquiry, Offer, OfferCreatePayload, ContainerTypeSelectOption, SalesPicSelectOption, Port, SelectOption, SalesOffice, OfferPriceLine } from '../../types';
 import { enquiryApi, offerApi, masterDataApi } from '../../services/api';
 import OfferDialog from '../offer/OfferDialog';
+import StatusChangeDialog from './StatusChangeDialog';
 
 interface EnquiryDetailProps {
   enquiryId: number;
@@ -11,7 +12,7 @@ interface EnquiryDetailProps {
   canManage: boolean;
 }
 
-type TabType = 'basic' | 'cargo' | 'route' | 'containers' | 'offers';
+type TabType = 'basic' | 'cargo' | 'route' | 'offers';
 
 export const EnquiryDetail: React.FC<EnquiryDetailProps> = ({ enquiryId, onBack, onEdit, canManage }) => {
   const [enquiry, setEnquiry] = useState<Enquiry | null>(null);
@@ -20,6 +21,7 @@ export const EnquiryDetail: React.FC<EnquiryDetailProps> = ({ enquiryId, onBack,
   const [activeTab, setActiveTab] = useState<TabType>('basic');
   const [isOfferDialogOpen, setIsOfferDialogOpen] = useState(false);
   const [editingOffer, setEditingOffer] = useState<Offer | undefined>(undefined);
+  const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
   const [salesOffice, setSalesOffice] = useState<SalesOffice | null>(null);
   const [salesPic, setSalesPic] = useState<SalesPicSelectOption | null>(null);
   const [polPorts, setPolPorts] = useState<Port[]>([]);
@@ -48,13 +50,8 @@ export const EnquiryDetail: React.FC<EnquiryDetailProps> = ({ enquiryId, onBack,
         enquiryData.salesCountryCode ? masterDataApi.getSalesPicsByCountry(enquiryData.salesCountryCode) : Promise.resolve([]),
       ]);
 
-      const polIds = (enquiryData.polIds && enquiryData.polIds.length > 0)
-        ? enquiryData.polIds
-        : (enquiryData.polId ? [enquiryData.polId] : []);
-
-      const podIds = (enquiryData.podIds && enquiryData.podIds.length > 0)
-        ? enquiryData.podIds
-        : (enquiryData.podId ? [enquiryData.podId] : []);
+      const polIds = enquiryData.polIds ?? [];
+      const podIds = enquiryData.podIds ?? [];
 
       const [polResults, podResults] = await Promise.all([
         Promise.all(polIds.map(id => masterDataApi.getPortById(Number(id)))),
@@ -85,20 +82,27 @@ export const EnquiryDetail: React.FC<EnquiryDetailProps> = ({ enquiryId, onBack,
     setIsOfferDialogOpen(true);
   };
 
-  const handleSaveOffer = async (offerData: Partial<Offer>) => {
+  const handleSaveOffer = async (payload: OfferCreatePayload, existingId?: number) => {
     try {
-      if (offerData.id) {
-        // Update existing offer
-        await offerApi.update(offerData.id, offerData);
+      if (existingId) {
+        await offerApi.update(existingId, payload);
       } else {
-        // Create new offer
-        await offerApi.create(offerData as any);
+        await offerApi.create(enquiryId, payload);
       }
-      // Reload data
       await loadData();
     } catch (error) {
       console.error('Failed to save offer:', error);
       throw error;
+    }
+  };
+
+  const handleDeleteOffer = async (offerId: number) => {
+    if (!confirm('Are you sure you want to delete this offer?')) return;
+    try {
+      await offerApi.delete(offerId);
+      await loadData();
+    } catch (error) {
+      console.error('Failed to delete offer:', error);
     }
   };
 
@@ -114,8 +118,9 @@ export const EnquiryDetail: React.FC<EnquiryDetailProps> = ({ enquiryId, onBack,
     return line.lineTeu ?? line.teuTotal ?? (qty * teuPerUnit);
   };
 
+  // containerLines removed in v3 (now in Offer priceLines)
   const calculateTotalTeu = () => {
-    return (enquiry?.containerLines || []).reduce((sum, line) => sum + calculateLineTeu(line), 0);
+    return 0;
   };
 
   const getPortDisplay = (port?: Port | null) => {
@@ -154,9 +159,10 @@ export const EnquiryDetail: React.FC<EnquiryDetailProps> = ({ enquiryId, onBack,
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'New': return 'bg-blue-100 text-blue-800';
-      case 'Quoted': return 'bg-green-100 text-green-800';
-      case 'Pending': return 'bg-yellow-100 text-yellow-800';
-      case 'Cancelled': return 'bg-red-100 text-red-800';
+      case 'Quoted & Pending': return 'bg-yellow-100 text-yellow-800';
+      case 'Secured': return 'bg-green-100 text-green-800';
+      case 'Lost': return 'bg-red-100 text-red-800';
+      case 'Cancelled': return 'bg-gray-100 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -204,12 +210,19 @@ export const EnquiryDetail: React.FC<EnquiryDetailProps> = ({ enquiryId, onBack,
                   <ArrowLeft className="w-5 h-5" />
                 </button>
                 <div>
-                  <h1 className="text-3xl font-bold text-white tracking-tight">{enquiry.referenceNumber}</h1>
+                  <h1 className="text-3xl font-bold text-white tracking-tight">{enquiry.refNumber}</h1>
                   <p className="text-indigo-100 mt-1 text-sm font-medium">Enquiry Details & Management</p>
                 </div>
               </div>
               {canManage && (
                 <div className="flex gap-3">
+                  <button
+                    onClick={() => setIsStatusDialogOpen(true)}
+                    className="inline-flex items-center px-5 py-2.5 bg-white/20 text-white border border-white/40 shadow-lg text-sm font-semibold rounded-xl hover:bg-white/30 transition-all duration-200 hover:scale-105"
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Change Status
+                  </button>
                   <button
                     onClick={() => onEdit(enquiry)}
                     className="inline-flex items-center px-5 py-2.5 bg-white text-indigo-600 shadow-lg text-sm font-semibold rounded-xl hover:bg-indigo-50 transition-all duration-200 hover:scale-105"
@@ -229,12 +242,7 @@ export const EnquiryDetail: React.FC<EnquiryDetailProps> = ({ enquiryId, onBack,
                   {enquiry.status}
                 </span>
               </div>
-              <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-xl">
-                <span className="text-indigo-100 text-sm font-medium">Booking:</span>
-                <span className={`px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-lg ${getBookingColor(enquiry.bookingConfirmed || 'Pending')} shadow-sm`}>
-                  {enquiry.bookingConfirmed || 'Pending'}
-                </span>
-              </div>
+              {/* bookingConfirmed removed in v3 */}
               <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-xl">
                 <Calendar className="w-4 h-4 text-indigo-100" />
                 <span className="text-indigo-100 text-sm font-medium">Created:</span>
@@ -282,17 +290,6 @@ export const EnquiryDetail: React.FC<EnquiryDetailProps> = ({ enquiryId, onBack,
               <span>Route Info</span>
             </button>
             <button
-              onClick={() => setActiveTab('containers')}
-              className={`${
-                activeTab === 'containers'
-                  ? 'border-indigo-500 text-indigo-600 bg-indigo-50/50'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-              } flex-1 py-4 px-4 border-b-2 font-semibold text-sm flex items-center justify-center gap-2 transition-all duration-200 rounded-t-lg group`}
-            >
-              <Package className={`w-5 h-5 ${activeTab === 'containers' ? 'text-indigo-600' : 'text-gray-400 group-hover:text-gray-600'}`} />
-              <span>Container Lines</span>
-            </button>
-            <button
               onClick={() => setActiveTab('offers')}
               className={`${
                 activeTab === 'offers'
@@ -337,21 +334,18 @@ export const EnquiryDetail: React.FC<EnquiryDetailProps> = ({ enquiryId, onBack,
                   <dt className="text-xs font-semibold text-orange-600 uppercase tracking-wider mb-2">Sales PIC</dt>
                   <dd className="text-lg font-bold text-gray-900">{salesPic?.label || enquiry.salesPicName || '-'}</dd>
                 </div>
-                <div className="bg-gradient-to-br from-cyan-50 to-blue-50 p-5 rounded-xl border border-cyan-100 hover:shadow-md transition-shadow duration-200">
-                  <dt className="text-xs font-semibold text-cyan-600 uppercase tracking-wider mb-2">CN Pricing Admin</dt>
-                  <dd className="text-lg font-bold text-gray-900">{enquiry.cnPricingAdmin || '-'}</dd>
-                </div>
+                {/* cnPricingAdmin removed in v3 */}
                 <div className="bg-gradient-to-br from-teal-50 to-green-50 p-5 rounded-xl border border-teal-100 hover:shadow-md transition-shadow duration-200">
                   <dt className="text-xs font-semibold text-teal-600 uppercase tracking-wider mb-2">Assigned CN Office</dt>
-                  <dd className="text-lg font-bold text-gray-900">{enquiry.assignedCnOfficeCode || '-'}</dd>
+                  <dd className="text-lg font-bold text-gray-900">{enquiry.assignedCnOffice || '-'}</dd>
                 </div>
                 <div className="bg-gradient-to-br from-rose-50 to-red-50 p-5 rounded-xl border border-rose-100 hover:shadow-md transition-shadow duration-200">
                   <dt className="text-xs font-semibold text-rose-600 uppercase tracking-wider mb-2">Core Flag</dt>
-                  <dd className="text-lg font-bold text-gray-900">{enquiry.coreFlag || '-'}</dd>
+                  <dd className="text-lg font-bold text-gray-900">{enquiry.coreNonCore || '-'}</dd>
                 </div>
                 <div className="bg-gradient-to-br from-violet-50 to-purple-50 p-5 rounded-xl border border-violet-100 hover:shadow-md transition-shadow duration-200">
                   <dt className="text-xs font-semibold text-violet-600 uppercase tracking-wider mb-2">Category</dt>
-                  <dd className="text-lg font-bold text-gray-900">{enquiry.categoryCode || '-'}</dd>
+                  <dd className="text-lg font-bold text-gray-900">{enquiry.category || '-'}</dd>
                 </div>
               </div>
             </div>
@@ -380,40 +374,37 @@ export const EnquiryDetail: React.FC<EnquiryDetailProps> = ({ enquiryId, onBack,
                 </div>
                 <div className="bg-gradient-to-br from-purple-50 to-violet-50 p-5 rounded-xl border border-purple-100 hover:shadow-md transition-shadow duration-200">
                   <dt className="text-xs font-semibold text-purple-600 uppercase tracking-wider mb-2">Quantity</dt>
-                  <dd className="text-lg font-bold text-gray-900">{enquiry.quantity || '-'} {enquiry.quantityUomCode || ''}</dd>
+                  <dd className="text-lg font-bold text-gray-900">{enquiry.quantity || '-'} {enquiry.uom || ''}</dd>
                 </div>
-                <div className="bg-gradient-to-br from-indigo-50 to-blue-50 p-5 rounded-xl border border-indigo-100 hover:shadow-md transition-shadow duration-200">
-                  <dt className="text-xs font-semibold text-indigo-600 uppercase tracking-wider mb-2">Total TEU</dt>
-                  <dd className="text-lg font-bold text-gray-900">{enquiry.quantityTeu || '-'}</dd>
-                </div>
+                {/* quantityTeu removed in v3 — TEU now computed from Offer priceLines */}
                 <div className="bg-gradient-to-br from-orange-50 to-amber-50 p-5 rounded-xl border border-orange-100 hover:shadow-md transition-shadow duration-200">
                   <dt className="text-xs font-semibold text-orange-600 uppercase tracking-wider mb-2">Cargo Ready Date</dt>
                   <dd className="text-lg font-bold text-gray-900">{enquiry.cargoReadyDate || '-'}</dd>
                 </div>
+                {/* Contains Oversized Cargo indicator */}
+                {enquiry.isOversizeCargo && (
+                  <div className="col-span-2 bg-gradient-to-br from-amber-50 to-orange-50 p-5 rounded-xl border border-amber-200 hover:shadow-md transition-shadow duration-200">
+                    <dt className="text-xs font-semibold text-amber-700 uppercase tracking-wider mb-2">Oversized Cargo</dt>
+                    <dd className="flex items-center gap-2">
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                        ⚠️ Contains Oversized Cargo
+                      </span>
+                    </dd>
+                  </div>
+                )}
                 <div className="col-span-2 bg-gradient-to-br from-red-50 to-rose-50 p-5 rounded-xl border border-red-100 hover:shadow-md transition-shadow duration-200">
                   <dt className="text-xs font-semibold text-red-600 uppercase tracking-wider mb-2">Hazardous/Special Equipment</dt>
-                  <dd className="text-sm text-gray-900 whitespace-pre-wrap leading-relaxed">{enquiry.hazSpecialEquipment || '-'}</dd>
+                  <dd className="text-sm text-gray-900 whitespace-pre-wrap leading-relaxed">{enquiry.hazardousSpecialEquipment || '-'}</dd>
                 </div>
                 <div className="col-span-2 bg-gradient-to-br from-yellow-50 to-amber-50 p-5 rounded-xl border border-yellow-100 hover:shadow-md transition-shadow duration-200">
                   <dt className="text-xs font-semibold text-yellow-700 uppercase tracking-wider mb-2">Additional Requirements</dt>
-                  <dd className="text-sm text-gray-900 whitespace-pre-wrap leading-relaxed">{enquiry.additionalRequirement || '-'}</dd>
+                  <dd className="text-sm text-gray-900 whitespace-pre-wrap leading-relaxed">{enquiry.cargoReadyDateDetails || '-'}</dd>
                 </div>
                 <div className="col-span-2 bg-gradient-to-br from-slate-50 to-gray-50 p-5 rounded-xl border border-slate-100 hover:shadow-md transition-shadow duration-200">
                   <dt className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Remark</dt>
                   <dd className="text-sm text-gray-900 whitespace-pre-wrap leading-relaxed">{enquiry.remark || '-'}</dd>
                 </div>
-                {enquiry.rejectedReason && (
-                  <div className="col-span-2 bg-gradient-to-br from-red-50 to-orange-50 p-5 rounded-xl border-2 border-red-200 hover:shadow-md transition-shadow duration-200">
-                    <dt className="text-xs font-semibold text-red-700 uppercase tracking-wider mb-2">Rejected Reason</dt>
-                    <dd className="text-sm text-gray-900 whitespace-pre-wrap leading-relaxed">{enquiry.rejectedReason}</dd>
-                  </div>
-                )}
-                {enquiry.actualReason && (
-                  <div className="col-span-2 bg-gradient-to-br from-blue-50 to-cyan-50 p-5 rounded-xl border border-blue-100 hover:shadow-md transition-shadow duration-200">
-                    <dt className="text-xs font-semibold text-blue-600 uppercase tracking-wider mb-2">Actual Reason</dt>
-                    <dd className="text-sm text-gray-900 whitespace-pre-wrap leading-relaxed">{enquiry.actualReason}</dd>
-                  </div>
-                )}
+                {/* rejectedReason / actualReason removed in v3 */}
               </div>
             </div>
           )}
@@ -442,7 +433,7 @@ export const EnquiryDetail: React.FC<EnquiryDetailProps> = ({ enquiryId, onBack,
                         {getPortDisplayList(polPorts)}
                       </p>
                       <div className="mt-3 pt-3 border-t border-gray-100">
-                        <p className="text-xs text-gray-500">Port ID: <span className="font-mono font-semibold text-gray-700">{getPortIdList(enquiry.polIds?.length ? enquiry.polIds : (enquiry.polId ? [enquiry.polId] : []))}</span></p>
+                        <p className="text-xs text-gray-500">Port ID: <span className="font-mono font-semibold text-gray-700">{getPortIdList(enquiry.polIds)}</span></p>
                       </div>
                     </div>
                   </div>
@@ -471,90 +462,13 @@ export const EnquiryDetail: React.FC<EnquiryDetailProps> = ({ enquiryId, onBack,
                         {getPortDisplayList(podPorts)}
                       </p>
                       <div className="mt-3 pt-3 border-t border-gray-100 space-y-1">
-                        <p className="text-xs text-gray-500">Port ID: <span className="font-mono font-semibold text-gray-700">{getPortIdList(enquiry.podIds?.length ? enquiry.podIds : (enquiry.podId ? [enquiry.podId] : []))}</span></p>
-                        <p className="text-xs text-gray-500">Country: <span className="font-semibold text-gray-700">{getCountryList(podPorts, enquiry.podCountryCode)}</span></p>
+                        <p className="text-xs text-gray-500">Port ID: <span className="font-mono font-semibold text-gray-700">{getPortIdList(enquiry.podIds)}</span></p>
+                        <p className="text-xs text-gray-500">Country: <span className="font-semibold text-gray-700">{getCountryList(podPorts, enquiry.podCountry)}</span></p>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
-
-          {activeTab === 'containers' && (
-            <div className="space-y-6">
-              <div className="flex justify-between items-center mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-purple-100 rounded-xl">
-                    <Package className="w-6 h-6 text-purple-600" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-gray-900">Container Lines</h3>
-                </div>
-                <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-3 rounded-xl shadow-lg">
-                  <span className="text-sm font-semibold">Total TEU: </span>
-                  <span className="text-2xl font-bold">{calculateTotalTeu().toFixed(2)}</span>
-                </div>
-              </div>
-              {(enquiry.containerLines || []).length === 0 ? (
-                <div className="text-center py-16 bg-gradient-to-br from-gray-50 to-slate-50 rounded-xl border-2 border-dashed border-gray-300">
-                  <Package className="mx-auto h-16 w-16 text-gray-300 mb-4" />
-                  <p className="text-gray-500 font-medium">No container lines</p>
-                </div>
-              ) : (
-                <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gradient-to-r from-indigo-50 to-purple-50">
-                      <tr>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-indigo-700 uppercase tracking-wider">Container Type</th>
-                        <th className="px-6 py-4 text-center text-xs font-bold text-indigo-700 uppercase tracking-wider">Quantity</th>
-                        <th className="px-6 py-4 text-center text-xs font-bold text-indigo-700 uppercase tracking-wider">TEU/Unit</th>
-                        <th className="px-6 py-4 text-center text-xs font-bold text-indigo-700 uppercase tracking-wider">Line TEU</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-100">
-                      {(enquiry.containerLines || []).map((line, index) => (
-                        <tr key={line.id || index} className="hover:bg-indigo-50/30 transition-colors duration-150">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <div className="p-2 bg-indigo-100 rounded-lg mr-3">
-                                <Package className="w-4 h-4 text-indigo-600" />
-                              </div>
-                              <span className="text-sm font-bold text-gray-900">
-                                {line.containerCode || line.containerTypeCode || getContainerTypeMeta(line.containerTypeId)?.label || '-'}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-center">
-                            <span className="text-sm font-semibold text-gray-900 bg-gray-100 px-3 py-1.5 rounded-lg">
-                              {line.containerQty || line.quantity || 0}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-center">
-                            <span className="text-sm font-semibold text-gray-600">
-                              {line.teuPerUnit || line.teuValue || getContainerTypeMeta(line.containerTypeId)?.teuValue || 0}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-center">
-                            <span className="text-base font-bold text-indigo-600 bg-indigo-50 px-4 py-1.5 rounded-lg">
-                              {calculateLineTeu(line)}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot className="bg-gradient-to-r from-indigo-600 to-purple-600">
-                      <tr>
-                        <td colSpan={3} className="px-6 py-4 text-sm font-bold text-white text-right">Grand Total:</td>
-                        <td className="px-6 py-4 text-center">
-                          <span className="text-xl font-bold text-white bg-white/20 px-4 py-2 rounded-lg inline-block">
-                            {calculateTotalTeu().toFixed(2)} TEU
-                          </span>
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-              )}
             </div>
           )}
 
@@ -612,28 +526,66 @@ export const EnquiryDetail: React.FC<EnquiryDetailProps> = ({ enquiryId, onBack,
                                 ⭐ Latest
                               </span>
                             )}
-                            {offer.isRejectedPrice && (
-                              <span className="px-3 py-1 text-xs font-bold rounded-lg bg-gradient-to-r from-red-400 to-rose-500 text-white shadow-sm">
-                                ✕ Rejected
-                              </span>
-                            )}
+                            <span className={`px-2 py-0.5 text-xs font-semibold rounded ${
+                              offer.offerType === 'FCL' ? 'bg-blue-100 text-blue-700' :
+                              offer.offerType === 'AIR' ? 'bg-purple-100 text-purple-700' :
+                              offer.offerType === 'LCL' ? 'bg-green-100 text-green-700' :
+                              'bg-orange-100 text-orange-700'
+                            }`}>
+                              {offer.offerType}
+                            </span>
                           </div>
                           <div className="flex gap-6 text-sm text-gray-600 mb-4">
                             <div className="flex items-center gap-2">
-                              <FileText className="w-4 h-4" />
-                              <span>Type: <span className="font-semibold text-gray-900">{offer.offerType}</span></span>
+                              <Calendar className="w-4 h-4" />
+                              <span>Date: <span className="font-semibold text-gray-900">{offer.offerDate || '-'}</span></span>
                             </div>
                             <div className="flex items-center gap-2">
-                              <Calendar className="w-4 h-4" />
-                              <span>Sent: <span className="font-semibold text-gray-900">{offer.sentDate}</span></span>
+                              <FileText className="w-4 h-4" />
+                              <span>{offer.priceLines?.length || 0} price line(s)</span>
                             </div>
+                            {(offer.offerType === 'FCL' || offer.offerType === 'BUYER-CONSOL') && offer.priceLines?.length > 0 && (
+                              <div className="flex items-center gap-2 text-indigo-600">
+                                <Package className="w-4 h-4" />
+                                <span>
+                                  {offer.priceLines.reduce((s, l) => s + (l.containerDetails || []).reduce((cs, d) => cs + (d.numberOfContainers || 0), 0), 0)} containers
+                                  {' / '}
+                                  {offer.priceLines.reduce((s, l) => s + (l.containerDetails || []).reduce((cs, d) => cs + (d.numberOfContainers || 0) * (d.teuValue || 0), 0), 0).toFixed(1)} TEU
+                                </span>
+                              </div>
+                            )}
                           </div>
-                          <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg p-4 inline-block">
-                            <p className="text-xs text-emerald-700 font-semibold mb-1 uppercase tracking-wide">Price</p>
-                            <p className="text-3xl font-bold text-emerald-600">
-                              {offer.priceText || `$${offer.price}`}
-                            </p>
-                          </div>
+                          {/* Price lines detail preview */}
+                          {offer.priceLines?.length > 0 && (
+                            <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg p-3">
+                              <p className="text-xs text-emerald-700 font-semibold mb-1.5 uppercase tracking-wide">Routes</p>
+                              <div className="space-y-1">
+                                {offer.priceLines.slice(0, 4).map((pl, plIdx) => (
+                                  <div key={plIdx} className="flex items-center gap-2 text-xs text-gray-600">
+                                    <span className="font-medium text-gray-800">{pl.polName || `Port#${pl.polId}`}</span>
+                                    <span className="text-gray-400">→</span>
+                                    <span className="font-medium text-gray-800">{pl.podName || `Port#${pl.podId}`}</span>
+                                    {pl.subMode && (
+                                      <span className="px-1.5 py-0.5 text-[10px] rounded bg-gray-100 text-gray-500">{pl.subMode}</span>
+                                    )}
+                                    {(pl.price || pl.containerDetails?.length) && (
+                                      <span className="ml-auto text-emerald-600 font-semibold">
+                                        {pl.price ? `$${pl.price}` : `${(pl.containerDetails || []).reduce((s, d) => s + (d.numberOfContainers || 0), 0)}x ctrs`}
+                                      </span>
+                                    )}
+                                  </div>
+                                ))}
+                                {offer.priceLines.length > 4 && (
+                                  <p className="text-xs text-gray-400 italic">+ {offer.priceLines.length - 4} more...</p>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                          {!offer.priceLines?.length && offer.remark && (
+                            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-600 italic">
+                              {offer.remark}
+                            </div>
+                          )}
                         </div>
                         {canManage && (
                           <div className="flex gap-2">
@@ -643,6 +595,13 @@ export const EnquiryDetail: React.FC<EnquiryDetailProps> = ({ enquiryId, onBack,
                               title="Edit Offer"
                             >
                               <Edit className="w-5 h-5" />
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteOffer(offer.id!)}
+                              className="p-3 text-red-500 hover:bg-red-50 rounded-xl transition-all duration-200 hover:scale-110"
+                              title="Delete Offer"
+                            >
+                              <Trash2 className="w-5 h-5" />
                             </button>
                           </div>
                         )}
@@ -660,13 +619,27 @@ export const EnquiryDetail: React.FC<EnquiryDetailProps> = ({ enquiryId, onBack,
       {enquiry && canManage && (
         <OfferDialog
           enquiryId={enquiryId}
-          enquiryReferenceNumber={enquiry.referenceNumber}
+          enquiryRefNumber={enquiry.refNumber}
           cargoTypeCode={enquiry.cargoTypeCode}
           existingOffer={editingOffer}
           offersCount={offers.length}
           isOpen={isOfferDialogOpen}
           onClose={() => setIsOfferDialogOpen(false)}
           onSave={handleSaveOffer}
+        />
+      )}
+
+      {/* Status Change Dialog */}
+      {enquiry && (
+        <StatusChangeDialog
+          isOpen={isStatusDialogOpen}
+          enquiryId={enquiryId}
+          currentStatus={enquiry.status}
+          onClose={() => setIsStatusDialogOpen(false)}
+          onStatusChanged={(newStatus) => {
+            setEnquiry({ ...enquiry, status: newStatus });
+            setIsStatusDialogOpen(false);
+          }}
         />
       )}
       </div>

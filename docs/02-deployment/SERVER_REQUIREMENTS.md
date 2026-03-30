@@ -39,16 +39,6 @@ Recommended:
 - RAM: 16 GB
 - Disk: 500 GB SSD
 
-### 3.2 Split Deployment (Option B)
-App Server (recommended):
-- CPU: 4 cores
-- RAM: 8 GB
-- Disk: 100 GB SSD
-
-DB Server (recommended):
-- CPU: 4 cores
-- RAM: 16 GB
-- Disk: 500 GB SSD
 
 ---
 
@@ -121,9 +111,3 @@ Management:
 - Current usage fits within the recommended specs above
 - Scale vertically (CPU/RAM) if concurrent users or data volume grows
 
----
-
-## 12. Reference Documents
-- docs/02-deployment/DEPLOYMENT.md
-- docs/03-features/SERVER_ROLE_EXPLANATION_DMZ_IP_MAPPING.md
-- docs/03-features/TECHNICAL_ARCHITECTURE.md

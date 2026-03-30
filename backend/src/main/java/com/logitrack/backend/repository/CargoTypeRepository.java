@@ -11,7 +11,7 @@ public interface CargoTypeRepository extends JpaRepository<CargoType, String> {
     
     List<CargoType> findByIsActiveTrue();
     
-    List<CargoType> findByOfferType(CargoType.OfferType offerType);
+    List<CargoType> findByNeedsContainerTrue();
     
-    List<CargoType> findByOfferTypeAndIsActiveTrue(CargoType.OfferType offerType);
+    List<CargoType> findByNeedsContainerFalse();
 }

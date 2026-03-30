@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { LayoutDashboard, PlusCircle, FileSpreadsheet, Ship, Settings, Bell, Search, Menu, LogOut, Loader2, RefreshCw, Globe, Anchor, Users, Box, BarChart3, Filter, TrendingUp } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, FileSpreadsheet, Ship, Settings, Bell, Search, Menu, LogOut, Loader2, RefreshCw, Globe, Anchor, Users, Box, BarChart3, Filter, TrendingUp, Sparkles } from 'lucide-react';
 import { Enquiry, EnquiryListItem, EnquiryFormData, LoginResponse } from './types';
 import { enquiryApi } from './services/api';
 import { useLanguage } from './i18n/LanguageContext';
@@ -16,8 +16,9 @@ import Dashboard from './components/report/Dashboard';
 import { EnhancedDashboard } from './components/report/EnhancedDashboard';
 import { ComparisonReport } from './components/report/ComparisonReport';
 import { SettingsLayout } from './components/settings/SettingsLayout';
+import { AIChatPanel } from './components/ai/AIChatPanel';
 
-type ViewType = 'dashboard' | 'enquiry-list' | 'enquiry-form' | 'enquiry-detail' | 'master-countries' | 'master-ports' | 'master-sales-pics' | 'master-container-types' | 'report-dashboard' | 'report-enhanced' | 'report-comparison' | 'settings';
+type ViewType = 'dashboard' | 'enquiry-list' | 'enquiry-form' | 'enquiry-detail' | 'master-countries' | 'master-ports' | 'master-sales-pics' | 'master-container-types' | 'report-dashboard' | 'report-enhanced' | 'report-comparison' | 'ai-chat' | 'settings';
 
 const App: React.FC = () => {
   const { language, setLanguage, translations } = useLanguage();
@@ -135,7 +136,7 @@ const App: React.FC = () => {
     }
 
     if (canViewReports) {
-      views.push('report-dashboard', 'report-enhanced', 'report-comparison');
+      views.push('report-dashboard', 'report-enhanced', 'report-comparison', 'ai-chat');
     }
 
     if (canViewSettings) {
@@ -160,22 +161,17 @@ const App: React.FC = () => {
               // 必填字段的保留逻辑 - 优先使用新值，否则使用原值
               salesOfficeId: enquiry.salesOfficeId || editingEnquiry?.salesOfficeId,
               salesPicId: enquiry.salesPicId || editingEnquiry?.salesPicId,
-              cnPricingAdmin: enquiry.cnPricingAdmin || editingEnquiry?.cnPricingAdmin,
-              assignedCnOfficeCode: enquiry.assignedCnOfficeCode || editingEnquiry?.assignedCnOfficeCode,
+              assignedCnOffice: enquiry.assignedCnOffice || editingEnquiry?.assignedCnOffice,
               salesCountryCode: enquiry.salesCountryCode || editingEnquiry?.salesCountryCode,
               cargoTypeCode: enquiry.cargoTypeCode || editingEnquiry?.cargoTypeCode,
-              polId: enquiry.polId || enquiry.polIds?.[0] || editingEnquiry?.polId,
-              podId: enquiry.podId || enquiry.podIds?.[0] || editingEnquiry?.podId,
-              referenceNumber: enquiry.referenceNumber || editingEnquiry?.referenceNumber,
-              referenceMonth: enquiry.referenceMonth || editingEnquiry?.referenceMonth,
-              monthlySequence: enquiry.monthlySequence !== undefined ? enquiry.monthlySequence : editingEnquiry?.monthlySequence,
-              serialNumber: enquiry.serialNumber !== undefined ? enquiry.serialNumber : editingEnquiry?.serialNumber,
+              polIds: enquiry.polIds || editingEnquiry?.polIds,
+              podIds: enquiry.podIds || editingEnquiry?.podIds,
+              refNumber: enquiry.refNumber || editingEnquiry?.refNumber,
               productCode: enquiry.productCode || editingEnquiry?.productCode,
               productAbbr: enquiry.productAbbr || editingEnquiry?.productAbbr,
               status: enquiry.status || editingEnquiry?.status || 'New',
-              issueDate: enquiry.issueDate || editingEnquiry?.issueDate,
+              enquiryCreatedDate: enquiry.enquiryCreatedDate || editingEnquiry?.enquiryCreatedDate,
               enquiryReceivedDate: enquiry.enquiryReceivedDate || editingEnquiry?.enquiryReceivedDate,
-              bookingConfirmed: enquiry.bookingConfirmed || editingEnquiry?.bookingConfirmed || 'Pending',
             };
             console.log('[App] Updating enquiry ID:', enquiry.id);
             console.log('[App] Data to update:', dataToUpdate);
@@ -246,8 +242,6 @@ const App: React.FC = () => {
       console.log('✅ Full enquiry data loaded:', { 
         polIds: fullEnquiry.polIds, 
         podIds: fullEnquiry.podIds,
-        polId: fullEnquiry.polId,
-        podId: fullEnquiry.podId,
       });
       
       setEditingEnquiry(fullEnquiry);
@@ -337,6 +331,21 @@ const App: React.FC = () => {
         );
       case 'report-comparison':
         return <ComparisonReport />;
+      case 'ai-chat':
+        return (
+          <AIChatPanel
+            onNavigateToDashboard={(filter) => {
+              if (filter.startDate && filter.endDate) {
+                setEnhancedDashboardFilter({
+                  startDate: filter.startDate,
+                  endDate: filter.endDate,
+                  ...filter,
+                });
+              }
+              setCurrentView('report-enhanced');
+            }}
+          />
+        );
       case 'settings':
         return <SettingsLayout />;
       case 'dashboard':
@@ -372,9 +381,9 @@ const App: React.FC = () => {
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Quoted</dt>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Quoted & Pending</dt>
                   <dd className="text-2xl font-bold text-gray-900">
-                    {enquiries.filter(e => e.status === 'Quoted').length}
+                    {enquiries.filter(e => e.status === 'Quoted & Pending').length}
                   </dd>
                 </dl>
               </div>
@@ -389,9 +398,9 @@ const App: React.FC = () => {
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Pending</dt>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Secured</dt>
                   <dd className="text-2xl font-bold text-gray-900">
-                    {enquiries.filter(e => e.status === 'Pending').length}
+                    {enquiries.filter(e => e.status === 'Secured').length}
                   </dd>
                 </dl>
               </div>
@@ -476,22 +485,25 @@ const App: React.FC = () => {
                   onClick={() => handleViewDetail(enquiry)}
                 >
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {enquiry.referenceNumber}
+                    {enquiry.refNumber}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {enquiry.customerCompanyName}
+                    {enquiry.commodity}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 text-xs font-semibold rounded ${
                       enquiry.status === 'New' ? 'bg-blue-100 text-blue-800' :
-                      enquiry.status === 'Quoted' ? 'bg-green-100 text-green-800' :
-                      'bg-yellow-100 text-yellow-800'
+                      enquiry.status === 'Quoted & Pending' ? 'bg-yellow-100 text-yellow-800' :
+                      enquiry.status === 'Secured' ? 'bg-green-100 text-green-800' :
+                      enquiry.status === 'Lost' ? 'bg-red-100 text-red-800' :
+                      enquiry.status === 'Cancelled' ? 'bg-gray-200 text-gray-600' :
+                      'bg-gray-100 text-gray-800'
                     }`}>
                       {enquiry.status}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {enquiry.receivedDate}
+                    {enquiry.enquiryReceivedDate}
                   </td>
                 </tr>
               ))}
@@ -610,6 +622,13 @@ const App: React.FC = () => {
                         <TrendingUp className="mr-3 flex-shrink-0 h-5 w-5" />
                         时期对比
                     </button>
+                    <button 
+                      onClick={() => setCurrentView('ai-chat')}
+                      className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full transition-colors ${currentView === 'ai-chat' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                    >
+                        <Sparkles className="mr-3 flex-shrink-0 h-5 w-5" />
+                        AI 数据助手
+                    </button>
                   </>
                 )}
                 {canViewSettings && (
@@ -666,6 +685,7 @@ const App: React.FC = () => {
                       {currentView === 'report-dashboard' && '基础报表'}
                       {currentView === 'report-enhanced' && '增强报表'}
                       {currentView === 'report-comparison' && '时期对比报告'}
+                      {currentView === 'ai-chat' && 'AI 数据分析助手'}
                       {currentView === 'settings' && '系统设置'}
                     </h2>
                 </div>
@@ -708,10 +728,14 @@ const App: React.FC = () => {
             </div>
         </div>
 
-        <main className="flex-1 overflow-y-auto p-8 bg-gray-100">
-            <div className="max-w-8xl mx-auto">
-                {renderContent()}
-            </div>
+        <main className={`flex-1 overflow-hidden ${currentView === 'ai-chat' ? 'bg-gray-50' : 'overflow-y-auto p-8 bg-gray-100'}`}>
+            {currentView === 'ai-chat' ? (
+              renderContent()
+            ) : (
+              <div className="max-w-8xl mx-auto">
+                  {renderContent()}
+              </div>
+            )}
         </main>
       </div>
     </div>

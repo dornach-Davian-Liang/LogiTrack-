@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { EnquiryRecord } from '../types';
-import { PRODUCTS, STATUSES, CATEGORIES, BOOKING_STATUSES, CORE_STATUSES, QUANTITY_UNITS, ASSIGNED_OFFICES } from '../constants';
-import { Save, Calendar, User, Box, MapPin, DollarSign, CheckCircle, FileText, Info, Truck, AlertCircle } from 'lucide-react';
+import { PRODUCTS, STATUSES, CATEGORIES, CORE_STATUSES, QUANTITY_UNITS, ASSIGNED_OFFICES } from '../constants';
+import { Save, Calendar, User, Box, MapPin, DollarSign, CheckCircle, FileText, Info, Truck } from 'lucide-react';
 
 interface FormProps {
   initialData?: EnquiryRecord | null;
@@ -13,18 +13,16 @@ interface FormProps {
 const Form: React.FC<FormProps> = ({ initialData, onSubmit, onCancel }) => {
   const defaultData: Partial<EnquiryRecord> = {
     enquiryReceivedDate: new Date().toISOString().split('T')[0],
-    issueDate: new Date().toISOString().split('T')[0],
+    enquiryCreatedDate: new Date().toISOString().split('T')[0],
     status: 'New',
     product: 'AIR',
-    coreNonCore: 'NON CORE',
-    category: CATEGORIES[0],
-    bookingConfirmed: 'Pending',
+    coreNonCore: 'Non-Core',
+    category: CATEGORIES[0].code,
     quantityUnit: 'KG',
     salesCountry: '',
     salesOffice: '',
     salesPic: '',
-    cnPricingAdmin: '',
-    assignedCnOffices: '',
+    assignedCnOffice: '',
     cargoType: '',
     pol: '',
     pod: '',
@@ -155,14 +153,13 @@ const Form: React.FC<FormProps> = ({ initialData, onSubmit, onCancel }) => {
                     <InputGroup label="Product" name="product" options={PRODUCTS} />
                     <InputGroup label="Status" name="status" options={STATUSES} />
                     <InputGroup label="Received Date" name="enquiryReceivedDate" type="date" colSpan="sm:col-span-3" />
-                    <InputGroup label="Issue Date" name="issueDate" type="date" colSpan="sm:col-span-3" />
+                    <InputGroup label="Created Date" name="enquiryCreatedDate" type="date" colSpan="sm:col-span-3" />
                 </SectionCard>
 
                 <SectionCard icon={User} title="Sales & Assignment" description="Internal ownership and routing">
                     <InputGroup label="Sales Country" name="salesCountry" colSpan="sm:col-span-2" />
                     <InputGroup label="Sales Office" name="salesOffice" colSpan="sm:col-span-2" />
                     <InputGroup label="Sales PIC" name="salesPic" colSpan="sm:col-span-2" />
-                    <InputGroup label="Pricing Admin" name="cnPricingAdmin" colSpan="sm:col-span-3" />
                     <InputGroup label="Assigned CN Office" name="assignedCnOffice" options={ASSIGNED_OFFICES} colSpan="sm:col-span-3" />
                 </SectionCard>
 
@@ -179,10 +176,8 @@ const Form: React.FC<FormProps> = ({ initialData, onSubmit, onCancel }) => {
                              <InputGroup label="Unit" name="quantityUnit" options={QUANTITY_UNITS} colSpan="w-full" />
                         </div>
                     </div>
-                    <InputGroup label="Quantity (TEU)" name="quantityTeu" type="number" step="0.01" colSpan="sm:col-span-3" />
-
-                    <InputGroup label="Haz / Special Equipment" name="specialRequirements" placeholder="Class / UN No." colSpan="sm:col-span-3" />
-                    <InputGroup label="Additional Requirements" name="additionalRequirement" placeholder="Special handling instructions..." colSpan="sm:col-span-3" />
+                    <InputGroup label="Haz / Special Equipment" name="hazSpecialEquipment" placeholder="Class / UN No." colSpan="sm:col-span-3" />
+                    <InputGroup label="Cargo Ready Date Details" name="cargoReadyDateDetails" placeholder="Additional details..." colSpan="sm:col-span-3" />
                 </SectionCard>
 
                 <SectionCard icon={MapPin} title="Route Information" description="Origin and Destination">
@@ -193,61 +188,23 @@ const Form: React.FC<FormProps> = ({ initialData, onSubmit, onCancel }) => {
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <SectionCard icon={DollarSign} title="Business & Pricing" description="Financial classification and offers">
-                        <InputGroup label="Core Status" name="isCore" options={CORE_STATUSES} colSpan="sm:col-span-3" />
-                        <InputGroup label="Category" name="category" options={CATEGORIES} colSpan="sm:col-span-3" />
+                        <InputGroup label="Core Status" name="coreNonCore" options={CORE_STATUSES} colSpan="sm:col-span-3" />
+                        <InputGroup label="Category" name="category" options={CATEGORIES.map(c => c.code)} colSpan="sm:col-span-3" />
                         
                         <div className="sm:col-span-6 border-t border-slate-100 my-2"></div>
 
                         <InputGroup label="Cargo Ready Date" name="cargoReadyDate" type="date" colSpan="sm:col-span-3" />
-                        <InputGroup label="1st Quote Date" name="firstQuotationSentDate" type="date" colSpan="sm:col-span-3" />
+                        <InputGroup label="1st Quote Date" name="firstQuotationSent" type="date" colSpan="sm:col-span-3" />
                         
-                        <InputGroup label="1st Offer (Ocean)" name="firstOfferOcean" colSpan="sm:col-span-3" />
-                        <InputGroup label="1st Offer (Air)" name="firstOfferAir" colSpan="sm:col-span-3" />
+                        <InputGroup label="1st Offer (Ocean)" name="firstOfferOceanFrg" colSpan="sm:col-span-3" />
+                        <InputGroup label="1st Offer (Air)" name="firstOfferAirFrgKg" colSpan="sm:col-span-3" />
                         
-                        <InputGroup label="Latest Offer (Ocean)" name="latestOfferOcean" colSpan="sm:col-span-3" />
-                        <InputGroup label="Latest Offer (Air)" name="latestOfferAir" colSpan="sm:col-span-3" />
+                        <InputGroup label="Latest Offer (Ocean)" name="latestOfferOceanFrg" colSpan="sm:col-span-3" />
+                        <InputGroup label="Latest Offer (Air)" name="latestOfferAirFrgKg" colSpan="sm:col-span-3" />
                     </SectionCard>
 
-                    <SectionCard icon={CheckCircle} title="Outcome & Remarks" description="Final status and internal notes">
-                         <div className="sm:col-span-6">
-                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-                                Booking Confirmed?
-                            </label>
-                            <div className="grid grid-cols-3 gap-3">
-                                {BOOKING_STATUSES.filter(b => b !== '').map(status => (
-                                    <button
-                                        key={status}
-                                        type="button"
-                                        onClick={() => setFormData({...formData, bookingConfirmed: status as any})}
-                                        className={`
-                                            relative flex items-center justify-center px-4 py-3 border rounded-lg text-sm font-medium focus:outline-none transition-all
-                                            ${formData.bookingConfirmed === status 
-                                                ? (status === 'Yes' ? 'bg-emerald-50 border-emerald-500 text-emerald-700 ring-1 ring-emerald-500' : 
-                                                   status === 'Rejected' ? 'bg-rose-50 border-rose-500 text-rose-700 ring-1 ring-rose-500' : 
-                                                   'bg-amber-50 border-amber-500 text-amber-700 ring-1 ring-amber-500')
-                                                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}
-                                        `}
-                                    >
-                                        {status}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
+                    <SectionCard icon={CheckCircle} title="Remarks" description="Internal notes">
                         <InputGroup label="Remark" name="remark" placeholder="General notes..." colSpan="sm:col-span-6" />
-                        
-                        {formData.bookingConfirmed === 'Rejected' && (
-                            <div className="sm:col-span-6 bg-rose-50 rounded-lg p-4 border border-rose-100 animate-in fade-in slide-in-from-top-2">
-                                <div className="flex items-center gap-2 mb-3 text-rose-700">
-                                    <AlertCircle className="w-4 h-4" />
-                                    <span className="text-xs font-bold uppercase">Rejection Details</span>
-                                </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <InputGroup label="Rejected Reason" name="rejectedReason" colSpan="sm:col-span-1" />
-                                    <InputGroup label="Actual Reason (Internal)" name="actualReason" colSpan="sm:col-span-1" />
-                                </div>
-                            </div>
-                        )}
                     </SectionCard>
                 </div>
 

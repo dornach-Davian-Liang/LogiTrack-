@@ -53,14 +53,10 @@ public class DictDTO {
     }
 
     /**
-     * 港口选项 - 格式: [PORT_CODE] Port Name, Country Code
+     * 港口选项 - 直接使用 portName（已含 Display name，如 "Durres, Albania"）
      */
     public static PortDTO fromPort(Port port) {
-        // portName 已包含代码，如 "Amsterdam (AMS)"，不需要再添加 [CODE]
         String label = port.getPortName();
-        if (port.getCountryCode() != null && !port.getCountryCode().isEmpty()) {
-            label += ", " + port.getCountryCode();
-        }
         return new PortDTO(
             String.valueOf(port.getId()),
             label,
@@ -98,7 +94,7 @@ public class DictDTO {
         return new SalesPicDTO(
             String.valueOf(pic.getId()),
             pic.getName(),
-            pic.getCountryCode(),
+            pic.getSalesCountryCode(),
             pic.getSalesOfficeId(),
             office != null ? office.getName() : "",
             office != null ? office.getCode() : ""

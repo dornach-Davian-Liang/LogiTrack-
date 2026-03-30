@@ -4,7 +4,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, Eye, Edit, Search, Loader2 } from 'lucide-react';
-import { EnquiryListItem, BookingStatus, DashboardFilterParams } from '../../types';
+import { EnquiryListItem, DashboardFilterParams } from '../../types';
 import { reportApi } from '../../services/reportApi';
 import { useLanguage } from '../../i18n/LanguageContext';
 
@@ -36,7 +36,7 @@ export const EnquiryListModal: React.FC<EnquiryListModalProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
 
   // 映射前端status到后端BookingStatus字符串
-  const getBackendStatus = (status: string): BookingStatus => {
+  const getBackendStatus = (status: string): string => {
     switch (status) {
       case 'yes':
         return 'Yes';
@@ -127,7 +127,7 @@ export const EnquiryListModal: React.FC<EnquiryListModalProps> = ({
 
   const filteredEnquiries = searchTerm
     ? enquiries.filter((e) =>
-        e.referenceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        e.refNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
         e.salesPicName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         e.commodity?.toLowerCase().includes(searchTerm.toLowerCase())
       )
@@ -211,7 +211,7 @@ export const EnquiryListModal: React.FC<EnquiryListModalProps> = ({
                       {/* Reference Number */}
                       <div className="flex items-center space-x-3 mb-2">
                         <h3 className="text-lg font-semibold text-gray-900">
-                          {enquiry.referenceNumber}
+                          {enquiry.refNumber}
                         </h3>
                         <span className={`px-2 py-1 text-xs font-semibold rounded border ${getStatusColor(bookingStatus)}`}>
                           {getStatusLabel(bookingStatus)}
@@ -248,10 +248,6 @@ export const EnquiryListModal: React.FC<EnquiryListModalProps> = ({
                         <div className="flex items-center">
                           <span className="text-gray-500 w-24">{translations.enquiryListModal.receivedDate}:</span>
                           <span className="text-gray-900">{enquiry.enquiryReceivedDate}</span>
-                        </div>
-                        <div className="flex items-center">
-                          <span className="text-gray-500 w-24">{translations.enquiryListModal.teu}:</span>
-                          <span className="text-gray-900">{enquiry.quantityTeu || '-'}</span>
                         </div>
                       </div>
 

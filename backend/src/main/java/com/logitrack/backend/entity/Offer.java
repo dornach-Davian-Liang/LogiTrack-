@@ -1,17 +1,19 @@
 package com.logitrack.backend.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.logitrack.backend.converter.OfferTypeConverter;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * 报价子表实体类 - 匹配 MySQL offer 表结构
+ * 报价主表实体类 v3 - 匹配 schema_v3 的 offer 表
  */
 @Entity
 @Table(name = "offer")
@@ -29,30 +31,21 @@ public class Offer {
     @JoinColumn(name = "enquiry_id", nullable = false)
     private Enquiry enquiry;
     
-    @Enumerated(EnumType.STRING)
-    @Column(name = "offer_type", nullable = false)
-    private OfferType offerType;
-    
     @Column(name = "sequence_no", nullable = false)
     private Integer sequenceNo = 1;
     
     @Column(name = "is_latest", nullable = false)
-    private Boolean isLatest = false;
+    private Boolean isLatest = true;
     
-    @Column(name = "sent_date")
-    private LocalDate sentDate;
+    @Convert(converter = OfferTypeConverter.class)
+    @Column(name = "offer_type", nullable = false, columnDefinition = "ENUM('FCL','LCL','AIR','BUYER-CONSOL')")
+    private Enquiry.OfferType offerType;
     
-    @Column(name = "sent_date_raw_text", length = 100)
-    private String sentDateRawText;
+    @Column(name = "offer_date")
+    private LocalDate offerDate;
     
-    @Column(name = "price", precision = 18, scale = 4)
-    private BigDecimal price;
-    
-    @Column(name = "price_text", columnDefinition = "TEXT")
-    private String priceText;
-    
-    @Column(name = "is_rejected_price", nullable = false)
-    private Boolean isRejectedPrice = false;
+    @Column(name = "remark", columnDefinition = "TEXT")
+    private String remark;
     
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -60,18 +53,18 @@ public class Offer {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
     
+    // 价格明细行
+    @OneToMany(mappedBy = "offer", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OfferPriceLine> priceLines = new ArrayList<>();
+    
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
+        if (createdAt == null) createdAt = LocalDateTime.now();
+        if (updatedAt == null) updatedAt = LocalDateTime.now();
     }
     
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
-    }
-    
-    public enum OfferType {
-        OCEAN, AIR, OTHER
     }
 }

@@ -47,7 +47,9 @@ public class ComparisonService {
                 period, 
                 comparisonType, 
                 request.getCoreFlags(), 
-                request.getCnOffice()
+                request.getCnOffice(),
+                request.getProductCodes(),
+                request.getCountryIds()
             );
             periodStats.add(stats);
         }
@@ -81,7 +83,8 @@ public class ComparisonService {
      * Calculate statistics for a single period
      */
     private PeriodStatsDTO calculatePeriodStats(String period, String comparisonType, 
-                                                 List<String> coreFlags, String cnOffice) {
+                                                 List<String> coreFlags, String cnOffice,
+                                                 List<String> productCodes, List<Integer> countryIds) {
         LocalDate startDate;
         LocalDate endDate;
         
@@ -109,14 +112,14 @@ public class ComparisonService {
         }
         
         // Get filtered enquiries for this period
-        List<Enquiry> enquiries = getFilteredEnquiries(startDate, endDate, coreFlags, cnOffice);
+        List<Enquiry> enquiries = getFilteredEnquiries(startDate, endDate, coreFlags, cnOffice, productCodes, countryIds);
         
         int total = enquiries.size();
         int quoted = (int) enquiries.stream()
-            .filter(e -> e.getStatus() == Enquiry.EnquiryStatus.Quoted)
+            .filter(e -> e.getStatus() == Enquiry.EnquiryStatus.Quoted_Pending)
             .count();
         int confirmed = (int) enquiries.stream()
-            .filter(e -> e.getBookingConfirmed() == Enquiry.BookingConfirmed.Yes)
+            .filter(e -> e.getStatus() == Enquiry.EnquiryStatus.Secured)
             .count();
         
         double conversionRate = total > 0 ? (double) confirmed / total * 100 : 0.0;
@@ -137,18 +140,25 @@ public class ComparisonService {
      * Get filtered enquiries (same logic as StatisticsService)
      */
     private List<Enquiry> getFilteredEnquiries(LocalDate startDate, LocalDate endDate, 
-                                                List<String> coreFlags, String cnOffice) {
+                                                List<String> coreFlags, String cnOffice,
+                                                List<String> productCodes, List<Integer> countryIds) {
         List<Enquiry> enquiries = enquiryRepository.findByEnquiryReceivedDateBetween(startDate, endDate);
         
         if (coreFlags != null && !coreFlags.isEmpty()) {
             enquiries = enquiries.stream()
-                .filter(e -> e.getCoreFlag() != null && coreFlags.contains(e.getCoreFlag().name()))
+                .filter(e -> e.getCoreNonCore() != null && coreFlags.contains(e.getCoreNonCore().name()))
                 .collect(Collectors.toList());
         }
         
         if (cnOffice != null && !cnOffice.isEmpty()) {
             enquiries = enquiries.stream()
-                .filter(e -> cnOffice.equals(e.getAssignedCnOfficeCode()))
+                .filter(e -> cnOffice.equals(e.getAssignedCnOffice()))
+                .collect(Collectors.toList());
+        }
+        
+        if (productCodes != null && !productCodes.isEmpty()) {
+            enquiries = enquiries.stream()
+                .filter(e -> e.getProductCode() != null && productCodes.contains(e.getProductCode()))
                 .collect(Collectors.toList());
         }
         

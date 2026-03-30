@@ -1,5 +1,10 @@
 package com.logitrack.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+import com.logitrack.backend.converter.CoreNonCoreConverter;
+import com.logitrack.backend.converter.EnquiryStatusConverter;
+import com.logitrack.backend.converter.OfferTypeConverter;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -12,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 询价主表实体类 - 匹配 MySQL enquiry 表结构
+ * 询价主表实体类 v3 - 匹配 schema_v3 的 enquiry 表
  */
 @Entity
 @Table(name = "enquiry")
@@ -25,177 +30,151 @@ public class Enquiry {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @Column(name = "reference_number", length = 50, unique = true, nullable = false)
-    private String referenceNumber;
+    @Column(name = "ref_number", length = 50, unique = true, nullable = false)
+    private String refNumber;
     
     @Column(name = "enquiry_received_date", nullable = false)
     private LocalDate enquiryReceivedDate;
     
-    @Column(name = "issue_date", nullable = false)
-    private LocalDate issueDate;
+    @Column(name = "enquiry_created_date", nullable = false)
+    private LocalDateTime enquiryCreatedDate;
     
-    @Column(name = "reference_month", length = 4, columnDefinition = "char(4)", nullable = false)
+    @Column(name = "product_code", length = 20, nullable = false)
+    private String productCode;
+    
+    @Column(name = "cargo_type_code", length = 20, nullable = false)
+    private String cargoTypeCode;
+    
+    // 状态 — 使用 AttributeConverter 处理 "Quoted & Pending" 中的特殊字符
+    @Convert(converter = EnquiryStatusConverter.class)
+    @Column(name = "status", nullable = false, columnDefinition = "ENUM('New','Quoted & Pending','Secured','Lost','Cancelled')")
+    private EnquiryStatus status = EnquiryStatus.New;
+    
+    @Column(name = "cancelled_reason", length = 50)
+    private String cancelledReason;
+    
+    @Column(name = "cancelled_reason_text", columnDefinition = "TEXT")
+    private String cancelledReasonText;
+    
+    @Column(name = "lost_reason", length = 100)
+    private String lostReason;
+    
+    @Column(name = "lost_reason_text", columnDefinition = "TEXT")
+    private String lostReasonText;
+    
+    // 销售信息
+    @Column(name = "sales_country_code", length = 50, nullable = false)
+    private String salesCountryCode;
+    
+    @Column(name = "sales_pic_id", nullable = false)
+    private Integer salesPicId;
+    
+    @Column(name = "sales_office_id", nullable = false)
+    private Integer salesOfficeId;
+    
+    @Column(name = "assigned_cn_office", length = 100)
+    private String assignedCnOffice;
+    
+    // 货物信息
+    @Column(name = "commodity", columnDefinition = "TEXT")
+    private String commodity;
+    
+    @Column(name = "hazardous_special_equipment", columnDefinition = "TEXT")
+    private String hazardousSpecialEquipment;
+    
+    @Column(name = "is_oversize_cargo", nullable = false)
+    private Boolean isOversizeCargo = false;
+    
+    @Column(name = "volume_cbm", precision = 12, scale = 3)
+    private BigDecimal volumeCbm;
+    
+    @Column(name = "quantity", precision = 12, scale = 3)
+    private BigDecimal quantity;
+    
+    @Column(name = "uom", length = 20)
+    private String uom;
+    
+    // 路线信息（普通模式冗余字段）
+    @Column(name = "pol_country", length = 100)
+    private String polCountry;
+    
+    @Column(name = "pod_country", length = 100)
+    private String podCountry;
+    
+    @Column(name = "category", length = 50)
+    private String category;
+    
+    @Column(name = "exw_location", length = 200)
+    private String exwLocation;
+    
+    @Convert(converter = CoreNonCoreConverter.class)
+    @Column(name = "core_non_core")
+    private CoreNonCore coreNonCore;
+    
+    // Cargo Ready Date
+    @Column(name = "has_specific_cargo_ready_date", nullable = false)
+    private Boolean hasSpecificCargoReadyDate = false;
+    
+    @Column(name = "cargo_ready_date", nullable = false)
+    private LocalDate cargoReadyDate;
+    
+    @Column(name = "cargo_ready_date_details", length = 500)
+    private String cargoReadyDateDetails;
+    
+    // Offer 快捷字段
+    @Convert(converter = OfferTypeConverter.class)
+    @Column(name = "offer_type", columnDefinition = "ENUM('FCL','LCL','AIR','BUYER-CONSOL')")
+    private OfferType offerType;
+    
+    @Column(name = "remark", columnDefinition = "TEXT")
+    private String remark;
+    
+    // Reference Number 生成辅助字段
+    @Column(name = "reference_month", length = 4, columnDefinition = "char(4)")
     private String referenceMonth;
     
-    @Column(name = "monthly_sequence", nullable = false)
+    @Column(name = "monthly_sequence")
     private Integer monthlySequence;
     
     @Column(name = "serial_number", nullable = false)
     private Integer serialNumber = 0;
     
-    @Column(name = "product_code", length = 30, nullable = false)
-    private String productCode;
-    
-    @Column(name = "product_abbr", length = 10, nullable = false)
+    @Column(name = "product_abbr", length = 10)
     private String productAbbr;
     
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
-    private EnquiryStatus status = EnquiryStatus.New;
-    
-    @Column(name = "cn_pricing_admin", length = 100, nullable = false)
-    private String cnPricingAdmin;
-    
-    // 销售信息 - 匹配数据库实际字段
-    @Column(name = "sales_country_code", length = 10, columnDefinition = "char(10)", nullable = false)
-    private String salesCountryCode;
-    
-    @Column(name = "sales_office_id", nullable = false)
-    private Integer salesOfficeId;
-    
-    @Column(name = "sales_pic_id")
-    private Integer salesPicId;
-    
-    // 货物信息
-    @Column(name = "assigned_cn_office_code", length = 50, nullable = false)
-    private String assignedCnOfficeCode;
-    
-    @Column(name = "cargo_type_code", length = 20, nullable = false)
-    private String cargoTypeCode;
-    
-    @Column(name = "volume_cbm", precision = 12, scale = 3)
-    private BigDecimal volumeCbm;
-    
-    @Column(name = "volume_raw_text", length = 100)
-    private String volumeRawText;
-    
-    @Column(name = "quantity", precision = 12, scale = 3)
-    private BigDecimal quantity;
-    
-    @Column(name = "quantity_raw_text", length = 100)
-    private String quantityRawText;
-    
-    @Column(name = "quantity_uom_code", length = 20)
-    private String quantityUomCode;
-    
-    @Column(name = "quantity_uom_raw_text", length = 200)
-    private String quantityUomRawText;
-    
-    @Column(name = "quantity_teu", precision = 12, scale = 3)
-    private BigDecimal quantityTeu;
-    
-    @Column(name = "quantity_teu_raw_text", length = 100)
-    private String quantityTeuRawText;
-    
-    @Column(name = "commodity", columnDefinition = "TEXT")
-    private String commodity;
-    
-    @Column(name = "haz_special_equipment", columnDefinition = "TEXT")
-    private String hazSpecialEquipment;
-    
-    // 路线信息 - 外键关联
-    @Column(name = "pol_id", nullable = false)
-    private Integer polId;
-    
-    @Column(name = "pod_id", nullable = false)
-    private Integer podId;
-    
-    @Column(name = "pod_country_code", length = 2, columnDefinition = "char(2)")
-    private String podCountryCode;
-    
-    // 业务分类
-    @Enumerated(EnumType.STRING)
-    @Column(name = "core_flag")
-    private CoreFlag coreFlag;
-    
-    @Column(name = "category_code", length = 50)
-    private String categoryCode;
-    
-    @Column(name = "cargo_ready_date")
-    private LocalDate cargoReadyDate;
-    
-    @Column(name = "cargo_ready_date_raw_text", length = 100)
-    private String cargoReadyDateRawText;
-    
-    @Column(name = "additional_requirement", columnDefinition = "TEXT")
-    private String additionalRequirement;
-    
-    // 结果状态
-    @Enumerated(EnumType.STRING)
-    @Column(name = "booking_confirmed", nullable = false)
-    private BookingConfirmed bookingConfirmed = BookingConfirmed.Pending;
-    
-    @Column(name = "remark", columnDefinition = "TEXT")
-    private String remark;
-    
-    @Column(name = "rejected_reason", columnDefinition = "TEXT")
-    private String rejectedReason;
-    
-    @Column(name = "actual_reason", columnDefinition = "TEXT")
-    private String actualReason;
-    
-    // 报价类型锁定
-    @Enumerated(EnumType.STRING)
-    @Column(name = "enquiry_offer_type")
-    private OfferType enquiryOfferType;
-    
-    // 预留字段
-    @Column(name = "reserve_field_1", length = 255)
-    private String reserveField1;
-    
-    @Column(name = "reserve_field_2", length = 255)
-    private String reserveField2;
-    
-    @Column(name = "reserve_field_3", length = 255)
-    private String reserveField3;
-    
-    @Column(name = "reserve_field_4", length = 255)
-    private String reserveField4;
-    
-    @Column(name = "reserve_field_5", length = 255)
-    private String reserveField5;
-    
-    // 时间戳
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
-    
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-    
+    // 审计
     @Column(name = "created_by", length = 100)
     private String createdBy;
     
     @Column(name = "updated_by", length = 100)
     private String updatedBy;
     
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+    
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+    
     // 关联关系
     @OneToMany(mappedBy = "enquiry", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Offer> offers = new ArrayList<>();
     
-    @OneToMany(mappedBy = "enquiry", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<EnquiryContainerLine> containerLines = new ArrayList<>();
-    
-    // 多港口支持（Transient 字段，不映射到数据库）
+    // Transient 字段（不映射到数据库）
     @Transient
-    private List<Integer> polIds = new ArrayList<>();  // 起运港ID列表
+    private List<Integer> polIds = new ArrayList<>();
     
     @Transient
-    private List<Integer> podIds = new ArrayList<>();  // 目的港ID列表
+    private List<Integer> podIds = new ArrayList<>();
+    
+    @Transient
+    private List<EnquiryRouteGroup> routeGroups = new ArrayList<>();
     
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
+        if (createdAt == null) createdAt = LocalDateTime.now();
+        if (updatedAt == null) updatedAt = LocalDateTime.now();
+        if (enquiryCreatedDate == null) enquiryCreatedDate = LocalDateTime.now();
+        if (cargoReadyDate == null) cargoReadyDate = enquiryCreatedDate.toLocalDate();
     }
     
     @PreUpdate
@@ -203,20 +182,94 @@ public class Enquiry {
         updatedAt = LocalDateTime.now();
     }
     
-    // 枚举定义
+    // v3 枚举定义
     public enum EnquiryStatus {
-        New, Quoted, Cancelled
+        New,
+        @SuppressWarnings("unused")
+        Quoted_Pending {
+            @Override
+            public String toString() { return "Quoted & Pending"; }
+        },
+        Secured,
+        Lost,
+        Cancelled;
+        
+        /** JSON 序列化值 = DB 存储值 */
+        @JsonValue
+        public String toJsonValue() {
+            return switch (this) {
+                case Quoted_Pending -> "Quoted & Pending";
+                default -> name();
+            };
+        }
+        
+        @JsonCreator
+        public static EnquiryStatus fromString(String value) {
+            if (value == null) return null;
+            return switch (value) {
+                case "New" -> New;
+                case "Quoted & Pending", "Quoted_Pending" -> Quoted_Pending;
+                case "Secured" -> Secured;
+                case "Lost" -> Lost;
+                case "Cancelled" -> Cancelled;
+                default -> throw new IllegalArgumentException("Unknown status: " + value);
+            };
+        }
     }
     
-    public enum BookingConfirmed {
-        Yes, Rejected, Pending, Invalid
-    }
-    
-    public enum CoreFlag {
-        CORE, NON_CORE
+    public enum CoreNonCore {
+        Core,
+        @SuppressWarnings("unused")
+        Non_Core {
+            @Override
+            public String toString() { return "Non-Core"; }
+        };
+        
+        @JsonValue
+        public String toJsonValue() {
+            return switch (this) {
+                case Non_Core -> "Non-Core";
+                default -> name();
+            };
+        }
+        
+        @JsonCreator
+        public static CoreNonCore fromString(String value) {
+            if (value == null) return null;
+            return switch (value) {
+                case "Core" -> Core;
+                case "Non-Core", "Non_Core" -> Non_Core;
+                default -> throw new IllegalArgumentException("Unknown core/non-core: " + value);
+            };
+        }
     }
     
     public enum OfferType {
-        OCEAN, AIR, OTHER
+        FCL, LCL, AIR,
+        @SuppressWarnings("unused")
+        BUYER_CONSOL {
+            @Override
+            public String toString() { return "BUYER-CONSOL"; }
+        };
+        
+        @JsonValue
+        public String toJsonValue() {
+            return switch (this) {
+                case BUYER_CONSOL -> "BUYER-CONSOL";
+                default -> name();
+            };
+        }
+        
+        @JsonCreator
+        public static OfferType fromString(String value) {
+            if (value == null) return null;
+            return switch (value) {
+                case "FCL" -> FCL;
+                case "LCL" -> LCL;
+                case "AIR" -> AIR;
+                case "BUYER-CONSOL", "BUYER_CONSOL" -> BUYER_CONSOL;
+                default -> throw new IllegalArgumentException("Unknown offer type: " + value);
+            };
+        }
     }
 }

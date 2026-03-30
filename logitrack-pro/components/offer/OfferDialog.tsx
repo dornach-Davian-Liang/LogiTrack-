@@ -1,21 +1,55 @@
-import React, { useState, useEffect } from 'react';
-import { X, DollarSign, Calendar, FileText } from 'lucide-react';
-import { Offer, OfferType } from '../../types';
+// ============================================================
+// OfferDialog — v3 报价弹窗 (含 Price Details 矩阵)
+//
+// 组合了:
+//   - 报价元数据 (类型 / 日期 / 备注)
+//   - PriceDetailsTable (价格行矩阵)
+//   - ContainerDetailsDialog (容器弹窗, FCL/BUYER-CONSOL)
+// ============================================================
+
+import React, { useState, useEffect, useCallback } from 'react';
+import { X, DollarSign, Calendar, FileText, Package, Wand2 } from 'lucide-react';
+import {
+  Offer,
+  OfferType,
+  OfferPriceLine,
+  OfferContainerDetail,
+  OfferCreatePayload,
+  ContainerTypeSelectOption,
+} from '../../types';
+import { masterDataApi, offerApi } from '../../services/api';
+import { needsContainerDetails } from '../../constants';
+import { PriceDetailsTable } from './PriceDetailsTable';
+import { ContainerDetailsDialog } from './ContainerDetailsDialog';
+
+// ----------------------------------
+// Props
+// ----------------------------------
 
 interface OfferDialogProps {
   enquiryId: number;
-  enquiryReferenceNumber: string;
+  enquiryRefNumber: string;
   cargoTypeCode: string;
   existingOffer?: Offer;
   offersCount: number;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (offer: Partial<Offer>) => Promise<void>;
+  onSave: (offer: OfferCreatePayload, existingId?: number) => Promise<void>;
 }
+
+// Default container column TEU values
+const CONTAINER_TEU: Record<string, number> = {
+  '20GP': 1.0, '40GP': 2.0, '40HQ': 2.0, '40HC': 2.0, '45HQ': 2.25,
+  '20RF': 1.0, '40RF': 2.0, '20OT': 1.0, '40OT': 2.0, '20FR': 1.0, '40FR': 2.0,
+};
+
+// ----------------------------------
+// Component
+// ----------------------------------
 
 export const OfferDialog: React.FC<OfferDialogProps> = ({
   enquiryId,
-  enquiryReferenceNumber,
+  enquiryRefNumber,
   cargoTypeCode,
   existingOffer,
   offersCount,
@@ -23,78 +57,153 @@ export const OfferDialog: React.FC<OfferDialogProps> = ({
   onClose,
   onSave,
 }) => {
-  const [formData, setFormData] = useState({
-    offerType: '' as OfferType,
-    sentDate: new Date().toISOString().split('T')[0],
-    price: '',
-    priceText: '',
-    isRejectedPrice: false,
-  });
+  // ---- State ----
+  const [offerType, setOfferType] = useState<OfferType>('' as OfferType);
+  const [offerDate, setOfferDate] = useState(new Date().toISOString().split('T')[0]);
+  const [remark, setRemark] = useState('');
+  const [priceLines, setPriceLines] = useState<OfferPriceLine[]>([]);
+  const [containerTypes, setContainerTypes] = useState<ContainerTypeSelectOption[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
 
-  // 根据 cargoTypeCode 确定 offerType
+  // Container details dialog state
+  const [containerDialogOpen, setContainerDialogOpen] = useState(false);
+  const [containerDialogLineIdx, setContainerDialogLineIdx] = useState(0);
+  const [containerDialogCode, setContainerDialogCode] = useState('');
+  const [containerDialogDetail, setContainerDialogDetail] = useState<OfferContainerDetail | undefined>();
+
+  // ---- Determine offerType from cargoTypeCode ----
   const determineOfferType = (cargo: string): OfferType => {
     if (cargo === 'AIR') return 'AIR';
-    if (cargo === 'FCL' || cargo === 'LCL') return 'OCEAN';
-    return 'OTHER';
+    if (cargo === 'FCL') return 'FCL';
+    if (cargo === 'LCL') return 'LCL';
+    return 'BUYER-CONSOL';
   };
 
+  // ---- Load container types once ----
+  useEffect(() => {
+    masterDataApi.getContainerTypes().then(setContainerTypes).catch(() => {});
+  }, []);
+
+  // ---- Reset form when dialog opens ----
   useEffect(() => {
     if (isOpen) {
       if (existingOffer) {
-        // 编辑现有报价
-        setFormData({
-          offerType: existingOffer.offerType,
-          sentDate: existingOffer.sentDate || new Date().toISOString().split('T')[0],
-          price: existingOffer.price?.toString() || '',
-          priceText: existingOffer.priceText || '',
-          isRejectedPrice: existingOffer.isRejectedPrice || false,
-        });
+        setOfferType(existingOffer.offerType);
+        setOfferDate(existingOffer.offerDate || new Date().toISOString().split('T')[0]);
+        setRemark(existingOffer.remark || '');
+        setPriceLines(existingOffer.priceLines || []);
       } else {
-        // 新增报价 - 根据 cargoTypeCode 自动设置 offerType
-        const offerType = determineOfferType(cargoTypeCode);
-        setFormData({
-          offerType,
-          sentDate: new Date().toISOString().split('T')[0],
-          price: '',
-          priceText: '',
-          isRejectedPrice: false,
-        });
+        const ot = determineOfferType(cargoTypeCode);
+        setOfferType(ot);
+        setOfferDate(new Date().toISOString().split('T')[0]);
+        setRemark('');
+        setPriceLines([]);
+        // Auto-generate price lines for new offers
+        offerApi.generatePriceLines(enquiryId).then((lines) => {
+          if (lines.length > 0) setPriceLines(lines);
+        }).catch(() => {});
       }
       setError('');
     }
-  }, [isOpen, existingOffer, cargoTypeCode]);
+  }, [isOpen, existingOffer, cargoTypeCode, enquiryId]);
 
+  // ---- Container dialog handlers ----
+  const handleOpenContainerDialog = useCallback(
+    (lineIndex: number, containerCode: string, detail?: OfferContainerDetail) => {
+      setContainerDialogLineIdx(lineIndex);
+      setContainerDialogCode(containerCode);
+      setContainerDialogDetail(detail);
+      setContainerDialogOpen(true);
+    },
+    []
+  );
+
+  const handleConfirmContainer = useCallback(
+    (detail: OfferContainerDetail) => {
+      setPriceLines((prev) => {
+        return prev.map((line, i) => {
+          if (i !== containerDialogLineIdx) return line;
+          const existing = (line.containerDetails || []).filter(
+            (d) => d.containerSizeType !== detail.containerSizeType
+          );
+          // Only add if numberOfContainers > 0
+          const updated = detail.numberOfContainers > 0
+            ? [...existing, detail]
+            : existing;
+          return { ...line, containerDetails: updated };
+        });
+      });
+      setContainerDialogOpen(false);
+    },
+    [containerDialogLineIdx]
+  );
+
+  // ---- Filter empty price lines before saving ----
+  // Keep lines that have valid port IDs or any price/container data
+  const filterEmptyLines = (lines: OfferPriceLine[]): OfferPriceLine[] => {
+    return lines.filter((line) => {
+      // Keep if it has valid ports (from auto-generate)
+      const hasValidPorts = (line.polId && line.polId > 0) || (line.podId && line.podId > 0);
+      const hasPrice =
+        (line.price && line.price > 0) ||
+        (line.perCbm && line.perCbm > 0) ||
+        (line.minCharge && line.minCharge > 0) ||
+        (line.localCharge && line.localCharge > 0) ||
+        line.priceText;
+      const hasContainers = (line.containerDetails || []).some((d) => d.numberOfContainers > 0);
+      return hasValidPorts || hasPrice || hasContainers;
+    });
+  };
+
+  // ---- Auto-generate price lines from enquiry POL×POD ----
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleAutoGenerate = async () => {
+    if (priceLines.length > 0 && !confirm('This will replace current price lines. Continue?')) {
+      return;
+    }
+    setIsGenerating(true);
+    try {
+      const generated = await offerApi.generatePriceLines(enquiryId);
+      if (generated.length === 0) {
+        setError('No POL/POD found on the enquiry. Please add ports first.');
+      } else {
+        setPriceLines(generated);
+        setError('');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to generate price lines');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // ---- Submit ----
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (!formData.offerType) {
+    if (!offerType) {
       setError('Offer type is required');
-      return;
-    }
-
-    if (!formData.price && !formData.priceText) {
-      setError('Either price amount or price text is required');
       return;
     }
 
     setIsSaving(true);
     try {
-      const offerData: Partial<Offer> = {
-        id: existingOffer?.id,
-        enquiryId,
-        offerType: formData.offerType,
+      const filteredLines = filterEmptyLines(priceLines);
+
+      const payload: OfferCreatePayload = {
+        offerType,
+        offerDate,
+        cargoTypeCode,
+        remark,
         sequenceNo: existingOffer?.sequenceNo || offersCount + 1,
-        sentDate: formData.sentDate,
-        price: formData.price ? parseFloat(formData.price) : undefined,
-        priceText: formData.priceText,
-        isRejectedPrice: formData.isRejectedPrice,
-        isLatest: true, // 新报价总是标记为最新
+        isLatest: true,
+        priceLines: filteredLines,
       };
 
-      await onSave(offerData);
+      await onSave(payload, existingOffer?.id);
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save offer');
@@ -105,191 +214,194 @@ export const OfferDialog: React.FC<OfferDialogProps> = ({
 
   if (!isOpen) return null;
 
+  const isFCL = needsContainerDetails(offerType);
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b border-gray-200">
-          <div className="flex items-center">
-            <DollarSign className="w-6 h-6 text-indigo-600 mr-2" />
-            <h2 className="text-xl font-semibold text-gray-900">
-              {existingOffer ? 'Edit Offer' : 'Add Offer'}
-            </h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-500 transition"
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
+    <>
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl mx-4 max-h-[92vh] flex flex-col overflow-hidden">
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-              {error}
+          {/* Header */}
+          <div className="flex justify-between items-center px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white shrink-0">
+            <div className="flex items-center gap-2">
+              <DollarSign className="w-5 h-5" />
+              <h2 className="text-lg font-semibold">
+                {existingOffer ? 'Edit Offer' : 'New Offer'}
+              </h2>
+              <span className="text-sm text-white/70">— {enquiryRefNumber}</span>
             </div>
-          )}
-
-          {/* Read-only enquiry info */}
-          <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-600">Enquiry Reference:</span>
-              <span className="text-sm font-medium text-gray-900">{enquiryReferenceNumber}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-600">Cargo Type:</span>
-              <span className="text-sm font-medium text-gray-900">{cargoTypeCode}</span>
-            </div>
+            <button onClick={onClose} className="text-white/80 hover:text-white">
+              <X className="w-5 h-5" />
+            </button>
           </div>
 
-          <div className="border-t border-gray-200 pt-6 space-y-4">
-            {/* Offer Type */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Offer Type <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={formData.offerType}
-                onChange={(e) => setFormData({ ...formData, offerType: e.target.value as OfferType })}
-                className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                disabled={!!existingOffer} // 编辑时不允许修改类型
-                required
-              >
-                <option value="">Select offer type</option>
-                <option value="OCEAN">OCEAN</option>
-                <option value="AIR">AIR</option>
-                <option value="OTHER">OTHER</option>
-              </select>
-              {!existingOffer && (
-                <p className="mt-1 text-xs text-gray-500">
-                  Auto-detected from cargo type: {formData.offerType}
-                </p>
-              )}
-            </div>
-
-            {/* Sequence Number */}
-            {existingOffer && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Offer Sequence
-                </label>
-                <input
-                  type="text"
-                  value={`#${existingOffer.sequenceNo}`}
-                  disabled
-                  className="w-full rounded-md border-gray-300 bg-gray-100 shadow-sm"
-                />
-              </div>
-            )}
-            {!existingOffer && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Offer Sequence
-                </label>
-                <input
-                  type="text"
-                  value={`#${offersCount + 1} (Auto-increment)`}
-                  disabled
-                  className="w-full rounded-md border-gray-300 bg-gray-100 shadow-sm"
-                />
+          {/* Scrollable body */}
+          <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                {error}
               </div>
             )}
 
-            {/* Sent Date */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Calendar className="w-4 h-4 inline mr-1" />
-                Sent Date
-              </label>
-              <input
-                type="date"
-                value={formData.sentDate}
-                onChange={(e) => setFormData({ ...formData, sentDate: e.target.value })}
-                className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
+            {/* Meta fields row */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {/* Offer Type */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Offer Type <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={offerType}
+                  onChange={(e) => setOfferType(e.target.value as OfferType)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300"
+                  disabled={!!existingOffer}
+                  required
+                >
+                  <option value="">Select...</option>
+                  <option value="FCL">FCL</option>
+                  <option value="LCL">LCL</option>
+                  <option value="AIR">AIR</option>
+                  <option value="BUYER-CONSOL">BUYER-CONSOL</option>
+                </select>
+              </div>
 
-            {/* Price Amount */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <DollarSign className="w-4 h-4 inline mr-1" />
-                Price Amount {formData.offerType === 'OCEAN' ? '(USD)' : '(per KG)'}
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span className="text-gray-500 sm:text-sm">$</span>
-                </div>
+              {/* Sequence */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Sequence</label>
                 <input
-                  type="number"
-                  step="0.01"
-                  value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                  placeholder={formData.offerType === 'OCEAN' ? '2500.00' : '5.50'}
-                  className="w-full pl-7 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  type="text"
+                  value={`#${existingOffer?.sequenceNo || offersCount + 1}`}
+                  disabled
+                  className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg text-gray-500"
                 />
               </div>
-              <p className="mt-1 text-xs text-gray-500">
-                {formData.offerType === 'OCEAN' && 'Total ocean freight amount (all-in)'}
-                {formData.offerType === 'AIR' && 'Unit price per kilogram'}
-                {formData.offerType === 'OTHER' && 'Enter price amount'}
-              </p>
+
+              {/* Offer Date */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  <Calendar className="w-3 h-3 inline mr-1" />
+                  Offer Date
+                </label>
+                <input
+                  type="date"
+                  value={offerDate}
+                  onChange={(e) => setOfferDate(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300"
+                />
+              </div>
+
+              {/* Cargo Type (readonly) */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Cargo Type</label>
+                <input
+                  type="text"
+                  value={cargoTypeCode}
+                  disabled
+                  className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg text-gray-500"
+                />
+              </div>
             </div>
 
-            {/* Price Text */}
+            {/* Remark */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <FileText className="w-4 h-4 inline mr-1" />
-                Price Text / Original Quote
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                <FileText className="w-3 h-3 inline mr-1" />
+                Remark
               </label>
               <textarea
-                value={formData.priceText}
-                onChange={(e) => setFormData({ ...formData, priceText: e.target.value })}
-                placeholder="Ocean freight: USD 2,500 all-in&#10;Including BAF, CAF..."
-                rows={4}
-                className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                value={remark}
+                onChange={(e) => setRemark(e.target.value)}
+                placeholder="Enter remark for this offer..."
+                rows={2}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:border-indigo-300"
               />
-              <p className="mt-1 text-xs text-gray-500">
-                Enter the original quote text from carrier or your formatted quote
-              </p>
             </div>
 
-            {/* Is Rejected Price */}
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="isRejectedPrice"
-                checked={formData.isRejectedPrice}
-                onChange={(e) => setFormData({ ...formData, isRejectedPrice: e.target.checked })}
-                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-              />
-              <label htmlFor="isRejectedPrice" className="ml-2 block text-sm text-gray-900">
-                Mark as rejected offer
-              </label>
+            {/* Price Details Section */}
+            <div className="border-t border-gray-200 pt-4">
+              {/* Auto-generate button */}
+              {offerType && (
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="text-sm font-semibold text-gray-700">Price Details</h3>
+                  <button
+                    type="button"
+                    onClick={handleAutoGenerate}
+                    disabled={isGenerating}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-purple-50 text-purple-700 border border-purple-200 rounded-lg hover:bg-purple-100 disabled:opacity-50"
+                  >
+                    <Wand2 className="w-3.5 h-3.5" />
+                    {isGenerating ? 'Generating...' : 'Auto-Generate from POL×POD'}
+                  </button>
+                </div>
+              )}
+
+              {/* Price Details Matrix Table */}
+              {offerType && (
+                <PriceDetailsTable
+                  offerType={offerType}
+                  priceLines={priceLines}
+                  onChange={setPriceLines}
+                  containerTypes={containerTypes}
+                  onOpenContainerDialog={isFCL ? handleOpenContainerDialog : undefined}
+                />
+              )}
+
+              {!offerType && (
+                <div className="text-center py-8 text-gray-400 text-sm">
+                  Please select an Offer Type to configure price lines.
+                </div>
+              )}
+            </div>
+          </form>
+
+          {/* Footer (fixed) */}
+          <div className="flex justify-between items-center px-6 py-4 border-t border-gray-200 bg-gray-50 shrink-0">
+            <div className="text-xs text-gray-500">
+              {priceLines.length} price line{priceLines.length !== 1 ? 's' : ''} configured
+              {isFCL && (
+                <span className="ml-2">
+                  | {priceLines.reduce((s, l) => s + (l.containerDetails || []).reduce((cs, d) => cs + (d.numberOfContainers || 0), 0), 0)} containers
+                </span>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-100"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={(e) => handleSubmit(e as any)}
+                disabled={isSaving}
+                className="px-5 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {isSaving ? (
+                  <>
+                    <span className="animate-spin h-4 w-4 border-2 border-white/30 border-t-white rounded-full" />
+                    Saving...
+                  </>
+                ) : (
+                  existingOffer ? 'Update Offer' : 'Save Offer'
+                )}
+              </button>
             </div>
           </div>
-
-          {/* Footer */}
-          <div className="flex justify-end gap-3 pt-6 border-t border-gray-200">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSaving ? 'Saving...' : existingOffer ? 'Update Offer' : 'Save Offer'}
-            </button>
-          </div>
-        </form>
+        </div>
       </div>
-    </div>
+
+      {/* Container Details sub-dialog */}
+      <ContainerDetailsDialog
+        isOpen={containerDialogOpen}
+        containerCode={containerDialogCode}
+        teuValue={CONTAINER_TEU[containerDialogCode] || 1.0}
+        existingDetail={containerDialogDetail}
+        onConfirm={handleConfirmContainer}
+        onCancel={() => setContainerDialogOpen(false)}
+      />
+    </>
   );
 };
 

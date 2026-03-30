@@ -69,6 +69,36 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
     }
   };
 
+  /** 深度清理子记录的 ID，确保 copy/increase 创建全新记录 */
+  const cleanChildIds = (enquiryData: any) => {
+    // 清理 route groups
+    if (enquiryData.routeGroups) {
+      enquiryData.routeGroups = enquiryData.routeGroups.map((rg: any, idx: number) => ({
+        ...rg,
+        id: undefined,
+        enquiryId: undefined,
+        groupIndex: rg.groupIndex ?? idx,
+      }));
+    }
+    // 清理 offers → priceLines → containerDetails
+    if (enquiryData.offers) {
+      enquiryData.offers = enquiryData.offers.map((offer: any) => ({
+        ...offer,
+        id: undefined,
+        priceLines: (offer.priceLines || []).map((pl: any) => ({
+          ...pl,
+          id: undefined,
+          routeGroupId: undefined, // 新建时由后端回填
+          containerDetails: (pl.containerDetails || []).map((cd: any) => ({
+            ...cd,
+            id: undefined,
+          })),
+        })),
+      }));
+    }
+    return enquiryData;
+  };
+
   const handleCopy = async (enquiry: EnquiryListItem) => {
     try {
       console.log('[handleCopy] enquiry:', enquiry);
@@ -82,17 +112,14 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
       const fullEnquiry = await enquiryApi.getById(enquiry.id);
       
       const today = new Date().toISOString().split('T')[0];
-      const copied = {
+      const copied = cleanChildIds({
         ...fullEnquiry,
         id: undefined,
-        referenceNumber: undefined,
-        referenceMonth: undefined,
-        monthlySequence: undefined,
-        serialNumber: 0,
+        refNumber: undefined,
         status: 'New' as EnquiryStatus,
         enquiryReceivedDate: today,
-        issueDate: today,
-      };
+        enquiryCreatedDate: today,
+      });
       onEdit(copied as Enquiry);
     } catch (err) {
       alert('Failed to copy enquiry');
@@ -112,17 +139,17 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
       // ✅ 先加载完整的Enquiry数据（包含polIds/podIds等）
       const fullEnquiry = await enquiryApi.getById(enquiry.id);
       const preview = await enquiryApi.getIncreaseReference(enquiry.id);
-      const copied = {
+      const copied = cleanChildIds({
         ...fullEnquiry,
         id: undefined,
-        referenceNumber: preview.referenceNumber,
-        referenceMonth: preview.referenceMonth,
+        refNumber: preview.referenceNumber,
         monthlySequence: preview.monthlySequence,
-        serialNumber: preview.serialNumber,
+        serialNumber: preview.serialNumber,  // > 0 tells backend this is an increase
+        productAbbr: preview.productAbbr,
         status: 'New' as EnquiryStatus,
         enquiryReceivedDate: new Date().toISOString().split('T')[0],
-        issueDate: fullEnquiry.issueDate,
-      };
+        enquiryCreatedDate: fullEnquiry.enquiryCreatedDate,
+      });
       onEdit(copied as Enquiry);
     } catch (err) {
       alert('Failed to generate increase reference');
@@ -133,8 +160,10 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
   const getStatusColor = (status: EnquiryStatus) => {
     switch (status) {
       case 'New': return 'bg-blue-100 text-blue-800';
-      case 'Quoted': return 'bg-green-100 text-green-800';
-      case 'Pending': return 'bg-yellow-100 text-yellow-800';
+      case 'Quoted & Pending': return 'bg-yellow-100 text-yellow-800';
+      case 'Secured': return 'bg-green-100 text-green-800';
+      case 'Lost': return 'bg-red-100 text-red-800';
+      case 'Cancelled': return 'bg-gray-100 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -176,8 +205,10 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
           >
             <option value="">All Status</option>
             <option value="New">New</option>
-            <option value="Quoted">Quoted</option>
-            <option value="Pending">Pending</option>
+            <option value="Quoted & Pending">Quoted & Pending</option>
+            <option value="Secured">Secured</option>
+            <option value="Lost">Lost</option>
+            <option value="Cancelled">Cancelled</option>
           </select>
 
           <select
@@ -189,6 +220,7 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
             <option value="FCL">FCL</option>
             <option value="LCL">LCL</option>
             <option value="AIR">AIR</option>
+            <option value="BUYER-CONSOL">BUYER-CONSOL</option>
           </select>
 
           <select
@@ -235,9 +267,6 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
                     Reference
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    CN Pricing Admin
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Product Type
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -258,10 +287,7 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
                 {enquiries.map((enquiry) => (
                   <tr key={enquiry.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {enquiry.referenceNumber}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {enquiry.cnPricingAdmin || '-'}
+                      {enquiry.refNumber}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {enquiry.productCode || enquiry.productAbbr || '-'}
@@ -280,7 +306,7 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end gap-2">
                         <button
-                          onClick={() => onViewDetail(enquiry)}
+                          onClick={() => onViewDetail(enquiry as any)}
                           className="text-indigo-600 hover:text-indigo-900"
                           title="View Details"
                         >
@@ -289,7 +315,7 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
                         {canManage && (
                           <>
                             <button
-                              onClick={() => onEdit(enquiry)}
+                              onClick={() => onEdit(enquiry as any)}
                               className="text-blue-600 hover:text-blue-900"
                               title="Edit"
                             >

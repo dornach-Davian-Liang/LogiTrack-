@@ -13,14 +13,14 @@ public interface SalesPicRepository extends JpaRepository<SalesPic, Integer> {
     
     List<SalesPic> findByIsActiveTrue();
     
-    List<SalesPic> findByCountryCode(String countryCode);
+    List<SalesPic> findBySalesCountryCode(String salesCountryCode);
     
-    List<SalesPic> findByCountryCodeAndIsActiveTrue(String countryCode);
+    List<SalesPic> findBySalesCountryCodeAndIsActiveTrue(String salesCountryCode);
     
-    @Query("SELECT sp FROM SalesPic sp WHERE sp.countryCode = :countryCode AND sp.isActive = true ORDER BY sp.name ASC")
+    @Query("SELECT sp FROM SalesPic sp WHERE sp.salesCountryCode = :countryCode AND sp.isActive = true ORDER BY sp.name ASC")
     List<SalesPic> findActiveSalesPicsByCountry(@Param("countryCode") String countryCode);
     
-    @Query("SELECT DISTINCT sp.countryCode FROM SalesPic sp WHERE sp.isActive = true ORDER BY sp.countryCode ASC")
+    @Query("SELECT DISTINCT sp.salesCountryCode FROM SalesPic sp WHERE sp.isActive = true ORDER BY sp.salesCountryCode ASC")
     List<String> findDistinctCountryCodes();
     
     List<SalesPic> findBySalesOfficeId(Integer salesOfficeId);

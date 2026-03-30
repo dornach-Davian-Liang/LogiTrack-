@@ -19,41 +19,65 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 询价?�制??v3
+ */
 @RestController
 @RequestMapping("/api/enquiries")
 @RequiredArgsConstructor
 @Slf4j
-
 public class EnquiryController {
     
     private final EnquiryService enquiryService;
     
     /**
-     * GET /api/enquiries - Get all enquiry records with pagination
+     * GET /api/enquiries — 询价列表（带筛选）
      */
     @GetMapping
     public ResponseEntity<?> getAllEnquiries(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String productCode,
+            @RequestParam(required = false) String cargoTypeCode,
+            @RequestParam(required = false) String salesCountryCode,
+            @RequestParam(required = false) String assignedCnOffice,
+            @RequestParam(required = false) String coreNonCore,
+            @RequestParam(required = false) String dateFrom,
+            @RequestParam(required = false) String dateTo,
             @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortOrder) {
+            @RequestParam(required = false) String sortOrder,
+            @RequestParam(required = false) String sortDir) {
         
-        log.info("GET /api/enquiries - page={}, size={}, keyword={}", page, size, keyword);
+        // Support both sortOrder and sortDir param names
+        String direction = sortOrder != null ? sortOrder : (sortDir != null ? sortDir : "desc");
         
-        Sort sort = sortOrder.equalsIgnoreCase("asc") 
+        log.info("GET /api/enquiries - page={}, size={}, keyword={}, status={}, product={}, cargo={}", 
+                page, size, keyword, status, productCode, cargoTypeCode);
+        
+        Sort sort = direction.equalsIgnoreCase("asc") 
             ? Sort.by(sortBy).ascending() 
             : Sort.by(sortBy).descending();
         Pageable pageable = PageRequest.of(page, size, sort);
         
+        // Check if any filter is active
+        boolean hasFilters = (keyword != null && !keyword.isBlank()) ||
+                status != null || productCode != null || cargoTypeCode != null ||
+                salesCountryCode != null || assignedCnOffice != null ||
+                coreNonCore != null || dateFrom != null || dateTo != null;
+        
         Page<Enquiry> enquiryPage;
-        if (keyword != null && !keyword.trim().isEmpty()) {
-            enquiryPage = enquiryService.searchEnquiries(keyword.trim(), pageable);
+        if (hasFilters) {
+            enquiryPage = enquiryService.getEnquiriesFiltered(
+                    keyword != null ? keyword.trim() : null,
+                    status, productCode, cargoTypeCode,
+                    salesCountryCode, assignedCnOffice, coreNonCore,
+                    dateFrom, dateTo, pageable);
         } else {
             enquiryPage = enquiryService.getEnquiries(pageable);
         }
         
-        // Return in the format expected by frontend
         Map<String, Object> response = new HashMap<>();
         response.put("content", enquiryPage.getContent());
         response.put("totalElements", enquiryPage.getTotalElements());
@@ -65,29 +89,25 @@ public class EnquiryController {
     }
     
     /**
-     * GET /api/enquiries/all - Get all enquiry records without pagination
+     * GET /api/enquiries/all
      */
     @GetMapping("/all")
     public ResponseEntity<List<Enquiry>> getAllEnquiriesNoPaging() {
-        log.info("GET /api/enquiries/all - Fetching all enquiries");
-        List<Enquiry> enquiries = enquiryService.getAllEnquiries();
-        return ResponseEntity.ok(enquiries);
+        return ResponseEntity.ok(enquiryService.getAllEnquiries());
     }
     
     /**
-     * GET /api/enquiries/{id} - Get enquiry by ID
+     * GET /api/enquiries/{id} ??询价详�?
      */
     @GetMapping("/{id}")
     public ResponseEntity<Enquiry> getEnquiryById(@PathVariable Long id) {
-        log.info("GET /api/enquiries/{} - Fetching enquiry", id);
         return enquiryService.getEnquiryById(id)
             .map(ResponseEntity::ok)
             .orElse(ResponseEntity.notFound().build());
     }
 
     /**
-     * GET /api/enquiries/reference/next - Preview next reference number
-     */
+     * GET /api/enquiries/reference/next ??预�?下�?个�??��???     */
     @GetMapping("/reference/next")
     public ResponseEntity<ReferencePreview> getNextReference(
             @RequestParam(required = false) String issueDate,
@@ -99,7 +119,7 @@ public class EnquiryController {
     }
 
     /**
-     * GET /api/enquiries/{id}/reference/increase - Preview increase reference number
+     * GET /api/enquiries/{id}/reference/increase
      */
     @GetMapping("/{id}/reference/increase")
     public ResponseEntity<ReferencePreview> getIncreaseReference(@PathVariable Long id) {
@@ -107,12 +127,12 @@ public class EnquiryController {
     }
     
     /**
-     * POST /api/enquiries - Create new enquiry record
+     * POST /api/enquiries ???�建询价
      */
     @PostMapping
     @Audit(action = "CREATE", resourceType = "ENQUIRY")
     public ResponseEntity<?> createEnquiry(@RequestBody Enquiry enquiry) {
-        log.info("POST /api/enquiries - Creating new enquiry: {}", enquiry.getReferenceNumber());
+        log.info("POST /api/enquiries");
         try {
             Enquiry created = enquiryService.createEnquiry(enquiry);
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
@@ -126,14 +146,14 @@ public class EnquiryController {
     }
     
     /**
-     * PUT /api/enquiries/{id} - Update existing enquiry record
+     * PUT /api/enquiries/{id} ???�新询价
      */
     @Audit(action = "UPDATE", resourceType = "ENQUIRY", resourceIdParam = "id")
     @PutMapping("/{id}")
-    public ResponseEntity<Enquiry> updateEnquiry(
+    public ResponseEntity<?> updateEnquiry(
             @PathVariable Long id, 
             @RequestBody Enquiry enquiry) {
-        log.info("PUT /api/enquiries/{} - Updating enquiry", id);
+        log.info("PUT /api/enquiries/{}", id);
         try {
             Enquiry updated = enquiryService.updateEnquiry(id, enquiry);
             return ResponseEntity.ok(updated);
@@ -142,39 +162,53 @@ public class EnquiryController {
             if (e.getMessage() != null && e.getMessage().contains("not found")) {
                 return ResponseEntity.notFound().build();
             }
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
     /**
-     * DELETE /api/enquiries/{id} - Delete enquiry record
+     * PATCH /api/enquiries/{id}/status ???�更?�态�??��??��?
+     */
+    @Audit(action = "STATUS_CHANGE", resourceType = "ENQUIRY", resourceIdParam = "id")
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<?> changeStatus(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body) {
+        log.info("PATCH /api/enquiries/{}/status", id);
+        try {
+            String newStatus = body.get("status");
+            String reason = body.get("reason");
+            String reasonText = body.get("reasonText");
+            
+            if (newStatus == null || newStatus.isBlank()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "status is required"));
+            }
+            
+            Enquiry updated = enquiryService.changeStatus(id, newStatus, reason, reasonText);
+            return ResponseEntity.ok(updated);
+        } catch (RuntimeException e) {
+            log.error("Error changing status: {}", e.getMessage());
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        }
+    }
+    
+    /**
+     * DELETE /api/enquiries/{id}
      */
     @Audit(action = "DELETE", resourceType = "ENQUIRY", resourceIdParam = "id")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteEnquiry(@PathVariable Long id) {
-        log.info("DELETE /api/enquiries/{} - Deleting enquiry", id);
+        log.info("DELETE /api/enquiries/{}", id);
         try {
             enquiryService.deleteEnquiry(id);
             return ResponseEntity.noContent().build();
         } catch (RuntimeException e) {
-            log.error("Error deleting enquiry: {}", e.getMessage());
             return ResponseEntity.notFound().build();
         }
     }
-    
-    /**
-     * GET /api/enquiries/status/{status} - Get enquiries by status
-     */
-    @GetMapping("/status/{status}")
-    public ResponseEntity<List<Enquiry>> getEnquiriesByStatus(@PathVariable String status) {
-        log.info("GET /api/enquiries/status/{} - Fetching enquiries by status", status);
-        try {
-            Enquiry.EnquiryStatus enquiryStatus = Enquiry.EnquiryStatus.valueOf(status.toUpperCase());
-            List<Enquiry> enquiries = enquiryService.getEnquiriesByStatus(enquiryStatus);
-            return ResponseEntity.ok(enquiries);
-        } catch (IllegalArgumentException e) {
-            log.error("Invalid status: {}", status);
-            return ResponseEntity.badRequest().build();
-        }
-    }
 }
+    

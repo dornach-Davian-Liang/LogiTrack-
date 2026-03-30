@@ -2,24 +2,29 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Save, X, Plus, Trash2, ArrowRight } from 'lucide-react';
 import { 
   Enquiry, 
-  ContainerLine, 
   Offer,
+  OfferPriceLine,
+  RouteGroup,
   SalesPic, 
   Port, 
   Country, 
-  ContainerType,
   SelectOption,
   SalesPicSelectOption,
   PortSelectOption,
   ContainerTypeSelectOption,
   OfferType,
   ProductCode,
+  CancelledReasonDict,
+  LostReasonDict,
 } from '../../types';
 import { enquiryApi, masterDataApi } from '../../services/api';
+import { isMixedProduct, PRODUCT_CARGO_MAP, CONTAINER_CARGO_TYPES } from '../../constants';
 import { Accordion, AccordionItem } from '../Accordion';
 import { MultiSelect } from '../MultiSelect';
 import { VirtualizedMultiSelect } from '../VirtualizedMultiSelect';
 import { DatePickerInput } from '../DatePickerInput';
+import { RouteGroupEditor } from './RouteGroupEditor';
+import { OfferPriceTable } from './OfferPriceTable';
 
 interface EnquiryFormProps {
   initialData?: Partial<Enquiry> | null;
@@ -38,6 +43,13 @@ interface FormData extends Partial<Enquiry> {
   
   // Offer 信息
   offers?: Offer[];
+  
+  // Route groups for mixed-mode products
+  routeGroups?: RouteGroup[];
+
+  // Display / legacy fields not in Enquiry type
+  cargoReadyDateRawText?: string;
+  actualReason?: string;
 }
 
 export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit, onCancel }) => {
@@ -50,17 +62,14 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
   const [formData, setFormData] = useState<FormData>({
     status: 'New',
     enquiryReceivedDate: getLocalDateISO(),
-    issueDate: getLocalDateISO(),
+    enquiryCreatedDate: getLocalDateISO(),
     productCode: 'SEA',
     cargoTypeCode: 'FCL',
-    containerLines: [],
     offers: [],
     polIds: [],
     podIds: [],
-    bookingConfirmed: 'Pending',
     // 必需字段默认值
-    assignedCnOfficeCode: '',
-    cnPricingAdmin: '',
+    assignedCnOffice: '',
     salesCountryCode: '',
     salesOfficeId: 0,
     salesPicId: 0,
@@ -68,19 +77,20 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
   });
 
   const [salesCountries, setSalesCountries] = useState<SelectOption[]>([]); // 销售国家（用于下拉框）
-  const [allCountries, setAllCountries] = useState<Country[]>([]); // 所有国家（完整对象，包含isCore）
+  const [allCountries, setAllCountries] = useState<Country[]>([]); // 所有国家（完整对象）
   const [salesPics, setSalesPics] = useState<SalesPicSelectOption[]>([]);
   const [ports, setPorts] = useState<PortSelectOption[]>([]);
-  const [containerTypes, setContainerTypes] = useState<ContainerTypeSelectOption[]>([]);
   const [cnOffices, setCnOffices] = useState<SelectOption[]>([]);
   const [products, setProducts] = useState<SelectOption[]>([]);
   const [cargoTypes, setCargoTypes] = useState<SelectOption[]>([]);
-  const [cnPricingAdmins, setCnPricingAdmins] = useState<SelectOption[]>([]);
+  const [containerTypesOpts, setContainerTypesOpts] = useState<ContainerTypeSelectOption[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isPortSearching, setIsPortSearching] = useState(false); // ✅ 新增：港口搜索加载状态
   const [referencePreview, setReferencePreview] = useState('');
   const [isReferenceLoading, setIsReferenceLoading] = useState(false);
   const [coreFlagWarning, setCoreFlagWarning] = useState(''); // CORE flag自动计算警告
+  const [cancelledReasons, setCancelledReasons] = useState<CancelledReasonDict[]>([]);
+  const [lostReasons, setLostReasons] = useState<LostReasonDict[]>([]);
 
   useEffect(() => {
     loadMasterData();
@@ -89,28 +99,16 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
   useEffect(() => {
     if (initialData) {
 
-      const normalizedContainerLines = (initialData.containerLines || []).map(line => {
-        const qty = line.containerQty ?? line.quantity ?? 0;
-        const teuPerUnit = line.teuPerUnit ?? line.teuValue ?? 0;
-        return {
-          ...line,
-          quantity: qty,
-          teuValue: teuPerUnit,
-          lineTeu: qty * teuPerUnit,
-        };
-      });
-
       setFormData(prev => ({
         ...prev,
         ...initialData,
-        containerLines: normalizedContainerLines,
-        // ✅ 修复：优先使用 polIds/podIds 数组，如果不存在则用单个值初始化
+        // ✅ 修复：使用 polIds/podIds 数组
         polIds: initialData.polIds && initialData.polIds.length > 0 
           ? initialData.polIds 
-          : (initialData.polId ? [initialData.polId] : prev.polIds),
+          : prev.polIds,
         podIds: initialData.podIds && initialData.podIds.length > 0 
           ? initialData.podIds 
-          : (initialData.podId ? [initialData.podId] : prev.podIds),
+          : prev.podIds,
       }));
 
       if (initialData.salesCountryCode) {
@@ -121,8 +119,6 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
       const selectedPortIds = Array.from(new Set([
         ...(initialData.polIds || []),
         ...(initialData.podIds || []),
-        initialData.polId,
-        initialData.podId,
       ].filter((v): v is number => v !== null && v !== undefined).map(Number)));
 
       if (selectedPortIds.length > 0) {
@@ -140,28 +136,28 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
   }, [salesPics, initialData?.salesPicId]);
 
   useEffect(() => {
-    // ✅ 修复：使用完整的podIds数组而不是单个podId
+    // ✅ 修复：使用完整的podIds数组
     const podIdsToUse = initialData?.podIds && initialData.podIds.length > 0 
       ? initialData.podIds 
-      : (initialData?.podId ? [initialData.podId] : []);
+      : [];
     
     if (podIdsToUse.length > 0 && ports.length > 0 && allCountries.length > 0) {
       updatePodCountries(podIdsToUse);
     }
-  }, [ports, allCountries, initialData?.podIds, initialData?.podId]);
+  }, [ports, allCountries, initialData?.podIds]);
 
   useEffect(() => {
     // 如果是编辑模式，不获取预览
     if (formData.id) return;
     
     // 如果已有保存的编号，显示该编号
-    if (formData.referenceNumber) {
-      setReferencePreview(formData.referenceNumber);
+    if (formData.refNumber) {
+      setReferencePreview(formData.refNumber);
       return;
     }
     
     // 如果缺少必要信息，清空预览
-    if (!formData.issueDate || !formData.productCode) {
+    if (!formData.enquiryCreatedDate || !formData.productCode) {
       setReferencePreview('');
       return;
     }
@@ -171,19 +167,16 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
     setIsReferenceLoading(true);
     
     const timer = setTimeout(() => {
-      enquiryApi.getNextReference({
-        issueDate: formData.issueDate,
-        productCode: formData.productCode,
-      })
+      enquiryApi.getNextReference(
+        formData.enquiryCreatedDate!,
+        formData.productCode!,
+      )
         .then(preview => {
           if (!active) return;
           setReferencePreview(preview.referenceNumber);
           // 同时更新相关字段
           setFormData(prev => ({
             ...prev,
-            referenceMonth: preview.referenceMonth,
-            monthlySequence: preview.monthlySequence,
-            serialNumber: preview.serialNumber,
             productAbbr: preview.productAbbr,
           }));
         })
@@ -201,15 +194,41 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
       active = false;
       clearTimeout(timer);
     };
-  }, [formData.issueDate, formData.productCode]);
+  }, [formData.enquiryCreatedDate, formData.productCode]);
 
-  // 监听offers变化，自动更新Status为Quoted
+  // 判断offers中是否有实际填写了报价的行
+  const hasActualPricing = (offers: Offer[] | undefined): boolean => {
+    if (!offers || offers.length === 0) return false;
+    return offers.some(offer =>
+      (offer.priceLines || []).some(line => {
+        const hasPrice =
+          (line.price != null && line.price > 0) ||
+          (line.perCbm != null && line.perCbm > 0) ||
+          (line.minCharge != null && line.minCharge > 0) ||
+          (line.localCharge != null && line.localCharge > 0) ||
+          (line.priceText != null && line.priceText.trim().length > 0);
+        const hasContainerPrice = (line.containerDetails || []).some(
+          d => d.containerPrice != null && d.containerPrice > 0
+        );
+        return hasPrice || hasContainerPrice;
+      })
+    );
+  };
+
+  // 监听offers变化，根据是否填写了报价自动切换Status
   useEffect(() => {
-    if (formData.offers && formData.offers.length > 0 && formData.status === 'New') {
-      console.log('[EnquiryForm] Offers detected, auto-setting status to Quoted');
+    const hasPricing = hasActualPricing(formData.offers);
+    if (hasPricing && formData.status === 'New') {
+      console.log('[EnquiryForm] Pricing detected, auto-setting status to Quoted & Pending');
       setFormData(prev => ({
         ...prev,
-        status: 'Quoted',
+        status: 'Quoted & Pending',
+      }));
+    } else if (!hasPricing && formData.status === 'Quoted & Pending') {
+      console.log('[EnquiryForm] No pricing detected, auto-setting status to New');
+      setFormData(prev => ({
+        ...prev,
+        status: 'New',
       }));
     }
   }, [formData.offers]);
@@ -257,21 +276,24 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
       const [
         salesCountriesData,
         allCountriesData,
-        containerTypesData,
         cnOfficesData,
-        cnPricingAdminsData,
+        containerTypesData,
+        cancelledReasonsData,
+        lostReasonsData,
       ] = await Promise.all([
         masterDataApi.getSalesCountries(),
-        masterDataApi.getCountries(), // ✅ 获取完整Country对象（包含isCore）
-        masterDataApi.getContainerTypes(),
+        masterDataApi.getCountries(),
         masterDataApi.getCnOffices(),
-        masterDataApi.getCnPricingAdmins(),
+        masterDataApi.getContainerTypes(),
+        masterDataApi.getCancelledReasons(),
+        masterDataApi.getLostReasons(),
       ]);
       setSalesCountries(salesCountriesData);
       setAllCountries(allCountriesData);
-      setContainerTypes(containerTypesData);
       setCnOffices(cnOfficesData);
-      setCnPricingAdmins(cnPricingAdminsData);
+      setContainerTypesOpts(containerTypesData || []);
+      setCancelledReasons(cancelledReasonsData || []);
+      setLostReasons(lostReasonsData || []);
       
       // ✅ 修复：初始加载常用港口（前50个），避免编辑时下拉框空白
       try {
@@ -292,22 +314,23 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
         setPorts([]);  // 失败时仍然设置空数组
       }
       
-      // 设置产品类型选项
+      // 设置产品类型选项 (V3: 7 products)
       setProducts([
         { value: 'AIR', label: 'AIR' },
         { value: 'SEA', label: 'SEA' },
-        { value: 'AIR-RAIL-SEA', label: 'AIR-RAIL-SEA (ARS)' },
         { value: 'RAIL', label: 'RAIL' },
+        { value: 'SEA-AIR', label: 'SEA-AIR' },
         { value: 'RAIL-SEA', label: 'RAIL-SEA' },
+        { value: 'RAIL-AIR', label: 'RAIL-AIR' },
+        { value: 'AIR-RAIL-SEA', label: 'AIR-RAIL-SEA (ARS)' },
       ]);
       
-      // 设置货物类型选项
+      // 设置货物类型选项 (V3: 4 cargo types)
       setCargoTypes([
-        { value: 'AIR', label: 'AIR' },
         { value: 'FCL', label: 'FCL' },
         { value: 'LCL', label: 'LCL' },
-        { value: 'RAIL', label: 'RAIL' },
-        { value: 'SEA', label: 'SEA' },
+        { value: 'AIR', label: 'AIR' },
+        { value: 'BUYER-CONSOL', label: 'BUYER-CONSOL' },
       ]);
     } catch (error) {
       console.error('Failed to load master data:', error);
@@ -315,7 +338,20 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
   };
 
   const handleChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const updated = { ...prev, [field]: value };
+      // Product → Cargo Type 联动过滤
+      if (field === 'productCode') {
+        const allowed = PRODUCT_CARGO_MAP[value as ProductCode] || ['FCL','LCL','AIR','BUYER-CONSOL'];
+        const filteredCargo = allowed.map(c => ({ value: c, label: c }));
+        setCargoTypes(filteredCargo);
+        // 如果当前 cargoTypeCode 不在允许列表中，重置为第一个
+        if (!allowed.includes(updated.cargoTypeCode || '')) {
+          updated.cargoTypeCode = allowed[0];
+        }
+      }
+      return updated;
+    });
   };
 
   // ✅ 新增：异步港口搜索处理
@@ -382,6 +418,22 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
 
   // Handle country change - load sales pics for that country
   const handleCountryChange = async (countryCode: string) => {
+    // CORE / NON-CORE 自动映射：从 allCountries 查找 isCore
+    let autoCore: string | undefined = undefined;
+    if (countryCode && allCountries.length > 0) {
+      const matched = allCountries.find(c => c.countryCode.toUpperCase() === countryCode.toUpperCase());
+      if (matched) {
+        autoCore = (matched as any).isCore ? 'Core' : 'Non-Core';
+        setCoreFlagWarning(`✅ Auto: ${autoCore}`);
+      } else {
+        // AGENTS / OTHERS / TBA → Non-Core
+        autoCore = 'Non-Core';
+        setCoreFlagWarning('⚠️ No country match → Non-Core');
+      }
+    } else {
+      setCoreFlagWarning('');
+    }
+
     setFormData(prev => ({
       ...prev,
       salesCountryCode: countryCode,
@@ -389,6 +441,7 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
       salesPicName: undefined,
       salesOfficeId: undefined,
       salesOfficeName: undefined,
+      ...(autoCore ? { coreNonCore: autoCore as any } : {}),
     }));
 
     if (countryCode) {
@@ -421,8 +474,8 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
   // Reference Number 预览（实时从后端获取）
   const getReferenceDisplay = () => {
     // 如果已保存，显示实际的 Reference
-    if (formData.referenceNumber) {
-      return formData.referenceNumber;
+    if (formData.refNumber) {
+      return formData.refNumber;
     }
     // 如果正在加载
     if (isReferenceLoading) {
@@ -436,48 +489,43 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
     return 'Auto-generated on save';
   };
 
-  const addContainerLine = () => {
-    const firstType = containerTypes[0];
-    const newLine: ContainerLine = {
-      id: Date.now(),
-      enquiryId: formData.id || 0,
-      containerTypeId: firstType ? Number(firstType.value) : 1,
-      containerTypeCode: '20GP',
-      quantity: 1,
-      teuValue: firstType?.teuValue || 1,
-      lineTeu: firstType?.teuValue || 1,
-    };
-    setFormData(prev => ({
-      ...prev,
-      containerLines: [...(prev.containerLines || []), newLine],
-    }));
-  };
+  // TODO: Container details moved to Offer price lines in v3
 
-  const updateContainerLine = (index: number, field: keyof ContainerLine, value: any) => {
-    const lines = [...(formData.containerLines || [])];
-    lines[index] = { ...lines[index], [field]: value };
+  // ── Helper: 根据当前POL/POD选择，生成 PriceLine 笛卡尔积 ──
+  const generatePriceLinesFromPorts = (): OfferPriceLine[] => {
+    const lines: OfferPriceLine[] = [];
+    const productCode = formData.productCode || 'SEA';
+    const mixed = isMixedProduct(productCode as ProductCode);
 
-    // Auto-calculate TEU
-    if (field === 'containerTypeId' || field === 'quantity') {
-      const containerType = containerTypes.find(ct => Number(ct.value) === lines[index].containerTypeId);
-      if (containerType) {
-        lines[index].teuValue = containerType.teuValue;
-        lines[index].lineTeu = (lines[index].quantity || 0) * containerType.teuValue;
-      }
+    if (mixed && formData.routeGroups && formData.routeGroups.length > 0) {
+      // 混合模式: 每个 RouteGroup 单独生成
+      formData.routeGroups.forEach(rg => {
+        (rg.polIds || []).forEach(polId => {
+          (rg.podIds || []).forEach(podId => {
+            lines.push({
+              polId: Number(polId),
+              podId: Number(podId),
+              routeGroupId: rg.groupIndex,  // 临时存放 groupIndex，提交时由handleSubmit处理
+              subMode: rg.subMode,
+              sortOrder: rg.groupIndex,     // 用sortOrder携带分组序号，后端用此关联真实ID
+              containerDetails: [],
+            });
+          });
+        });
+      });
+    } else {
+      // 普通模式: polIds × podIds
+      (formData.polIds || []).forEach(polId => {
+        (formData.podIds || []).forEach(podId => {
+          lines.push({
+            polId: Number(polId),
+            podId: Number(podId),
+            containerDetails: [],
+          });
+        });
+      });
     }
-
-    setFormData(prev => ({ ...prev, containerLines: lines }));
-  };
-
-  const removeContainerLine = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      containerLines: (prev.containerLines || []).filter((_, i) => i !== index),
-    }));
-  };
-
-  const calculateTotalTeu = () => {
-    return (formData.containerLines || []).reduce((sum, line) => sum + (line.lineTeu || 0), 0);
+    return lines;
   };
 
   // Offer 管理函数
@@ -485,15 +533,18 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
     // Get local date (not UTC) to avoid timezone offset issues
     const now = new Date();
     const localDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    
+
+    // 自动生成 PriceLine 行 (POL×POD)
+    const priceLines = generatePriceLinesFromPorts();
+
     const newOffer: Offer = {
       id: Date.now(),
       enquiryId: formData.id || 0,
-      offerType: 'OCEAN',
+      offerType: (formData.cargoTypeCode as OfferType) || 'FCL',
       sequenceNo: (formData.offers || []).length + 1,
-      sentDate: localDateStr,
-      priceText: '',
+      offerDate: localDateStr,
       isLatest: true,
+      priceLines,
     };
     
     // 将之前的 offer 设为非最新
@@ -509,6 +560,28 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
     const offers = [...(formData.offers || [])];
     offers[index] = { ...offers[index], [field]: value };
     setFormData(prev => ({ ...prev, offers }));
+  };
+
+  /** 更新 Offer 内的 PriceLines（由 OfferPriceTable 调用） */
+  const updateOfferPriceLines = (offerIndex: number, priceLines: OfferPriceLine[]) => {
+    const offers = [...(formData.offers || [])];
+    offers[offerIndex] = { ...offers[offerIndex], priceLines };
+    setFormData(prev => ({ ...prev, offers }));
+  };
+
+  /** 重新生成某个 Offer 的 PriceLines（保留已有价格数据） */
+  const regeneratePriceLines = (offerIndex: number) => {
+    const offer = (formData.offers || [])[offerIndex];
+    if (!offer) return;
+    const freshLines = generatePriceLinesFromPorts();
+    // 尝试保留已有的价格数据
+    const merged = freshLines.map(fl => {
+      const existing = offer.priceLines.find(
+        el => el.polId === fl.polId && el.podId === fl.podId && el.routeGroupId === fl.routeGroupId
+      );
+      return existing ? { ...fl, ...existing } : fl;
+    });
+    updateOfferPriceLines(offerIndex, merged);
   };
 
   const removeOffer = (index: number) => {
@@ -552,47 +625,12 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
     
     console.log('Final country names:', countryNames);
     
-    // ✅ 自动计算CORE/NON-CORE flag
-    let calculatedCoreFlag: string | undefined = undefined;
-    let warning = '';
-    
-    if (countryCodes.length > 0) {
-      // 查找所有选中POD国家的is_core标记
-      const coreCountries = countryCodes.filter(code => {
-        const country = allCountries.find(c => String(c.countryCode).toUpperCase() === String(code).toUpperCase());
-        return country?.isCore === true;
-      });
-      
-      const nonCoreCountries = countryCodes.filter(code => {
-        const country = allCountries.find(c => String(c.countryCode).toUpperCase() === String(code).toUpperCase());
-        return country?.isCore !== true; // 包括 false 和 undefined
-      });
-      
-      console.log('CORE countries:', coreCountries);
-      console.log('NON-CORE countries:', nonCoreCountries);
-      
-      // 判断是否混合
-      if (coreCountries.length > 0 && nonCoreCountries.length > 0) {
-        // 混合情况：需要手动选择
-        warning = `⚠️ 混合CORE和NON-CORE国家，请手动选择`;
-        calculatedCoreFlag = undefined; // 不自动设置
-      } else if (coreCountries.length > 0) {
-        calculatedCoreFlag = 'CORE';
-        warning = `✓ 自动识别为 CORE（可手动覆盖）`;
-      } else if (nonCoreCountries.length > 0) {
-        calculatedCoreFlag = 'NON_CORE';
-        warning = `✓ 自动识别为 NON-CORE（可手动覆盖）`;
-      }
-    }
-    
-    setCoreFlagWarning(warning);
+    // NOTE: isCore removed from Country in v3 — user must set Core/Non-Core manually
     
     setFormData(prev => ({
       ...prev,
       podIds: podIdStrings.map(id => parseInt(id, 10)), // 存储为数字数组
-      podCountryCode: countryCodes[0], // 存储第一个国家代码
-      podCountryName: countryNames || '未找到对应国家', // 显示所有国家名称
-      coreFlag: calculatedCoreFlag !== undefined ? calculatedCoreFlag : prev.coreFlag, // 只在有计算结果时更新
+      podCountry: countryNames || '未找到对应国家', // 显示所有国家名称
     }));
   };
 
@@ -612,76 +650,96 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
         setIsLoading(false);
         return;
       }
-      if (!formData.cnPricingAdmin) {
-        alert('Please select CN Pricing Admin');
-        setIsLoading(false);
-        return;
-      }
-      if (!formData.assignedCnOfficeCode) {
+      if (!formData.assignedCnOffice) {
         alert('Please select Assigned CN Office');
         setIsLoading(false);
         return;
       }
 
       // 验证港口选择
-      if (!formData.polIds || formData.polIds.length === 0) {
-        alert('Please select Port of Loading (POL)');
-        setIsLoading(false);
-        return;
-      }
-      if (!formData.podIds || formData.podIds.length === 0) {
-        alert('Please select Port of Discharge (POD)');
-        setIsLoading(false);
-        return;
+      const mixed = isMixedProduct((formData.productCode || 'SEA') as ProductCode);
+      if (mixed) {
+        // 混合模式：验证 route groups 中的 POL/POD
+        const rgs = formData.routeGroups || [];
+        const hasEmptyPol = rgs.some(rg => !rg.polIds || rg.polIds.length === 0);
+        const hasEmptyPod = rgs.some(rg => !rg.podIds || rg.podIds.length === 0);
+        if (rgs.length === 0 || hasEmptyPol) {
+          alert('Please select POL in each Route Group');
+          setIsLoading(false);
+          return;
+        }
+        if (hasEmptyPod) {
+          alert('Please select POD in each Route Group');
+          setIsLoading(false);
+          return;
+        }
+        // 自动汇总 route group 的 polIds/podIds 到顶层
+        const allPolIds: number[] = [];
+        const allPodIds: number[] = [];
+        rgs.forEach(rg => {
+          (rg.polIds || []).forEach(id => allPolIds.push(Number(id)));
+          (rg.podIds || []).forEach(id => allPodIds.push(Number(id)));
+        });
+        formData.polIds = [...new Set(allPolIds)];
+        formData.podIds = [...new Set(allPodIds)];
+      } else {
+        if (!formData.polIds || formData.polIds.length === 0) {
+          alert('Please select Port of Loading (POL)');
+          setIsLoading(false);
+          return;
+        }
+        if (!formData.podIds || formData.podIds.length === 0) {
+          alert('Please select Port of Discharge (POD)');
+          setIsLoading(false);
+          return;
+        }
       }
 
-      // 构建提交数据：保留 polIds 和 podIds 数组
+      // 构建提交数据
       let enquiryToSubmit: any = {
         ...formData,
-        polId: formData.polIds?.[0],  // 兼容旧字段（保留第一个作为主港口）
-        podId: formData.podIds?.[0],  // 兼容旧字段（保留第一个作为主港口）
-        polIds: formData.polIds || [],  // ✅ 新增：发送完整的 POL ID 数组
-        podIds: formData.podIds || [],  // ✅ 新增：发送完整的 POD ID 数组
+        polIds: formData.polIds || [],
+        podIds: formData.podIds || [],
       };
 
-      // 清除containerLines的ID，防止后端detached entity异常，并映射字段名
-      if (enquiryToSubmit.containerLines && Array.isArray(enquiryToSubmit.containerLines)) {
-        enquiryToSubmit.containerLines = enquiryToSubmit.containerLines.map((line: any) => ({
-          containerTypeId: line.containerTypeId,
-          containerQty: line.quantity || line.containerQty || 1, // 映射quantity -> containerQty
-          rawText: line.rawText || null,
-          // 不发送这些前端字段到后端
-          // id, enquiryId, teuValue, lineTeu等由后端处理
-        }));
+      // 确保 enquiryCreatedDate 是 LocalDateTime 格式 (后端需要 "yyyy-MM-ddTHH:mm:ss")
+      if (enquiryToSubmit.enquiryCreatedDate && !enquiryToSubmit.enquiryCreatedDate.includes('T')) {
+        enquiryToSubmit.enquiryCreatedDate = enquiryToSubmit.enquiryCreatedDate + 'T00:00:00';
       }
+
+      // Container details moved to Offer price lines in v3
+      delete enquiryToSubmit.containerLines;
 
       // 处理offers：新建时发送必要字段，编辑时避免覆盖已有offers
       if (enquiryToSubmit.offers && Array.isArray(enquiryToSubmit.offers)) {
         if (formData.id) {
-          // 编辑模式：不通过Enquiry接口更新offers，避免覆盖与detached问题
-            // ✅ 编辑模式下也需要发送offers，后端会正确处理合并
+          // 编辑模式：发送offers，后端会正确处理合并
             enquiryToSubmit.offers = enquiryToSubmit.offers.map((offer: any) => ({
-              id: offer.id || undefined,  // 保留ID如果有（用于更新）
+              id: offer.id || undefined,
               offerType: offer.offerType,
               sequenceNo: offer.sequenceNo,
               isLatest: offer.isLatest ?? false,
-              sentDate: offer.sentDate || null,
-              sentDateRawText: offer.sentDateRawText || null,
-              price: offer.price ?? null,
-              priceText: offer.priceText || null,
-              isRejectedPrice: offer.isRejectedPrice ?? false,
+              offerDate: offer.offerDate || null,
+              remark: offer.remark || null,
+              priceLines: (offer.priceLines || []).map((pl: any) => ({
+                ...pl,
+                // 编辑已有数据时保留真实 routeGroupId（数据库ID较大），新行的 groupIndex 值设为 null
+                routeGroupId: (typeof pl.routeGroupId === 'number' && pl.routeGroupId > 100) ? pl.routeGroupId : null,
+              })),
             }));
         } else {
-          // 新建模式：仅发送后端需要的字段（不带id/enquiryId）
+          // 新建模式：routeGroupId 全部设为 null，用 sortOrder 携带 groupIndex 给后端关联
           enquiryToSubmit.offers = enquiryToSubmit.offers.map((offer: any) => ({
             offerType: offer.offerType,
             sequenceNo: offer.sequenceNo,
             isLatest: offer.isLatest ?? false,
-            sentDate: offer.sentDate || null,
-            sentDateRawText: offer.sentDateRawText || null,
-            price: offer.price ?? null,
-            priceText: offer.priceText || null,
-            isRejectedPrice: offer.isRejectedPrice ?? false,
+            offerDate: offer.offerDate || null,
+            remark: offer.remark || null,
+            priceLines: (offer.priceLines || []).map((pl: any) => ({
+              ...pl,
+              routeGroupId: null,  // ← 新建时不传 routeGroupId，避免 FK 错误
+              sortOrder: pl.sortOrder ?? pl.routeGroupId ?? 0,  // 用 sortOrder 携带分组序号
+            })),
           }));
         }
       }
@@ -692,31 +750,22 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
       // 编辑模式：确保必需字段都已包含，防止 NOT NULL 约束错误
       if (formData.id) {
         // ✅ 保留原有的必需字段值（如果新值为空则使用旧值）
-        enquiryToSubmit.referenceNumber = enquiryToSubmit.referenceNumber || initialData?.referenceNumber;
-        enquiryToSubmit.referenceMonth = enquiryToSubmit.referenceMonth || initialData?.referenceMonth;
-        enquiryToSubmit.monthlySequence = enquiryToSubmit.monthlySequence ?? initialData?.monthlySequence;
-        enquiryToSubmit.serialNumber = enquiryToSubmit.serialNumber ?? initialData?.serialNumber ?? 0;
+        enquiryToSubmit.refNumber = enquiryToSubmit.refNumber || initialData?.refNumber;
         enquiryToSubmit.productCode = enquiryToSubmit.productCode || initialData?.productCode;
         enquiryToSubmit.productAbbr = enquiryToSubmit.productAbbr || initialData?.productAbbr;
         enquiryToSubmit.status = enquiryToSubmit.status || initialData?.status || 'New';
-        enquiryToSubmit.cnPricingAdmin = enquiryToSubmit.cnPricingAdmin || initialData?.cnPricingAdmin;
         enquiryToSubmit.salesCountryCode = enquiryToSubmit.salesCountryCode || initialData?.salesCountryCode;
         enquiryToSubmit.salesOfficeId = enquiryToSubmit.salesOfficeId || initialData?.salesOfficeId;
-        enquiryToSubmit.salesPicId = enquiryToSubmit.salesPicId || initialData?.salesPicId;  // ✅ 新增：保留销售人员ID
-        enquiryToSubmit.assignedCnOfficeCode = enquiryToSubmit.assignedCnOfficeCode || initialData?.assignedCnOfficeCode;
+        enquiryToSubmit.salesPicId = enquiryToSubmit.salesPicId || initialData?.salesPicId;
+        enquiryToSubmit.assignedCnOffice = enquiryToSubmit.assignedCnOffice || initialData?.assignedCnOffice;
         enquiryToSubmit.cargoTypeCode = enquiryToSubmit.cargoTypeCode || initialData?.cargoTypeCode;
-        enquiryToSubmit.issueDate = enquiryToSubmit.issueDate || initialData?.issueDate;
+        enquiryToSubmit.enquiryCreatedDate = enquiryToSubmit.enquiryCreatedDate || initialData?.enquiryCreatedDate;
         enquiryToSubmit.enquiryReceivedDate = enquiryToSubmit.enquiryReceivedDate || initialData?.enquiryReceivedDate;
-        enquiryToSubmit.bookingConfirmed = enquiryToSubmit.bookingConfirmed || initialData?.bookingConfirmed || 'Pending';
-        // ✅ 新增：保留主港口ID（polId/podId）作为后备
-        enquiryToSubmit.polId = enquiryToSubmit.polId || enquiryToSubmit.polIds?.[0] || initialData?.polId;
-        enquiryToSubmit.podId = enquiryToSubmit.podId || enquiryToSubmit.podIds?.[0] || initialData?.podId;
       } else {
-        // 新建时由后端生成 Reference，避免并发冲突
-        delete enquiryToSubmit.referenceNumber;
-        if (!formData.serialNumber || !formData.monthlySequence || formData.serialNumber <= 0) {
-          delete enquiryToSubmit.serialNumber;
-          delete enquiryToSubmit.monthlySequence;
+        // 新建模式：Increase 保留 refNumber（serialNumber > 0 标识 increase），普通新建删除
+        const isIncrease = enquiryToSubmit.serialNumber && enquiryToSubmit.serialNumber > 0;
+        if (!isIncrease) {
+          delete enquiryToSubmit.refNumber;
         }
       }
 
@@ -735,7 +784,7 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
       <div className="flex justify-between items-center bg-white shadow rounded-lg p-4 mb-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">
-            {formData.id ? `Edit Enquiry #${formData.referenceNumber}` : 'New Enquiry'}
+            {formData.id ? `Edit Enquiry #${formData.refNumber}` : 'New Enquiry'}
           </h2>
           <p className="text-sm text-gray-500">Please fill in the information below to create or update the enquiry.</p>
         </div>
@@ -773,7 +822,7 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
                 title="Auto-generated based on product type and date"
               />
               <p className="mt-1 text-xs text-gray-500">
-                {!formData.referenceNumber && (referencePreview ? 'Auto-generated in real-time' : 'Auto-generated after selecting Product Type')}
+                {!formData.refNumber && (referencePreview ? 'Auto-generated in real-time' : 'Auto-generated after selecting Product Type')}
               </p>
             </div>
 
@@ -796,10 +845,10 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">Issue Date</label>
+              <label className="block text-sm font-medium text-gray-700">Enquiry Created Date</label>
               <input
                 type="date"
-                value={formData.issueDate}
+                value={formData.enquiryCreatedDate}
                 disabled
                 className="mt-1 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm"
               />
@@ -819,20 +868,7 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
               </select>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700">CN Pricing Admin <span className="text-red-500 font-bold">*</span></label>
-              <select
-                value={formData.cnPricingAdmin || ''}
-                onChange={(e) => handleChange('cnPricingAdmin', e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                required
-              >
-                <option value="">Select admin</option>
-                {cnPricingAdmins.map(admin => (
-                  <option key={String(admin.value)} value={String(admin.value)}>{admin.label}</option>
-                ))}
-              </select>
-            </div>
+            {/* TODO: CN Pricing Admin removed in v3 */}
           </div>
         </AccordionItem>
 
@@ -841,7 +877,7 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Sales Country <span className="text-red-500 font-bold">*</span></label>
+                <label className="block text-sm font-medium text-gray-700">Z-Country / Agent <span className="text-red-500 font-bold">*</span></label>
                 <select
                   value={formData.salesCountryCode || ''}
                   onChange={(e) => handleCountryChange(e.target.value)}
@@ -898,8 +934,8 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
               <div>
                 <label className="block text-sm font-medium text-gray-700">Assigned CN Office <span className="text-red-500 font-bold">*</span></label>
                 <select
-                  value={formData.assignedCnOfficeCode || ''}
-                  onChange={(e) => handleChange('assignedCnOfficeCode', e.target.value)}
+                  value={formData.assignedCnOffice || ''}
+                  onChange={(e) => handleChange('assignedCnOffice', e.target.value)}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                   required
                 >
@@ -913,7 +949,7 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
           </div>
         </AccordionItem>
 
-        {/* 3. Cargo Information */}
+        {/* 3. Cargo Information — V3 需求9: 按 CargoType 动态显示字段 */}
         <AccordionItem title="Cargo Information" defaultExpanded={true}>
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -931,46 +967,55 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
                 </select>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Volume (CBM)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={formData.volumeCbm || ''}
-                  onChange={(e) => handleChange('volumeCbm', e.target.value ? Number(e.target.value) : null)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  placeholder="e.g. 120.5"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Quantity</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={formData.quantity || ''}
-                  onChange={(e) => handleChange('quantity', e.target.value ? Number(e.target.value) : null)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  placeholder="e.g. 100"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">UOM</label>
-                <select
-                  value={formData.quantityUomCode || ''}
-                  onChange={(e) => handleChange('quantityUomCode', e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                >
-                  <option value="">Select UOM</option>
-                  <option value="KG">KG</option>
-                  <option value="PCS">PCS</option>
-                  <option value="CTN">CTN</option>
-                  <option value="PLT">PLT</option>
-                  <option value="SET">SET</option>
-                </select>
-              </div>
+              {/* AIR/LCL 额外显示 Volume, Quantity, UOM */}
+              {!CONTAINER_CARGO_TYPES.includes(formData.cargoTypeCode || '') && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Volume (CBM)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={formData.volumeCbm || ''}
+                      onChange={(e) => handleChange('volumeCbm', e.target.value ? Number(e.target.value) : null)}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                      placeholder="e.g. 120.5"
+                    />
+                  </div>
+                </>
+              )}
             </div>
+
+            {/* AIR/LCL: Quantity + UOM */}
+            {!CONTAINER_CARGO_TYPES.includes(formData.cargoTypeCode || '') && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Quantity</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.quantity || ''}
+                    onChange={(e) => handleChange('quantity', e.target.value ? Number(e.target.value) : null)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    placeholder="e.g. 100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">UOM</label>
+                  <select
+                    value={formData.uom || ''}
+                    onChange={(e) => handleChange('uom', e.target.value)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  >
+                    <option value="">Select UOM</option>
+                    <option value="KG">KG</option>
+                    <option value="PCS">PCS</option>
+                    <option value="CTN">CTN</option>
+                    <option value="PLT">PLT</option>
+                    <option value="SET">SET</option>
+                  </select>
+                </div>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700">Commodity / Description</label>
@@ -986,179 +1031,169 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
             <div>
               <label className="block text-sm font-medium text-gray-700">Hazardous / Special Equipment</label>
               <textarea
-                value={formData.hazSpecialEquipment || ''}
-                onChange={(e) => handleChange('hazSpecialEquipment', e.target.value)}
+                value={formData.hazardousSpecialEquipment || ''}
+                onChange={(e) => handleChange('hazardousSpecialEquipment', e.target.value)}
                 rows={2}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 placeholder="DG class, UN No., special equipment..."
               />
             </div>
-          </div>
-        </AccordionItem>
 
-        {/* 4. Container Lines */}
-        <AccordionItem title="Container Lines" defaultExpanded={true}>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <p className="text-sm text-gray-600">Configure container types and quantities</p>
-              <button
-                type="button"
-                onClick={addContainerLine}
-                className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200"
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                Add Container
-              </button>
-            </div>
-
-            {(formData.containerLines || []).length === 0 ? (
-              <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
-                <p>No container lines yet. Click "Add Container" to start.</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {(formData.containerLines || []).map((line, index) => (
-                  <div key={line.id} className="flex gap-2 items-center bg-gray-50 p-3 rounded-lg">
-                    <div className="flex-1 grid grid-cols-4 gap-2">
-                      <select
-                        value={line.containerTypeId}
-                        onChange={(e) => updateContainerLine(index, 'containerTypeId', Number(e.target.value))}
-                        className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                        required
-                      >
-                        {containerTypes.map(ct => (
-                          <option key={String(ct.value)} value={Number(ct.value)}>
-                            {ct.label} ({ct.teuValue} TEU)
-                          </option>
-                        ))}
-                      </select>
-
-                      <input
-                        type="number"
-                        value={line.quantity || 1}
-                        onChange={(e) => updateContainerLine(index, 'quantity', Number(e.target.value))}
-                        min="1"
-                        placeholder="Quantity"
-                        className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                        required
-                      />
-
-                      <input
-                        type="number"
-                        value={line.teuValue || 0}
-                        disabled
-                        className="rounded-md border-gray-300 bg-gray-100 shadow-sm"
-                        placeholder="TEU/Unit"
-                      />
-
-                      <input
-                        type="number"
-                        value={line.lineTeu || 0}
-                        disabled
-                        className="rounded-md border-gray-300 bg-gray-100 shadow-sm font-semibold"
-                        placeholder="Line TEU"
-                      />
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => removeContainerLine(index)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-
-                <div className="flex justify-end text-sm font-medium text-gray-700 pt-2 border-t">
-                  <span>Total TEU: <span className="text-indigo-600 text-lg font-bold">{calculateTotalTeu().toFixed(2)}</span></span>
-                </div>
+            {/* FCL/BUYER-CONSOL 提示：容器信息在 Offer Price Details 中 */}
+            {CONTAINER_CARGO_TYPES.includes(formData.cargoTypeCode || '') && (
+              <div className="bg-blue-50 border border-blue-200 rounded-md p-3 flex items-center gap-2">
+                <span className="text-blue-600">ⓘ</span>
+                <span className="text-sm text-blue-800">
+                  Container details are managed in Offer → Price Details
+                </span>
               </div>
             )}
           </div>
         </AccordionItem>
 
+        {/* TODO: Container details moved to Offer price lines in v3 */}
+
         {/* 5. Route Information */}
         <AccordionItem title="Route Information" defaultExpanded={true} required>
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <VirtualizedMultiSelect
-                label="Port of Loading (POL)"
-                options={ports.map(p => ({
-                  value: p.value,
-                  label: p.label,
-                  searchText: p.label // 支持搜索
-                }))}
-                value={formData.polIds || []}
-                onChange={(values) => handleChange('polIds', values.map(v => Number(v)))}
-                placeholder="Search and select ports of loading..."
-                required
-                maxSelections={10}  // 最多选择10个港口
-                itemHeight={36}
-                listHeight={600}
-                showCount={false}
-                onSearch={handlePortSearch} // ✅ 异步搜索
-                isSearching={isPortSearching} // ✅ 搜索状态
-              />
-
-              <VirtualizedMultiSelect
-                label="Port of Discharge (POD)"
-                options={ports.map(p => ({
-                  value: p.value,
-                  label: p.label,
-                  searchText: p.label // 支持搜索
-                }))}
-                value={formData.podIds || []}
-                onChange={(values) => {
-                  const podIds = values.map(v => Number(v));
-                  handleChange('podIds', podIds);
-                  if (podIds.length > 0) {
-                    updatePodCountries(podIds);
-                  } else {
-                    // ✅ 清除POD时，重置coreFlag和警告
-                    setCoreFlagWarning('');
-                    setFormData(prev => ({
-                      ...prev,
-                      podIds: [],
-                      podCountryCode: undefined,
-                      podCountryName: '',
-                      coreFlag: undefined,
-                    }));
-                  }
-                }}
-                placeholder="Search and select ports of discharge..."
-                required
-                maxSelections={10}  // 最多选择10个港口
-                itemHeight={36}
-                listHeight={600}
-                showCount={false}
-                onSearch={handlePortSearch} // ✅ 异步搜索
-                isSearching={isPortSearching} // ✅ 搜索状态
-              />
-            </div>
-
-            <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-              <div className="flex items-start gap-2">
-                <div className="flex-shrink-0 mt-0.5">
-                  <ArrowRight className="w-4 h-4 text-blue-600" />
-                </div>
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-blue-900">
-                    POD Country - Auto Mapped
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.podCountryName || 'Please select POD first'}
-                    disabled
-                    className="mt-1 block w-full rounded-md border-blue-300 bg-blue-100 text-blue-900 shadow-sm font-medium"
-                    placeholder="Auto-filled based on selected POD"
+            {/* Top-level POL/POD: only for non-mixed products */}
+            {!isMixedProduct((formData.productCode || 'SEA') as ProductCode) && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <VirtualizedMultiSelect
+                    label="Port of Loading (POL)"
+                    options={ports.map(p => ({
+                      value: p.value,
+                      label: p.label,
+                      searchText: p.label
+                    }))}
+                    value={formData.polIds || []}
+                    onChange={(values) => handleChange('polIds', values.map(v => Number(v)))}
+                    placeholder="Search and select ports of loading..."
+                    required
+                    maxSelections={10}
+                    itemHeight={36}
+                    listHeight={600}
+                    showCount={false}
+                    onSearch={handlePortSearch}
+                    isSearching={isPortSearching}
                   />
-                  <p className="mt-1 text-xs text-blue-700">
-                    💡 This field auto-maps country from selected POD.
-                  </p>
+
+                  <VirtualizedMultiSelect
+                    label="Port of Discharge (POD)"
+                    options={ports.map(p => ({
+                      value: p.value,
+                      label: p.label,
+                      searchText: p.label
+                    }))}
+                    value={formData.podIds || []}
+                    onChange={(values) => {
+                      const podIds = values.map(v => Number(v));
+                      handleChange('podIds', podIds);
+                      if (podIds.length > 0) {
+                        updatePodCountries(podIds);
+                      } else {
+                        setCoreFlagWarning('');
+                        setFormData(prev => ({
+                          ...prev,
+                          podIds: [],
+                          podCountry: undefined,
+                          coreNonCore: undefined,
+                        }));
+                      }
+                    }}
+                    placeholder="Search and select ports of discharge..."
+                    required
+                    maxSelections={10}
+                    itemHeight={36}
+                    listHeight={600}
+                    showCount={false}
+                    onSearch={handlePortSearch}
+                    isSearching={isPortSearching}
+                  />
+                </div>
+              </>
+            )}
+
+            {/* POD Country for non-mixed: show above route groups */}
+            {!isMixedProduct((formData.productCode || 'SEA') as ProductCode) && (
+              <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                <div className="flex items-start gap-2">
+                  <div className="flex-shrink-0 mt-0.5">
+                    <ArrowRight className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-blue-900">
+                      POD Country - Auto Mapped
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.podCountry || 'Please select POD first'}
+                      disabled
+                      className="mt-1 block w-full rounded-md border-blue-300 bg-blue-100 text-blue-900 shadow-sm font-medium"
+                      placeholder="Auto-filled based on selected POD"
+                    />
+                    <p className="mt-1 text-xs text-blue-700">
+                      💡 This field auto-maps country from selected POD.
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
+
+            {/* Route Group Editor for mixed-mode products */}
+            {isMixedProduct(formData.productCode || 'SEA') && (
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <RouteGroupEditor
+                  productCode={formData.productCode || 'SEA'}
+                  routeGroups={formData.routeGroups || []}
+                  onChange={(groups) => {
+                    handleChange('routeGroups', groups);
+                    // Ensure route group ports are loaded into main ports state
+                    const allPortIds: number[] = [];
+                    groups.forEach(rg => {
+                      (rg.polIds || []).forEach(id => allPortIds.push(Number(id)));
+                      (rg.podIds || []).forEach(id => allPortIds.push(Number(id)));
+                    });
+                    if (allPortIds.length > 0) {
+                      ensurePortsLoaded(allPortIds);
+                    }
+                    // Auto-map POD Country from route group PODs
+                    const allPodIds: number[] = [];
+                    groups.forEach(rg => {
+                      (rg.podIds || []).forEach(id => allPodIds.push(Number(id)));
+                    });
+                    if (allPodIds.length > 0) {
+                      updatePodCountries(allPodIds);
+                    }
+                  }}
+                />
+
+                {/* POD Country for mixed: show BELOW route groups */}
+                <div className="mt-3 bg-blue-50 border border-blue-200 rounded-md p-3">
+                  <div className="flex items-start gap-2">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <ArrowRight className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-blue-900">
+                        POD Country - Auto Mapped
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.podCountry || 'Select POD in Route Groups above'}
+                        disabled
+                        className="mt-1 block w-full rounded-md border-blue-300 bg-blue-100 text-blue-900 shadow-sm font-medium"
+                        placeholder="Auto-filled based on selected POD"
+                      />
+                      <p className="mt-1 text-xs text-blue-700">
+                        💡 This field auto-maps country from POD selected in Route Groups.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </AccordionItem>
 
@@ -1198,7 +1233,7 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
                       </button>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">Offer Type *</label>
                         <select
@@ -1207,16 +1242,16 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
                           className="block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                           required
                         >
-                          <option value="OCEAN">OCEAN</option>
-                          <option value="AIR">AIR</option>
-                          <option value="OTHER">OTHER</option>
+                          {(PRODUCT_CARGO_MAP[(formData.productCode || 'SEA') as ProductCode] || ['FCL','LCL','AIR','BUYER-CONSOL']).map(ct => (
+                            <option key={ct} value={ct}>{ct}</option>
+                          ))}
                         </select>
                       </div>
 
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">Offer Date *</label>
                         <DatePickerInput
-                          value={offer.sentDate}
+                          value={offer.offerDate}
                           max={getLocalDateISO()}
                           onChange={(date) => {
                             const todayStr = getLocalDateISO();
@@ -1224,24 +1259,48 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
                               alert('报价日期不能晚于今天之后的日期');
                               return;
                             }
-                            updateOffer(index, 'sentDate', date);
+                            updateOffer(index, 'offerDate', date);
                           }}
                           placeholder="YYYY/MM/DD"
                           required
                         />
                       </div>
 
-                      <div className="md:col-span-2">
-                        <label className="block text-xs font-medium text-gray-600 mb-1">Offer Details</label>
+                      <div className="flex items-end">
+                        <button
+                          type="button"
+                          onClick={() => regeneratePriceLines(index)}
+                          className="text-xs text-indigo-600 hover:text-indigo-800 border border-indigo-300 rounded px-2 py-1.5 hover:bg-indigo-50 transition-colors"
+                          title="Regenerate price lines from current POL/POD selection"
+                        >
+                          ↻ Refresh Price Lines
+                        </button>
+                      </div>
+
+                      <div className="md:col-span-3">
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Remark</label>
                         <textarea
-                          value={offer.priceText || ''}
-                          onChange={(e) => updateOffer(index, 'priceText', e.target.value)}
+                          value={offer.remark || ''}
+                          onChange={(e) => updateOffer(index, 'remark', e.target.value)}
                           rows={2}
                           className="block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                          placeholder="例如: USD 2,500.00 all-in"
+                          placeholder="Offer notes..."
                         />
                       </div>
                     </div>
+
+                    {/* V3 Price Details table */}
+                    <OfferPriceTable
+                      offer={offer}
+                      offerIndex={index}
+                      ports={ports}
+                      containerTypes={containerTypesOpts}
+                      routeGroups={formData.routeGroups}
+                      isMixed={isMixedProduct((formData.productCode || 'SEA') as ProductCode)}
+                      onUpdatePriceLines={updateOfferPriceLines}
+                      isOversizeCargo={formData.isOversizeCargo || false}
+                      onOversizeCargoChange={(val) => setFormData(prev => ({ ...prev, isOversizeCargo: val }))}
+                    />
                   </div>
                 ))}
               </div>
@@ -1262,24 +1321,24 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
                 )}
               </label>
               <select
-                value={formData.coreFlag || ''}
+                value={formData.coreNonCore || ''}
                 onChange={(e) => {
-                  handleChange('coreFlag', e.target.value);
+                  handleChange('coreNonCore', e.target.value);
                   setCoreFlagWarning(''); // 清除警告，表示用户已手动选择
                 }}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               >
                 <option value="">Select...</option>
-                <option value="CORE">CORE</option>
-                <option value="NON_CORE">NON-CORE</option>
+                <option value="Core">Core</option>
+                <option value="Non-Core">Non-Core</option>
               </select>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700">Category</label>
               <select
-                value={formData.categoryCode || ''}
-                onChange={(e) => handleChange('categoryCode', e.target.value)}
+                value={formData.category || ''}
+                onChange={(e) => handleChange('category', e.target.value)}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               >
                 <option value="">Select category</option>
@@ -1294,24 +1353,51 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
               </select>
             </div>
 
-            <div>
-              <DatePickerInput
-                label="Cargo Ready Date"
-                value={formData.cargoReadyDate || ''}
-                onChange={(date) => handleChange('cargoReadyDate', date)}
-                placeholder="YYYY/MM/DD"
-              />
-            </div>
+            {/* V3 需求12: Cargo Ready Date — 按文档设计 */}
+            <div className="md:col-span-3 space-y-3">
+              {/* 复选框: Any Cargo Ready Date */}
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.hasSpecificCargoReadyDate === true}
+                    onChange={(e) => {
+                      handleChange('hasSpecificCargoReadyDate', e.target.checked);
+                      if (!e.target.checked) {
+                        // 未勾选时 CRD = 创建日期
+                        handleChange('cargoReadyDate', formData.enquiryCreatedDate || getLocalDateISO());
+                      }
+                    }}
+                    className="h-4 w-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                  />
+                  <span className="text-sm font-medium text-gray-700">Any Cargo Ready Date</span>
+                </label>
+                {!formData.hasSpecificCargoReadyDate && (
+                  <span className="text-xs text-gray-400">(CRD = Enquiry Created Date)</span>
+                )}
+              </div>
 
-            <div className="md:col-span-3">
-              <label className="block text-sm font-medium text-gray-700">Cargo Ready Date Text (TBA/Week...)</label>
-              <input
-                type="text"
-                value={formData.cargoReadyDateRawText || ''}
-                onChange={(e) => handleChange('cargoReadyDateRawText', e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                placeholder="例如: TBA, Week 5, End of Feb"
-              />
+              {/* 勾选时显示日期选择器 */}
+              {formData.hasSpecificCargoReadyDate && (
+                <DatePickerInput
+                  label="Cargo Ready Date *"
+                  value={formData.cargoReadyDate || ''}
+                  onChange={(date) => handleChange('cargoReadyDate', date)}
+                  placeholder="YYYY/MM/DD"
+                />
+              )}
+
+              {/* Always visible: Cargo Ready Date Details */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Cargo Ready Date Details (TBA/Week etc.)</label>
+                <input
+                  type="text"
+                  value={formData.cargoReadyDateDetails || ''}
+                  onChange={(e) => handleChange('cargoReadyDateDetails', e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  placeholder="e.g. TBA, Week 5, End of Feb, Any time"
+                />
+              </div>
             </div>
           </div>
         </AccordionItem>
@@ -1322,8 +1408,8 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
             <div>
               <label className="block text-sm font-medium text-gray-700">Additional Requirements</label>
               <textarea
-                value={formData.additionalRequirement || ''}
-                onChange={(e) => handleChange('additionalRequirement', e.target.value)}
+                value={formData.additionalRequirements || ''}
+                onChange={(e) => handleChange('additionalRequirements', e.target.value)}
                 rows={3}
                 maxLength={2000}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
@@ -1354,69 +1440,88 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
                 <label className="block text-sm font-medium text-gray-700">Status <span className="text-red-500 font-bold">*</span></label>
                 <select
                   value={formData.status}
-                  onChange={(e) => handleChange('status', e.target.value)}
+                  onChange={(e) => {
+                    const newStatus = e.target.value;
+                    handleChange('status', newStatus);
+                    // 切换到非 Lost/Cancelled 时清空对应 reason
+                    if (newStatus !== 'Lost') {
+                      handleChange('lostReason', '');
+                      handleChange('lostReasonText', '');
+                    }
+                    if (newStatus !== 'Cancelled') {
+                      handleChange('cancelledReason', '');
+                      handleChange('cancelledReasonText', '');
+                    }
+                  }}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                   required
-                  disabled={formData.offers && formData.offers.length > 0}
-                  title={formData.offers && formData.offers.length > 0 ? 'Status is auto-set to Quoted when offers exist' : ''}
                 >
                   <option value="New">New</option>
-                  <option value="Quoted">Quoted</option>
+                  <option value="Quoted & Pending">Quoted &amp; Pending</option>
+                  <option value="Secured">Secured</option>
+                  <option value="Lost">Lost</option>
                   <option value="Cancelled">Cancelled</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Booking Confirmed</label>
-                <select
-                  value={formData.bookingConfirmed || 'Pending'}
-                  onChange={(e) => handleChange('bookingConfirmed', e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                >
-                  <option value="Pending">Pending</option>
-                  <option value="Yes">Yes</option>
-                  <option value="Rejected">Rejected</option>
-                  <option value="Invalid">Invalid</option>
                 </select>
               </div>
             </div>
 
-            {formData.bookingConfirmed === 'Rejected' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Rejected Reason</label>
-                <select
-                  value={formData.rejectedReason || ''}
-                  onChange={(e) => handleChange('rejectedReason', e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                >
-                  <option value="">Select reason</option>
-                  <option value="Cancel Booking">Cancel Booking</option>
-                  <option value="Rate Checking - For indication only">Rate Checking - For indication only</option>
-                  <option value="Rate Checking - No feedback from customer">Rate Checking - No feedback from customer</option>
-                  <option value="By Other NVOCC">By Other NVOCC</option>
-                  <option value="Production problem">Production problem</option>
-                  <option value="Rate Issue-freight">Rate Issue-freight</option>
-                  <option value="Rate Issue-local charges">Rate Issue-local charges</option>
-                  <option value="Space Issue">Space Issue</option>
-                  <option value="Cancel Booking - Changed to Couriers">Cancel Booking - Changed to Couriers</option>
-                  <option value="Cancel Booking - By Air">Cancel Booking - By Air</option>
-                  <option value="Cancel Booking - By Sea">Cancel Booking - By Sea</option>
-                  <option value="Cancel Booking - By Train">Cancel Booking - By Train</option>
-                  <option value="Cancel Booking - PO Cancelled">Cancel Booking - PO Cancelled</option>
-                  <option value="Others">Others</option>
-                </select>
+            {formData.status === 'Lost' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Lost Reason <span className="text-red-500 font-bold">*</span></label>
+                  <select
+                    value={formData.lostReason || ''}
+                    onChange={(e) => handleChange('lostReason', e.target.value)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  >
+                    <option value="">-- Select reason --</option>
+                    {lostReasons.map((r) => (
+                      <option key={r.code} value={r.code}>{r.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    {formData.lostReason === 'OTHERS' ? 'Please specify *' : 'Additional details'}
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.lostReasonText || ''}
+                    onChange={(e) => handleChange('lostReasonText', e.target.value)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    placeholder={formData.lostReason === 'OTHERS' ? 'Please describe the reason...' : 'Optional notes'}
+                  />
+                </div>
               </div>
             )}
 
-            {formData.id && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Actual Reason</label>
-                <textarea
-                  value={formData.actualReason || ''}
-                  onChange={(e) => handleChange('actualReason', e.target.value)}
-                  rows={2}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  placeholder="Actual reason for booking status..."
-                />
+            {formData.status === 'Cancelled' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Cancelled Reason <span className="text-red-500 font-bold">*</span></label>
+                  <select
+                    value={formData.cancelledReason || ''}
+                    onChange={(e) => handleChange('cancelledReason', e.target.value)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  >
+                    <option value="">-- Select reason --</option>
+                    {cancelledReasons.map((r) => (
+                      <option key={r.code} value={r.code}>{r.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    {formData.cancelledReason === 'OTHERS' ? 'Please specify *' : 'Additional details'}
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.cancelledReasonText || ''}
+                    onChange={(e) => handleChange('cancelledReasonText', e.target.value)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    placeholder={formData.cancelledReason === 'OTHERS' ? 'Please describe the reason...' : 'Optional notes'}
+                  />
+                </div>
               </div>
             )}
           </div>

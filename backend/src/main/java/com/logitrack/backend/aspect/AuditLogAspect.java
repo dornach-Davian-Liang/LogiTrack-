@@ -158,14 +158,7 @@ public class AuditLogAspect {
                         log.debug("Generated change details for audit log: {}", details);
                     }
                     
-                    // ✅ 提取CN Pricing Admin字段（仅对ENQUIRY）
-                    if ("ENQUIRY".equals(audit.resourceType()) && actualResult instanceof Enquiry) {
-                        Enquiry enquiry = (Enquiry) actualResult;
-                        if (enquiry.getCnPricingAdmin() != null) {
-                            auditLog.setCnPricingAdmin(enquiry.getCnPricingAdmin());
-                            log.debug("Set CN Pricing Admin: {}", enquiry.getCnPricingAdmin());
-                        }
-                    }
+                    // v3: cnPricingAdmin field removed
                 } catch (Exception e) {
                     log.warn("序列化新值失败", e);
                 }
@@ -213,29 +206,20 @@ public class AuditLogAspect {
     }
 
     /**
-     * 规范化港口字段：将单值 polId/podId 同步到数组 polIds/podIds
-     * 这样审计日志中 oldValue/newValue 都能稳定包含数组字段
+     * 规范化港口字段 v3: polIds/podIds 直接使用
      */
     private void normalizePortFields(Enquiry enquiry) {
         if (enquiry == null) {
             return;
         }
-
-        List<Integer> normalizedPolIds = new ArrayList<>();
-        if (enquiry.getPolIds() != null && !enquiry.getPolIds().isEmpty()) {
-            normalizedPolIds.addAll(enquiry.getPolIds());
-        } else if (enquiry.getPolId() != null) {
-            normalizedPolIds.add(enquiry.getPolId());
+        // v3: polIds/podIds are transient fields loaded by service
+        // No single polId/podId to normalize from
+        if (enquiry.getPolIds() == null) {
+            enquiry.setPolIds(new ArrayList<>());
         }
-        enquiry.setPolIds(normalizedPolIds);
-
-        List<Integer> normalizedPodIds = new ArrayList<>();
-        if (enquiry.getPodIds() != null && !enquiry.getPodIds().isEmpty()) {
-            normalizedPodIds.addAll(enquiry.getPodIds());
-        } else if (enquiry.getPodId() != null) {
-            normalizedPodIds.add(enquiry.getPodId());
+        if (enquiry.getPodIds() == null) {
+            enquiry.setPodIds(new ArrayList<>());
         }
-        enquiry.setPodIds(normalizedPodIds);
     }
     
     /**
@@ -299,21 +283,20 @@ public class AuditLogAspect {
         compareField(changes, "货物类型(CargoType)", oldEnq.getCargoTypeCode(), newEnq.getCargoTypeCode());
         compareField(changes, "数量(Quantity)", oldEnq.getQuantity(), newEnq.getQuantity());
         compareField(changes, "体积(VolumeCbm)", oldEnq.getVolumeCbm(), newEnq.getVolumeCbm());
-        compareField(changes, "TEU", oldEnq.getQuantityTeu(), newEnq.getQuantityTeu());
         compareField(changes, "销售国家(SalesCountry)", oldEnq.getSalesCountryCode(), newEnq.getSalesCountryCode());
         compareField(changes, "销售办公室(SalesOffice)", oldEnq.getSalesOfficeId(), newEnq.getSalesOfficeId());
         compareField(changes, "销售PIC", oldEnq.getSalesPicId(), newEnq.getSalesPicId());
-        compareField(changes, "CN定价管理员(CnPricingAdmin)", oldEnq.getCnPricingAdmin(), newEnq.getCnPricingAdmin());
-        compareField(changes, "分配CN办公室(AssignedCnOffice)", oldEnq.getAssignedCnOfficeCode(), newEnq.getAssignedCnOfficeCode());
-        compareField(changes, "起运港(POL)", oldEnq.getPolId(), newEnq.getPolId());
-        compareField(changes, "目的港(POD)", oldEnq.getPodId(), newEnq.getPodId());
+        compareField(changes, "CN定价管理员(CnPricingAdmin)", null, null); // v3: removed
+        compareField(changes, "分配CN办公室(AssignedCnOffice)", oldEnq.getAssignedCnOffice(), newEnq.getAssignedCnOffice());
+        compareField(changes, "起运港(POL)", oldEnq.getPolIds(), newEnq.getPolIds());
+        compareField(changes, "目的港(POD)", oldEnq.getPodIds(), newEnq.getPodIds());
         
         // ✅ 比较多港口数组字段（如果存在）
         comparePortArrayField(changes, "起运港列表(POLs)", oldEnq.getPolIds(), newEnq.getPolIds());
         comparePortArrayField(changes, "目的港列表(PODs)", oldEnq.getPodIds(), newEnq.getPodIds());
         
         compareField(changes, "货物就绪日期(CargoReadyDate)", oldEnq.getCargoReadyDate(), newEnq.getCargoReadyDate());
-        compareField(changes, "预订确认(BookingConfirmed)", oldEnq.getBookingConfirmed(), newEnq.getBookingConfirmed());
+        compareField(changes, "core/non-core", oldEnq.getCoreNonCore(), newEnq.getCoreNonCore());
         compareField(changes, "备注(Remark)", oldEnq.getRemark(), newEnq.getRemark());
         
         if (changes.isEmpty()) {

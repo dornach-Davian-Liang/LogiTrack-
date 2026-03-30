@@ -115,13 +115,17 @@ export const VirtualizedMultiSelect: React.FC<VirtualizedMultiSelectProps> = ({
     setFocusedIndex(0);
   }, []);
 
-  // 打开下拉菜单时聚焦搜索框
+  // 打开下拉菜单时聚焦搜索框 + 触发初始搜索
   const handleOpen = useCallback(() => {
     setIsOpen(true);
     setTimeout(() => {
       searchInputRef.current?.focus();
     }, 100);
-  }, []);
+    // 如果提供了 onSearch 且当前没有选项，自动触发初始加载
+    if (onSearch && options.length === 0) {
+      onSearch('');
+    }
+  }, [onSearch, options.length]);
 
   // 点击外部关闭下拉菜单
   useEffect(() => {

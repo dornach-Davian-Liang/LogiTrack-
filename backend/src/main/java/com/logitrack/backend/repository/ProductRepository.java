@@ -12,4 +12,6 @@ public interface ProductRepository extends JpaRepository<Product, String> {
     List<Product> findByIsActiveTrue();
     
     List<Product> findByIsActiveTrueOrderByNameAsc();
+    
+    List<Product> findByIsActiveTrueOrderBySortOrderAsc();
 }

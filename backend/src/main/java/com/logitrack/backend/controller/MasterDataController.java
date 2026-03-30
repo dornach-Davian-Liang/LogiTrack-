@@ -149,7 +149,7 @@ public class MasterDataController {
             SalesPicResponse dto = new SalesPicResponse();
             dto.setId(pic.getId());
             dto.setName(pic.getName());
-            dto.setCountryCode(pic.getCountryCode());
+            dto.setCountryCode(pic.getSalesCountryCode());
             dto.setSalesOfficeId(pic.getSalesOfficeId());
             dto.setSalesOfficeName(office != null ? office.getName() : null);
             dto.setSalesOfficeCode(office != null ? office.getCode() : null);
@@ -197,7 +197,7 @@ public class MasterDataController {
         return salesPicRepository.findById(id)
             .map(existing -> {
                 existing.setName(salesPic.getName());
-                existing.setCountryCode(salesPic.getCountryCode());
+                existing.setSalesCountryCode(salesPic.getSalesCountryCode());
                 existing.setSalesOfficeId(salesPic.getSalesOfficeId());
                 existing.setIsActive(salesPic.getIsActive());
                 SalesPic updated = salesPicRepository.save(existing);
@@ -231,7 +231,7 @@ public class MasterDataController {
     @GetMapping("/container-types")
     public ResponseEntity<List<ContainerType>> getAllContainerTypes() {
         log.info("GET /api/master/container-types");
-        List<ContainerType> types = containerTypeRepository.findAll();
+        List<ContainerType> types = containerTypeRepository.findAllByOrderByContainerCodeAsc();
         return ResponseEntity.ok(types);
     }
     

@@ -284,16 +284,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ currentMonth }) => {
 function getStatusLabel(status: string, language: string): string {
   const zhLabels: Record<string, string> = {
     'New': '新询价',
-    'Quoted': '已报价',
-    'Confirmed': '已确认',
+    'Quoted & Pending': '已报价/待确认',
+    'Secured': '已确认',
     'Lost': '已流失',
     'Cancelled': '已取消',
   };
   
   const enLabels: Record<string, string> = {
     'New': 'New',
-    'Quoted': 'Quoted',
-    'Confirmed': 'Confirmed',
+    'Quoted & Pending': 'Quoted & Pending',
+    'Secured': 'Secured',
     'Lost': 'Lost',
     'Cancelled': 'Cancelled',
   };
@@ -305,8 +305,8 @@ function getStatusLabel(status: string, language: string): string {
 function getStatusColor(status: string): string {
   const colors: Record<string, string> = {
     'New': 'bg-blue-500',
-    'Quoted': 'bg-green-500',
-    'Confirmed': 'bg-purple-500',
+    'Quoted & Pending': 'bg-yellow-500',
+    'Secured': 'bg-green-500',
     'Lost': 'bg-red-500',
     'Cancelled': 'bg-gray-500',
   };
