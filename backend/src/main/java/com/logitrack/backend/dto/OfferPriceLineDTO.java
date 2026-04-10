@@ -49,6 +49,9 @@ public class OfferPriceLineDTO {
     /** 价格备注 */
     private String priceText;
 
+    /** 承运商 (FCL/BUYER-CONSOL 专用) */
+    private String carrier;
+
     /** 排序 (前端维护，后端可重算) */
     private Integer sortOrder;
 
@@ -68,7 +71,8 @@ public class OfferPriceLineDTO {
                 && (minCharge == null || minCharge.compareTo(BigDecimal.ZERO) == 0)
                 && (localCharge == null || localCharge.compareTo(BigDecimal.ZERO) == 0)
                 && (price == null || price.compareTo(BigDecimal.ZERO) == 0)
-                && (priceText == null || priceText.isBlank());
+                && (priceText == null || priceText.isBlank())
+                && (carrier == null || carrier.isBlank());
 
         boolean containerFieldsEmpty = containerDetails == null || containerDetails.isEmpty()
                 || containerDetails.stream().allMatch(cd ->

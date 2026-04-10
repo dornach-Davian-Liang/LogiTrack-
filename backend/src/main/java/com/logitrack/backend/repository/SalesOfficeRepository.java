@@ -17,4 +17,8 @@ public interface SalesOfficeRepository extends JpaRepository<SalesOffice, Intege
     List<SalesOffice> findByCountryCode(String countryCode);
     
     Optional<SalesOffice> findByCode(String code);
+    
+    List<SalesOffice> findBySalesCountryCode(String salesCountryCode);
+    
+    List<SalesOffice> findBySalesCountryCodeOrderByNameAsc(String salesCountryCode);
 }

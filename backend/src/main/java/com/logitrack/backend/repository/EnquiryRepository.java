@@ -39,6 +39,13 @@ public interface EnquiryRepository extends JpaRepository<Enquiry, Long>, JpaSpec
     @Query("SELECT COALESCE(MAX(e.monthlySequence), 0) FROM Enquiry e WHERE e.referenceMonth = :referenceMonth")
     Integer findMaxMonthlySequence(@Param("referenceMonth") String referenceMonth);
 
+    /**
+     * 使用 FOR UPDATE 悲观锁查询当月最大序号，防止并发创建时产生重复 ref_number。
+     * 在同一事务中持有行锁直到提交，确保序号计算和插入的原子性。
+     */
+    @Query(value = "SELECT COALESCE(MAX(monthly_sequence), 0) FROM enquiry WHERE reference_month = :referenceMonth FOR UPDATE", nativeQuery = true)
+    Integer findMaxMonthlySequenceForUpdate(@Param("referenceMonth") String referenceMonth);
+
     @Query("SELECT COALESCE(MAX(e.serialNumber), 0) FROM Enquiry e WHERE e.referenceMonth = :referenceMonth AND e.monthlySequence = :monthlySequence AND e.productAbbr = :productAbbr")
     Integer findMaxSerialNumber(@Param("referenceMonth") String referenceMonth,
                                @Param("monthlySequence") Integer monthlySequence,

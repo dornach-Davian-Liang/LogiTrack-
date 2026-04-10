@@ -1,7 +1,11 @@
 package com.logitrack.backend.specification;
 
 import com.logitrack.backend.entity.Enquiry;
+import com.logitrack.backend.entity.EnquiryPol;
+import com.logitrack.backend.entity.EnquiryPod;
 import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Subquery;
+import jakarta.persistence.criteria.Root;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDate;
@@ -22,7 +26,9 @@ public class EnquirySpecification {
             String assignedCnOffice,
             String coreNonCore,
             String dateFrom,
-            String dateTo) {
+            String dateTo,
+            Integer polPortId,
+            Integer podPortId) {
 
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -83,6 +89,30 @@ public class EnquirySpecification {
             }
             if (dateTo != null && !dateTo.isBlank()) {
                 predicates.add(cb.lessThanOrEqualTo(root.get("enquiryReceivedDate"), LocalDate.parse(dateTo)));
+            }
+
+            // POL port filter — subquery: EXISTS (SELECT 1 FROM enquiry_pol WHERE enquiry_id = e.id AND port_id = ?)
+            if (polPortId != null) {
+                Subquery<Long> polSub = query.subquery(Long.class);
+                Root<EnquiryPol> polRoot = polSub.from(EnquiryPol.class);
+                polSub.select(cb.literal(1L));
+                polSub.where(
+                    cb.equal(polRoot.get("enquiryId"), root.get("id")),
+                    cb.equal(polRoot.get("portId"), polPortId)
+                );
+                predicates.add(cb.exists(polSub));
+            }
+
+            // POD port filter — subquery: EXISTS (SELECT 1 FROM enquiry_pod WHERE enquiry_id = e.id AND port_id = ?)
+            if (podPortId != null) {
+                Subquery<Long> podSub = query.subquery(Long.class);
+                Root<EnquiryPod> podRoot = podSub.from(EnquiryPod.class);
+                podSub.select(cb.literal(1L));
+                podSub.where(
+                    cb.equal(podRoot.get("enquiryId"), root.get("id")),
+                    cb.equal(podRoot.get("portId"), podPortId)
+                );
+                predicates.add(cb.exists(podSub));
             }
 
             return cb.and(predicates.toArray(new Predicate[0]));

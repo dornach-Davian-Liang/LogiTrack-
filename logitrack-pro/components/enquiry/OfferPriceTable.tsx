@@ -37,11 +37,16 @@ interface OfferPriceTableProps {
   ports: PortSelectOption[];
   /** All container types from container_types DB table */
   containerTypes: ContainerTypeSelectOption[];
+  /** Carrier names from dict_carrier DB table (active only) */
+  carrierOptions: string[];
+  /** Currency codes from dict_currency DB table (active only) */
+  currencyOptions?: string[];
   routeGroups?: RouteGroup[];
   isMixed: boolean;
   isOversizeCargo: boolean;
   onOversizeCargoChange: (value: boolean) => void;
   onUpdatePriceLines: (offerIndex: number, priceLines: OfferPriceLine[]) => void;
+  onUpdateOffer?: (offerIndex: number, field: keyof Offer, value: any) => void;
 }
 
 // ==========================================
@@ -56,85 +61,6 @@ function getPortLabel(portId: number, ports: PortSelectOption[]): string {
 // ==========================================
 // Container Detail Edit Dialog (linked to container_types table)
 // ==========================================
-
-interface ContainerDialogProps {
-  detail: OfferContainerDetail;
-  sizeCode: string;
-  sizeLabel: string;
-  teuFactor: number;
-  onSave: (detail: OfferContainerDetail) => void;
-  onClose: () => void;
-}
-
-const ContainerDetailDialog: React.FC<ContainerDialogProps> = ({
-  detail, sizeCode, sizeLabel: sizeLbl, teuFactor, onSave, onClose,
-}) => {
-  const [form, setForm] = useState<OfferContainerDetail>({ ...detail });
-
-  const lineTeu = (teuFactor) * (form.numberOfContainers || 0);
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={onClose}>
-      <div className="bg-white rounded-lg shadow-xl p-5 w-96" onClick={e => e.stopPropagation()}>
-        <h3 className="text-sm font-semibold text-gray-800 mb-4">Container Details — {sizeLbl}</h3>
-        <div className="space-y-3">
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Container Size Type</label>
-            <input type="text" value={`${sizeCode} (${sizeLbl})`} disabled
-              className="block w-full text-sm rounded-md border-gray-300 bg-gray-100 shadow-sm" />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Number of Containers</label>
-            <input
-              type="number" min={0}
-              value={form.numberOfContainers || ''}
-              onChange={e => setForm({ ...form, numberOfContainers: Number(e.target.value) || 0 })}
-              className="block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Cargo Weight / Container (ton)</label>
-            <input
-              type="number" step="0.001" min={0}
-              value={form.cargoWeightPerContainer ?? ''}
-              onChange={e => setForm({ ...form, cargoWeightPerContainer: e.target.value ? Number(e.target.value) : undefined })}
-              className="block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Container Price</label>
-            <input
-              type="number" step="0.01" min={0}
-              value={form.containerPrice ?? ''}
-              onChange={e => setForm({ ...form, containerPrice: e.target.value ? Number(e.target.value) : undefined })}
-              className="block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            />
-          </div>
-          <div className="bg-indigo-50 rounded p-2 text-xs text-indigo-700 font-medium">
-            Line TEU: <span className="font-bold">{lineTeu.toFixed(2)}</span>
-            {' '}(= {teuFactor} × {form.numberOfContainers || 0})
-          </div>
-        </div>
-        <div className="flex justify-end gap-2 mt-4">
-          <button type="button" onClick={onClose}
-            className="px-3 py-1.5 text-sm rounded border border-gray-300 text-gray-700 hover:bg-gray-50">
-            Cancel
-          </button>
-          <button type="button"
-            onClick={() => onSave({
-              ...form,
-              containerSizeType: sizeCode,
-              teuValue: teuFactor,
-              lineTeu: lineTeu,
-            })}
-            className="px-3 py-1.5 text-sm rounded bg-indigo-600 text-white hover:bg-indigo-700">
-            Confirm
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 // ==========================================
 // Add Container Type Picker (dropdown)
@@ -190,14 +116,16 @@ export const OfferPriceTable: React.FC<OfferPriceTableProps> = ({
   offerIndex,
   ports,
   containerTypes,
+  carrierOptions,
+  currencyOptions = ['USD', 'EUR', 'GBP', 'CNY', 'HKD', 'VND'],
   routeGroups,
   isMixed,
   isOversizeCargo,
   onOversizeCargoChange,
   onUpdatePriceLines,
+  onUpdateOffer,
 }) => {
   const isContainer = needsContainerDetails(offer.offerType);
-  const [editingCell, setEditingCell] = useState<{ lineIdx: number; sizeCode: string } | null>(null);
   const [showAddTypeGroup, setShowAddTypeGroup] = useState<string | null>(null);
 
   // ── Dynamic container columns (per route group) ───────
@@ -248,7 +176,7 @@ export const OfferPriceTable: React.FC<OfferPriceTableProps> = ({
     if (!map['20GP']) map['20GP'] = 1.0;
     if (!map['40GP']) map['40GP'] = 2.0;
     if (!map['40HQ']) map['40HQ'] = 2.0;
-    if (!map['45HQ']) map['45HQ'] = 2.25;
+    if (!map['45HQ']) map['45HQ'] = 2.0;
     return map;
   }, [containerTypes]);
 
@@ -274,18 +202,6 @@ export const OfferPriceTable: React.FC<OfferPriceTableProps> = ({
     }
   }, [hasFRorOT]);
 
-  // ── Total TEU calculation ─────────────────────────────
-  const totalTeu = useMemo(() => {
-    let sum = 0;
-    offer.priceLines.forEach(line => {
-      (line.containerDetails || []).forEach(cd => {
-        const factor = cd.teuValue || teuLookup[cd.containerSizeType] || 1;
-        sum += factor * (cd.numberOfContainers || 0);
-      });
-    });
-    return sum;
-  }, [offer.priceLines, teuLookup]);
-
   // ── helpers ───────────────────────────────────────────
 
   const updatePriceLine = (lineIndex: number, field: keyof OfferPriceLine, value: any) => {
@@ -294,20 +210,30 @@ export const OfferPriceTable: React.FC<OfferPriceTableProps> = ({
     onUpdatePriceLines(offerIndex, newLines);
   };
 
-  const saveContainerDetail = (lineIndex: number, sizeCode: string, detail: OfferContainerDetail) => {
+  /** Update a single field within a containerDetail for a given line + sizeCode */
+  const updateContainerField = (lineIndex: number, sizeCode: string, field: keyof OfferContainerDetail, value: any) => {
     const newLines = [...offer.priceLines];
     const line = { ...newLines[lineIndex] };
     const details = [...(line.containerDetails || [])];
     const idx = details.findIndex(d => d.containerSizeType === sizeCode);
+    const teuFactor = teuLookup[sizeCode] || 1;
     if (idx >= 0) {
-      details[idx] = detail;
+      const updated = { ...details[idx], [field]: value };
+      updated.lineTeu = (updated.numberOfContainers || 0) * teuFactor;
+      details[idx] = updated;
     } else {
-      details.push(detail);
+      const newDetail: OfferContainerDetail = {
+        containerSizeType: sizeCode,
+        numberOfContainers: 0,
+        teuValue: teuFactor,
+        [field]: value,
+      };
+      newDetail.lineTeu = (newDetail.numberOfContainers || 0) * teuFactor;
+      details.push(newDetail);
     }
     line.containerDetails = details;
     newLines[lineIndex] = line;
     onUpdatePriceLines(offerIndex, newLines);
-    setEditingCell(null);
   };
 
   const getContainerDetail = (line: OfferPriceLine, sizeCode: string): OfferContainerDetail | undefined => {
@@ -373,16 +299,32 @@ export const OfferPriceTable: React.FC<OfferPriceTableProps> = ({
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">Price Details</span>
           {isContainer && (
-            <span className="text-[10px] text-gray-400">(click container cell for details)</span>
+            <span className="text-[10px] text-gray-400">(enter price, number &amp; weight inline)</span>
           )}
         </div>
-
-        {/* Total TEU badge (FCL/BUYER-CONSOL only) */}
+        {/* Currency selectors (FCL/BUYER-CONSOL only) */}
         {isContainer && (
           <div className="flex items-center gap-3">
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-800 text-xs font-bold">
-              📦 Total TEU: {totalTeu.toFixed(2)}
-            </span>
+            <label className="flex items-center gap-1 text-xs text-gray-600">
+              <span className="font-medium">Frg. Currency:</span>
+              <select
+                value={offer.containerCurrency || 'USD'}
+                onChange={e => onUpdateOffer && onUpdateOffer(offerIndex, 'containerCurrency', e.target.value)}
+                className="text-xs rounded border-gray-300 py-0.5 px-1 focus:border-indigo-500 focus:ring-indigo-500"
+              >
+                {currencyOptions.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </label>
+            <label className="flex items-center gap-1 text-xs text-gray-600">
+              <span className="font-medium">Local Charge:</span>
+              <select
+                value={offer.localChargeCurrency || 'USD'}
+                onChange={e => onUpdateOffer && onUpdateOffer(offerIndex, 'localChargeCurrency', e.target.value)}
+                className="text-xs rounded border-gray-300 py-0.5 px-1 focus:border-indigo-500 focus:ring-indigo-500"
+              >
+                {currencyOptions.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </label>
           </div>
         )}
       </div>
@@ -410,42 +352,49 @@ export const OfferPriceTable: React.FC<OfferPriceTableProps> = ({
                 <tr className="bg-gray-100">
                   <th className="border border-gray-200 px-2 py-1.5 text-left font-medium text-gray-600 w-32">POL</th>
                   <th className="border border-gray-200 px-2 py-1.5 text-left font-medium text-gray-600 w-32">POD</th>
-                  {/* Dynamic container size columns */}
-                  {isContainer && groupVisibleSizeCodes.map(code => (
-                    <th key={code} className="border border-gray-200 px-1 py-1.5 text-center font-medium text-gray-600 w-20 relative group">
-                      <span>{sizeLabel(code)}</span>
-                      {/* Allow removing extra (non-default) columns */}
-                      {!DEFAULT_SIZE_CODES.includes(code) && (
-                        <button
-                          type="button"
-                          onClick={() => removeContainerColumn(code, groupKey)}
-                          className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-red-500 text-white rounded-full text-[8px] leading-none hidden group-hover:flex items-center justify-center"
-                          title={`Remove ${sizeLabel(code)} column`}
-                        >
-                          ×
-                        </button>
-                      )}
-                    </th>
-                  ))}
-                  <th className="border border-gray-200 px-2 py-1.5 text-center font-medium text-gray-600 w-20">
-                    {isContainer ? 'Per CBM' : 'Price'}
-                  </th>
-                  <th className="border border-gray-200 px-2 py-1.5 text-center font-medium text-gray-600 w-20">Min Charge</th>
-                  <th className="border border-gray-200 px-2 py-1.5 text-center font-medium text-gray-600 w-20">Local Charge</th>
+                  {/* Inline container columns: Price / Number / Weight(all 20-foot types) for each size */}
+                  {isContainer && groupVisibleSizeCodes.map(code => {
+                    const is20Foot = code.startsWith('20');
+                    return (
+                      <th key={code} colSpan={is20Foot ? 3 : 2} className="border border-gray-200 px-1 py-1 text-center font-medium text-gray-600 relative group">
+                        <div className="flex items-center justify-center gap-1">
+                          <span>{sizeLabel(code)}</span>
+                          {!DEFAULT_SIZE_CODES.includes(code) && (
+                            <button
+                              type="button"
+                              onClick={() => removeContainerColumn(code, groupKey)}
+                              className="w-3.5 h-3.5 bg-red-500 text-white rounded-full text-[8px] leading-none hidden group-hover:inline-flex items-center justify-center"
+                              title={`Remove ${sizeLabel(code)} column`}
+                            >
+                              ×
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex text-[9px] text-gray-400 font-normal justify-center gap-0">
+                          <span className="px-1">Price</span>
+                          <span className="px-1">Num</span>
+                          {is20Foot && <span className="px-1 text-green-500">Wt(KG)</span>}
+                        </div>
+                      </th>
+                    );
+                  })}
+                  {/* FCL/BUYER-CONSOL: show CARRIER */}
                   {isContainer && (
-                    <th className="border border-gray-200 px-1 py-1.5 text-center font-medium text-gray-500 w-14 text-[10px]">Line TEU</th>
+                    <th className="border border-gray-200 px-2 py-1.5 text-center font-medium text-gray-600 w-28">CARRIER</th>
                   )}
+                  {/* LCL/AIR: Price + Min Charge */}
+                  {!isContainer && (
+                    <th className="border border-gray-200 px-2 py-1.5 text-center font-medium text-gray-600 w-20">Price</th>
+                  )}
+                  {!isContainer && (
+                    <th className="border border-gray-200 px-2 py-1.5 text-center font-medium text-gray-600 w-20">Min Charge</th>
+                  )}
+                  <th className="border border-gray-200 px-2 py-1.5 text-center font-medium text-gray-600 w-20">Local Charge</th>
                   <th className="border border-gray-200 px-2 py-1.5 text-center font-medium text-gray-600 w-8"></th>
                 </tr>
               </thead>
               <tbody>
                 {group.lines.map(({ line, globalIdx }) => {
-                  // Calculate line TEU: sum of all container details' TEU for this line
-                  const lineTeu = (line.containerDetails || []).reduce((sum, cd) => {
-                    const factor = cd.teuValue || teuLookup[cd.containerSizeType] || 1;
-                    return sum + factor * (cd.numberOfContainers || 0);
-                  }, 0);
-
                   return (
                     <tr key={globalIdx} className="hover:bg-blue-50/40">
                       <td className="border border-gray-200 px-2 py-1 text-gray-700 whitespace-nowrap truncate max-w-[140px]" title={getPortLabel(line.polId, ports)}>
@@ -455,50 +404,92 @@ export const OfferPriceTable: React.FC<OfferPriceTableProps> = ({
                         {getPortLabel(line.podId, ports)}
                       </td>
 
-                      {/* Container size columns (FCL/BUYER-CONSOL only) */}
+                      {/* Inline container columns (FCL/BUYER-CONSOL only) — Price / Number / Weight(all 20-foot types) */}
                       {isContainer && groupVisibleSizeCodes.map(code => {
                         const cd = getContainerDetail(line, code);
-                        const hasData = cd && (cd.containerPrice != null || cd.numberOfContainers > 0);
+                        const is20Foot = code.startsWith('20');
                         return (
-                          <td key={code}
-                            className={`border border-gray-200 px-1 py-1 text-center cursor-pointer transition-colors
-                              ${hasData ? 'bg-indigo-50 text-indigo-800 font-medium' : 'text-gray-400 hover:bg-gray-50'}`}
-                            onClick={() => setEditingCell({ lineIdx: globalIdx, sizeCode: code })}
-                            title={hasData ? `${cd!.numberOfContainers || 0} ctnr × $${cd!.containerPrice ?? '-'}` : 'Click to edit'}
-                          >
-                            {hasData ? (
-                              <span>{cd!.containerPrice != null ? cd!.containerPrice : '-'}</span>
-                            ) : (
-                              <span className="text-gray-300">—</span>
+                          <React.Fragment key={code}>
+                            {/* Container Price */}
+                            <td className="border border-gray-200 px-0.5 py-1">
+                              <input
+                                type="number" step="0.01" min={0}
+                                value={cd?.containerPrice ?? ''}
+                                onChange={e => updateContainerField(globalIdx, code, 'containerPrice', e.target.value ? Number(e.target.value) : undefined)}
+                                className="w-14 text-xs text-right rounded border-gray-300 py-0.5 focus:border-indigo-500 focus:ring-indigo-500"
+                                placeholder="Price"
+                              />
+                            </td>
+                            {/* Number of Containers */}
+                            <td className="border border-gray-200 px-0.5 py-1">
+                              <input
+                                type="number" min={0}
+                                value={cd?.numberOfContainers || ''}
+                                onChange={e => updateContainerField(globalIdx, code, 'numberOfContainers', e.target.value ? Number(e.target.value) : 0)}
+                                className="w-10 text-xs text-right rounded border-gray-300 py-0.5 focus:border-indigo-500 focus:ring-indigo-500"
+                                placeholder="Num"
+                              />
+                            </td>
+                            {/* Weight (KG) — for all 20-foot types */}
+                            {is20Foot && (
+                              <td className="border border-gray-200 px-0.5 py-1">
+                                <input
+                                  type="number" step="0.01" min={0}
+                                  value={cd?.cargoWeightPerContainer ?? ''}
+                                  onChange={e => updateContainerField(globalIdx, code, 'cargoWeightPerContainer', e.target.value ? Number(e.target.value) : undefined)}
+                                  className="w-14 text-xs text-right rounded border-gray-300 py-0.5 focus:border-indigo-500 focus:ring-indigo-500"
+                                  placeholder="Wt"
+                                />
+                              </td>
                             )}
-                          </td>
+                          </React.Fragment>
                         );
                       })}
 
-                      {/* Per CBM or Price */}
-                      <td className="border border-gray-200 px-1 py-1">
-                        <input
-                          type="number" step="0.01" min={0}
-                          value={isContainer ? (line.perCbm ?? '') : (line.price ?? '')}
-                          onChange={e => {
-                            const v = e.target.value ? Number(e.target.value) : undefined;
-                            updatePriceLine(globalIdx, isContainer ? 'perCbm' : 'price', v);
-                          }}
-                          className="w-full text-xs text-center rounded border-gray-300 py-0.5 focus:border-indigo-500 focus:ring-indigo-500"
-                          placeholder="—"
-                        />
-                      </td>
+                      {/* CARRIER dropdown (FCL/BUYER-CONSOL only) */}
+                      {isContainer && (
+                        <td className="border border-gray-200 px-1 py-1">
+                          <select
+                            value={line.carrier || ''}
+                            onChange={e => updatePriceLine(globalIdx, 'carrier', e.target.value || undefined)}
+                            className="w-full text-xs rounded border-gray-300 py-0.5 focus:border-indigo-500 focus:ring-indigo-500"
+                          >
+                            <option value="">—</option>
+                            {carrierOptions.map(c => (
+                              <option key={c} value={c}>{c}</option>
+                            ))}
+                          </select>
+                        </td>
+                      )}
 
-                      {/* Min Charge */}
-                      <td className="border border-gray-200 px-1 py-1">
-                        <input
-                          type="number" step="0.01" min={0}
-                          value={line.minCharge ?? ''}
-                          onChange={e => updatePriceLine(globalIdx, 'minCharge', e.target.value ? Number(e.target.value) : undefined)}
-                          className="w-full text-xs text-center rounded border-gray-300 py-0.5 focus:border-indigo-500 focus:ring-indigo-500"
-                          placeholder="—"
-                        />
-                      </td>
+                      {/* Price (LCL/AIR only) */}
+                      {!isContainer && (
+                        <td className="border border-gray-200 px-1 py-1">
+                          <input
+                            type="number" step="0.01" min={0}
+                            value={line.price ?? ''}
+                            onChange={e => {
+                              const v = e.target.value ? Number(e.target.value) : undefined;
+                              updatePriceLine(globalIdx, 'price', v);
+                            }}
+                            className="w-full text-xs text-center rounded border-gray-300 py-0.5 focus:border-indigo-500 focus:ring-indigo-500"
+                            placeholder="—"
+                          />
+                        </td>
+                      )}
+
+                      {/* Min Charge (LCL/AIR only) */}
+                      {!isContainer && (
+                        <td className="border border-gray-200 px-1 py-1">
+                          <input
+                            type="number" step="0.01" min={0}
+                            value={line.minCharge ?? ''}
+                            onChange={e => updatePriceLine(globalIdx, 'minCharge', e.target.value ? Number(e.target.value) : undefined)}
+                            className="w-full text-xs text-center rounded border-gray-300 py-0.5 focus:border-indigo-500 focus:ring-indigo-500"
+                            placeholder="—"
+                          />
+                        </td>
+                      )}
 
                       {/* Local Charge */}
                       <td className="border border-gray-200 px-1 py-1">
@@ -510,13 +501,6 @@ export const OfferPriceTable: React.FC<OfferPriceTableProps> = ({
                           placeholder="—"
                         />
                       </td>
-
-                      {/* Line TEU */}
-                      {isContainer && (
-                        <td className="border border-gray-200 px-1 py-1 text-center text-[10px] font-medium text-indigo-600">
-                          {lineTeu > 0 ? lineTeu.toFixed(2) : '—'}
-                        </td>
-                      )}
 
                       {/* Delete row */}
                       <td className="border border-gray-200 px-1 py-1 text-center">
@@ -578,30 +562,6 @@ export const OfferPriceTable: React.FC<OfferPriceTableProps> = ({
           </label>
         </div>
       )}
-
-      {/* Container Detail Dialog */}
-      {editingCell && (() => {
-        const line = offer.priceLines[editingCell.lineIdx];
-        if (!line) return null;
-        const code = editingCell.sizeCode;
-        const existing = getContainerDetail(line, code);
-        const teuFactor = teuLookup[code] || 1;
-        const defaultDetail: OfferContainerDetail = {
-          containerSizeType: code,
-          numberOfContainers: 0,
-          teuValue: teuFactor,
-        };
-        return (
-          <ContainerDetailDialog
-            detail={existing || defaultDetail}
-            sizeCode={code}
-            sizeLabel={sizeLabel(code)}
-            teuFactor={teuFactor}
-            onSave={(d) => saveContainerDetail(editingCell.lineIdx, code, d)}
-            onClose={() => setEditingCell(null)}
-          />
-        );
-      })()}
     </div>
   );
 };

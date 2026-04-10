@@ -159,6 +159,10 @@ public class Enquiry {
     @OneToMany(mappedBy = "enquiry", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Offer> offers = new ArrayList<>();
     
+    // Container rows (FCL/BUYER-CONSOL)
+    @OneToMany(mappedBy = "enquiry", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<EnquiryContainerLine> containerRows = new ArrayList<>();
+    
     // Transient 字段（不映射到数据库）
     @Transient
     private List<Integer> polIds = new ArrayList<>();

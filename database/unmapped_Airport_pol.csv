@@ -1,0 +1,30 @@
+﻿CSV原始POL值,运输类型,出现次数,对应Reference Number（前5个）,建议操作：请提供正确的Air Port代码
+EHU,Air Port,21,CN2503426-A; CN2504302-A; CN2505580-A; CN2505620-A; CN2506044-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+FOC,Air Port,4,CN2508028-A; CN2512013-A; CN2601075-A1; CN2601176-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+STR,Air Port,3,CN2511021-A; CN2511023-A; CN2601550-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+TFU,Air Port,3,CN2511572-A; CN2601140-A; CN2601234-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Tianjin,Air Port,2,CN2503424-AS1; CN2512708-AS1,请填写正确的Air Port代码（如 IATA 3字母代码）
+XIY,Air Port,2,CN2601539-A; CN2601730-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Shanxi,Air Port,1,CN2501083-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+PXK,Air Port,1,CN2502438-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+China Main Port,Air Port,1,CN2503663-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+MAA,Air Port,1,CN2505234-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Lanxi,Air Port,1,CN2505535-AS1,请填写正确的Air Port代码（如 IATA 3字母代码）
+France,Air Port,1,CN2505579-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Shijiazhuang,Air Port,1,CN2506004-AS1,请填写正确的Air Port代码（如 IATA 3字母代码）
+CMP,Air Port,1,CN2506007-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Xingang,Air Port,1,CN2506060-AS1,请填写正确的Air Port代码（如 IATA 3字母代码）
+DLN,Air Port,1,CN2506171-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+EUH,Air Port,1,CN2506640-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+WNZ,Air Port,1,CN2507002-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Yichun,Air Port,1,CN2507003-AS1,请填写正确的Air Port代码（如 IATA 3字母代码）
+Tianjing,Air Port,1,CN2507500-AS1,请填写正确的Air Port代码（如 IATA 3字母代码）
+"WS11 7FQ, UK",Air Port,1,CN2507575-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Qingzhou,Air Port,1,CN2508004-AS1,请填写正确的Air Port代码（如 IATA 3字母代码）
+ZHEJIANG,Air Port,1,CN2508168-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+YNT,Air Port,1,CN2508310-A1,请填写正确的Air Port代码（如 IATA 3字母代码）
+GDL,Air Port,1,CN2510446-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+TBS,Air Port,1,CN2511214-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Huizhou city,Air Port,1,CN2512106-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+PVGXMN,Air Port,1,CN2512193-AS,请填写正确的Air Port代码（如 IATA 3字母代码）
+PEI,Air Port,1,CN2602137-A1,请填写正确的Air Port代码（如 IATA 3字母代码）

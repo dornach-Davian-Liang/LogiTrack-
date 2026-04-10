@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { LayoutDashboard, PlusCircle, FileSpreadsheet, Ship, Settings, Bell, Search, Menu, LogOut, Loader2, RefreshCw, Globe, Anchor, Users, Box, BarChart3, Filter, TrendingUp, Sparkles } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, Ship, Settings, Bell, Search, Menu, LogOut, Loader2, RefreshCw, Globe, Anchor, Users, Box, BarChart3, Filter, TrendingUp, Sparkles, DollarSign } from 'lucide-react';
 import { Enquiry, EnquiryListItem, EnquiryFormData, LoginResponse } from './types';
 import { enquiryApi } from './services/api';
 import { useLanguage } from './i18n/LanguageContext';
@@ -11,6 +11,8 @@ import CountryList from './components/master-data/CountryList';
 import PortList from './components/master-data/PortList';
 import SalesPicList from './components/master-data/SalesPicList';
 import ContainerTypeList from './components/master-data/ContainerTypeList';
+import CarrierList from './components/master-data/CarrierList';
+import CurrencyList from './components/master-data/CurrencyList';
 import Login from './components/Login';
 import Dashboard from './components/report/Dashboard';
 import { EnhancedDashboard } from './components/report/EnhancedDashboard';
@@ -18,7 +20,7 @@ import { ComparisonReport } from './components/report/ComparisonReport';
 import { SettingsLayout } from './components/settings/SettingsLayout';
 import { AIChatPanel } from './components/ai/AIChatPanel';
 
-type ViewType = 'dashboard' | 'enquiry-list' | 'enquiry-form' | 'enquiry-detail' | 'master-countries' | 'master-ports' | 'master-sales-pics' | 'master-container-types' | 'report-dashboard' | 'report-enhanced' | 'report-comparison' | 'ai-chat' | 'settings';
+type ViewType = 'dashboard' | 'enquiry-list' | 'enquiry-form' | 'enquiry-detail' | 'master-countries' | 'master-ports' | 'master-sales-pics' | 'master-container-types' | 'master-carriers' | 'master-currencies' | 'report-dashboard' | 'report-enhanced' | 'report-comparison' | 'ai-chat' | 'settings';
 
 const App: React.FC = () => {
   const { language, setLanguage, translations } = useLanguage();
@@ -78,7 +80,7 @@ const App: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
-        const response = await enquiryApi.list({ page: 0, pageSize: 10 });
+        const response = await enquiryApi.list({ page: 0, pageSize: 10, sortBy: 'updatedAt', sortOrder: 'desc' });
         setEnquiries(response.content);
     } catch (err) {
         console.error("Failed to fetch data", err);
@@ -132,7 +134,7 @@ const App: React.FC = () => {
     }
 
     if (canManageMasterData) {
-      views.push('master-countries', 'master-ports', 'master-sales-pics', 'master-container-types');
+      views.push('master-countries', 'master-ports', 'master-sales-pics', 'master-container-types', 'master-carriers', 'master-currencies');
     }
 
     if (canViewReports) {
@@ -308,6 +310,10 @@ const App: React.FC = () => {
         return <SalesPicList />;
       case 'master-container-types':
         return <ContainerTypeList />;
+      case 'master-carriers':
+        return <CarrierList />;
+      case 'master-currencies':
+        return <CurrencyList />;
       case 'report-dashboard':
         return <Dashboard />;
       case 'report-enhanced':
@@ -356,77 +362,7 @@ const App: React.FC = () => {
 
   const renderDashboard = () => (
     <div className="space-y-6 pb-10">
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="bg-white overflow-hidden shadow rounded-lg border-l-4 border-indigo-500">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0 bg-indigo-50 rounded-md p-3">
-                <Ship className="h-6 w-6 text-indigo-600" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Total Enquiries</dt>
-                  <dd className="text-2xl font-bold text-gray-900">{enquiries.length}</dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white overflow-hidden shadow rounded-lg border-l-4 border-green-500">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0 bg-green-50 rounded-md p-3">
-                <FileSpreadsheet className="h-6 w-6 text-green-600" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Quoted & Pending</dt>
-                  <dd className="text-2xl font-bold text-gray-900">
-                    {enquiries.filter(e => e.status === 'Quoted & Pending').length}
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white overflow-hidden shadow rounded-lg border-l-4 border-yellow-500">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0 bg-yellow-50 rounded-md p-3">
-                <Settings className="h-6 w-6 text-yellow-600" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Secured</dt>
-                  <dd className="text-2xl font-bold text-gray-900">
-                    {enquiries.filter(e => e.status === 'Secured').length}
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white overflow-hidden shadow rounded-lg border-l-4 border-red-500">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0 bg-red-50 rounded-md p-3">
-                <Bell className="h-6 w-6 text-red-600" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">New</dt>
-                  <dd className="text-2xl font-bold text-gray-900">
-                    {enquiries.filter(e => e.status === 'New').length}
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex justify-between items-center pt-4">
+      <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Recent Enquiries</h1>
         {canManageEnquiries && (
           <button 
@@ -574,7 +510,7 @@ const App: React.FC = () => {
                       className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full transition-colors ${currentView === 'master-sales-pics' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
                     >
                         <Users className="mr-3 flex-shrink-0 h-5 w-5" />
-                        Sales PICs
+                        Sales Management
                     </button>
                     <button 
                       onClick={() => setCurrentView('master-container-types')}
@@ -582,6 +518,20 @@ const App: React.FC = () => {
                     >
                         <Box className="mr-3 flex-shrink-0 h-5 w-5" />
                         Container Types
+                    </button>
+                    <button 
+                      onClick={() => setCurrentView('master-carriers')}
+                      className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full transition-colors ${currentView === 'master-carriers' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                    >
+                        <Ship className="mr-3 flex-shrink-0 h-5 w-5" />
+                        Carriers
+                    </button>
+                    <button 
+                      onClick={() => setCurrentView('master-currencies')}
+                      className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full transition-colors ${currentView === 'master-currencies' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                    >
+                        <DollarSign className="mr-3 flex-shrink-0 h-5 w-5" />
+                        Currencies
                     </button>
                   </>
                 )}
@@ -680,8 +630,10 @@ const App: React.FC = () => {
                       {currentView === 'enquiry-detail' && 'Enquiry Details'}
                       {currentView === 'master-countries' && 'Country Management'}
                       {currentView === 'master-ports' && 'Port Management'}
-                      {currentView === 'master-sales-pics' && 'Sales PIC Management'}
+                      {currentView === 'master-sales-pics' && 'Sales Management'}
                       {currentView === 'master-container-types' && 'Container Type Management'}
+                      {currentView === 'master-carriers' && 'Carrier Management'}
+                      {currentView === 'master-currencies' && 'Currency Management'}
                       {currentView === 'report-dashboard' && '基础报表'}
                       {currentView === 'report-enhanced' && '增强报表'}
                       {currentView === 'report-comparison' && '时期对比报告'}

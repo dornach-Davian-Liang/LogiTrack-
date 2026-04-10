@@ -4,7 +4,7 @@
 // 每组有: sub-mode 下拉 + POL 多选 + POD 多选
 // ============================================================
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Plus, Trash2, Anchor, Plane, TrainFront, ArrowRight } from 'lucide-react';
 import { RouteGroup, SubMode, PortSelectOption, PortType, ProductCode } from '../../types';
 import { masterDataApi } from '../../services/api';
@@ -45,6 +45,7 @@ export const RouteGroupEditor: React.FC<RouteGroupEditorProps> = ({
 }) => {
   const [portOptions, setPortOptions] = useState<Record<string, PortSelectOption[]>>({});
   const [isSearching, setIsSearching] = useState<Record<string, boolean>>({});
+  const preloadedRef = useRef(false);
 
   // Get the expected sub-mode sequence for this product
   const subModeSequence = PRODUCT_SUBMODE_MAP[productCode] || [];
@@ -62,6 +63,54 @@ export const RouteGroupEditor: React.FC<RouteGroupEditorProps> = ({
 
   const groups = ensureGroups();
 
+  // ── Pre-load port options for already-selected IDs (edit mode) ──
+  useEffect(() => {
+    if (preloadedRef.current) return;
+    // Collect all unique portIds that need to be loaded
+    const allIds = new Set<number>();
+    groups.forEach(g => {
+      (g.polIds || []).forEach(id => allIds.add(Number(id)));
+      (g.podIds || []).forEach(id => allIds.add(Number(id)));
+    });
+    if (allIds.size === 0) return;
+    preloadedRef.current = true;
+
+    // Fetch all ports in parallel then build option maps
+    Promise.all(
+      Array.from(allIds).map(id =>
+        masterDataApi.getPortById(id).catch(() => null)
+      )
+    ).then(ports => {
+      const portMap: Record<number, PortSelectOption> = {};
+      ports.forEach(p => {
+        if (!p) return;
+        portMap[p.id] = {
+          value: p.id,
+          label: `${p.portCode} - ${p.portName}`,
+          portCode: p.portCode,
+          portType: p.portType as PortType,
+          countryCode: p.countryCode,
+        };
+      });
+
+      const newOptions: Record<string, PortSelectOption[]> = {};
+      groups.forEach((g, idx) => {
+        const polKey = `${idx}-pol`;
+        const podKey = `${idx}-pod`;
+        const polOpts = (g.polIds || [])
+          .map(id => portMap[Number(id)])
+          .filter(Boolean) as PortSelectOption[];
+        const podOpts = (g.podIds || [])
+          .map(id => portMap[Number(id)])
+          .filter(Boolean) as PortSelectOption[];
+        if (polOpts.length > 0) newOptions[polKey] = polOpts;
+        if (podOpts.length > 0) newOptions[podKey] = podOpts;
+      });
+
+      setPortOptions(prev => ({ ...prev, ...newOptions }));
+    });
+  }, [groups]);
+
   // Port search handler — also loads initial ports on empty search
   const handlePortSearch = useCallback(
     async (groupIndex: number, field: 'pol' | 'pod', searchTerm: string) => {
@@ -77,7 +126,16 @@ export const RouteGroupEditor: React.FC<RouteGroupEditorProps> = ({
         const portType = SUB_MODE_PORT_TYPE[group.subMode];
         // Empty search → load top ports; otherwise search by term
         const results = await masterDataApi.searchPorts(portType, searchTerm || '');
-        setPortOptions((prev) => ({ ...prev, [key]: results }));
+        // Merge with existing options so pre-loaded selections aren't lost
+        setPortOptions((prev) => {
+          const existing = prev[key] || [];
+          const existingIds = new Set(existing.map(o => String(o.value)));
+          const merged = [
+            ...existing,
+            ...results.filter(r => !existingIds.has(String(r.value))),
+          ];
+          return { ...prev, [key]: merged };
+        });
       } catch (err) {
         console.error('Port search failed:', err);
       } finally {

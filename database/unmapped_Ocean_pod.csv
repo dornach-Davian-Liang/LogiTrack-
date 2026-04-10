@@ -1,0 +1,307 @@
+﻿CSV原始值,出现次数,对应Reference Number（前5个）,建议操作
+Fos,234,CN2501023-S; CN2501057-S; CN2501059-S; CN2501075-S; CN2501088-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Felixstowe,178,CN2501036-S; CN2501051-S; CN2501052-S; CN2501091-S; CN2501099-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+STR,86,CN2501310-A; CN2501351-A; CN2501374-A; CN2502013-AS; CN2502214-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+Toronto,58,CN2502189-S; CN2502288-S; CN2503063-S; CN2503449-S; CN2503599-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Piraeus,20,CN2506298-S; CN2508218-S; CN2509331-S; CN2510105-S; CN2510110-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Xingang,16,CN2504070-S; CN2504571-S; CN2505210-S; CN2507229-S; CN2509332-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+New York,14,CN2503211-S1; CN2503211-S2; CN2505185-S; CN2505444-S; CN2506629-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+PIRAEUS,14,CN2509626-S; CN2511006-S; CN2511048-S; CN2511051-S; CN2511060-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+LIEGE,10,CN2502327-R; CN2502405-R; CN2503129-S; CN2503322-R; CN2503452-R,请提供正确的港口代码（如GBFXT）以便系统匹配
+NEW YORK,9,CN2504217-S; CN2505415-S; CN2506266-S; CN2507562-S; CN2508049-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+FOS,8,CN2501030-S; CN2501287-S; CN2501326-S; CN2502004-S; CN2503451-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Liege,7,CN2501317-R; CN2501433-R; CN2502444-R; CN2503117-R; CN2503276-R,请提供正确的港口代码（如GBFXT）以便系统匹配
+New york,7,CN2503275-S; CN2506301-S; CN2506302-S; CN2509198-S; CN2509218-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+TORONTO,7,CN2503303-S; CN2509602-S; CN2509676-S; CN2510601-S; CN2511331-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Houston,7,CN2503555-S; CN2505291-S; CN2506115-AS1; CN2506555-AS1; CN2508563-AS1,请提供正确的港口代码（如GBFXT）以便系统匹配
+Surabaya,7,CN2504221-S; CN2507165-S; CN2508239-S1; CN2509219-S; CN2512624-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+MEL,7,CN2507191-AS; CN2507453-A; CN2510236-S; CN2510342-A; CN2511540-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+ABJ,6,CN2503025-A; CN2503148-A; CN2504472-A; CN2508092-AS; CN2509380-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+FELIXSTOWE,6,CN2504178-S; CN2506259-S; CN2509410-S; CN2510539-S; CN2510683-AS1,请提供正确的港口代码（如GBFXT）以便系统匹配
+Miami,6,CN2506523-S; CN2508506-S; CN2511545-S; CN2601285-S; CN2601499-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Chittagong,6,CN2507163-S; CN2507535-S; CN2511195-S; CN2512280-S; CN2601146-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Tokyo,6,CN2510010-S1; CN2510600-S; CN2511707-S; CN2512275-S; CN2601557-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Chicago,5,CN2501110-S; CN2503150-S; CN2508084-S1; CN2511292-S; CN2512015-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+IAH,5,CN2506115-AS; CN2506555-AS; CN2508209-A; CN2508563-AS; CN2512689-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+Germany,5,CN2508386-S; CN2508392-S; CN2509181-S; CN2512638-R; CN2601123-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+SYD,4,CN2502393-A; CN2504278-A; CN2510181-AS; CN2510236-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Los Angeles,4,CN2505010-S; CN2507064-S; CN2601039-S; CN2601294-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+BAHRAIN,4,CN2506082-S; CN2506561-S; CN2508366-S; CN2510588-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Hamad,4,CN2506325-S; CN2506586-S; CN2509432-S; CN2512515-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Savannah,4,CN2508062-S; CN2509451-S; CN2512324-S; CN2601065-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Southampotn,4,CN2511688-S; CN2511689-S; CN2602039-S; CN2602040-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Rotterdan,4,CN2512399-S; CN2512400-S; CN2512401-S; CN2512402-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Venezuela,3,CN2501111-S1; CN2501111-S2; CN2501111-S3,请提供正确的港口代码（如GBFXT）以便系统匹配
+Kolkata,3,CN2502056-S; CN2507372-S; CN2601310-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Midrand,3,CN2502093-S; CN2502096-S; CN2512224-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+TNTUN RDS,3,CN2503541-S; CN2506234-S; CN2507363-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Dunkirk,3,CN2504450-S1; CN2504450-S2; CN2509459-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Genova,3,CN2505198-S; CN2507185-S; CN2511477-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Long Beach,3,CN2507064-S; CN2510164-S; CN2510498-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+LEH,3,CN2507263-S; CN2507265-S; CN2511482-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+Sweden,3,CN2510082-S; CN2510445-S; CN2601286-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Honiara,3,CN2601237-S; CN2601749-S; CN2601790-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Lisboa,2,CN2501382-S; CN2505629-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Lufkin Industries,2,CN2501440-S; CN2501440-S1,请提供正确的港口代码（如GBFXT）以便系统匹配
+Kigali,2,CN2501442-S; CN2601585-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Maryland,2,CN2502169-AS; CN2502169-AS1,请提供正确的港口代码（如GBFXT）以便系统匹配
+CAT LAI,2,CN2502267-S; CN2504143-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Saint George,2,CN2502396-S; CN2504003-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+XiaoShan . HangZhou,2,CN2503470-AS; CN2503470-AS1,请提供正确的港口代码（如GBFXT）以便系统匹配
+Tanger,2,CN2503483-S; CN2503491-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+519085 ZHUHAI,2,CN2503498-A; CN2511585-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+ANR,2,CN2503616-S; CN2505265-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+RTM,2,CN2503616-S; CN2505265-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Lille,2,CN2503626-AS1; CN2505247-AS1,请提供正确的港口代码（如GBFXT）以便系统匹配
+"Kabelweg 86, 1014 BC, Amsterdam",2,CN2504023-S; CN2504024-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Suqian city,2,CN2504073-AS; CN2504073-AS1,请提供正确的港口代码（如GBFXT）以便系统匹配
+Guinea,2,CN2504175-S; CN2511271-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Coega,2,CN2504420-S; CN2508473-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Norway,2,CN2505125-S; CN2506162-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+301700 Tianjin,2,CN2505302-S; CN2512229-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+ICD AHMEDABAD,2,CN2505373-S1; CN2505373-S2,请提供正确的港口代码（如GBFXT）以便系统匹配
+Oldbury GB,2,CN2505419-S1; CN2505419-S2,请提供正确的港口代码（如GBFXT）以便系统匹配
+Austria,2,CN2506290-S; CN2506291-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+CHITTAGONG,2,CN2506382-S; CN2506550-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Black Point Power Station,2,CN2506386-AS; CN2506386-AS1,请提供正确的港口代码（如GBFXT）以便系统匹配
+Lodon Gateway,2,CN2506557-S; CN2506558-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Fos-Sur-Mur,2,CN2507231-S; CN2508231-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+42203 Jalzabet,2,CN2507378-RS; CN2507378-RS1,请提供正确的港口代码（如GBFXT）以便系统匹配
+Auckland,2,CN2507662-S; CN2508216-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Port Kelang,2,CN2508246-S; CN2511141-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Port Elizabeth,2,CN2508473-S; CN2510004-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+JHB,2,CN2508568-S; CN2508569-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+BNE,2,CN2510236-S; CN2510327-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+Sheffield,2,CN2511064-S1; CN2511064-S2,请提供正确的港口代码（如GBFXT）以便系统匹配
+"Kowloon, HK",2,CN2511391-AS1; CN2512468-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+GREECE,2,CN2511502-RS; CN2511502-RS1,请提供正确的港口代码（如GBFXT）以便系统匹配
+Korea,2,CN2512326-S; CN2601564-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Puerto Cortés,2,CN2512332-S; CN2512738-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+GDAŃSK,2,CN2602162-S1; CN2602162-S2,请提供正确的港口代码（如GBFXT）以便系统匹配
+Mobile,2,CN2602192-S; CN2602193-S2,请提供正确的港口代码（如GBFXT）以便系统匹配
+Baltimore,1,CN2501090-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Jalissco,1,CN2501255-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Constanza,1,CN2501441-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Switzerland,1,CN2501444-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Kanyi State,1,CN2501484-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Icd Panki Kanpur,1,CN2502044-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Guali Hangzhou,1,CN2502053-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Iskenderun,1,CN2502057-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Dar Es Salam,1,CN2502065-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Interface Terminal Gent (ITG) CY,1,CN2502138-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Cleveland,1,CN2502144-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Venezia,1,CN2502167-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Liege Station,1,CN2502265-R,请提供正确的港口代码（如GBFXT）以便系统匹配
+ICD Embakasi,1,CN2502313-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Pointe à Pitre,1,CN2502370-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Alabama,1,CN2502437-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+"Tuen Mun Hk
+00000 HONG KONG",1,CN2503040-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Elgin,1,CN2503143-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+San Diego,1,CN2503143-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+"Wuhan City, 430205",1,CN2503194-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+"Southampton
+London Gateway
+Felixstowe",1,CN2503222-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Southapmton,1,CN2503270-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Antwero,1,CN2503295-S1,请提供正确的港口代码（如GBFXT）以便系统匹配
+ICD Nairobi,1,CN2503346-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Dom. Republic,1,CN2503555-S1,请提供正确的港口代码（如GBFXT）以便系统匹配
+Puerto Rico,1,CN2503555-S2,请提供正确的港口代码（如GBFXT）以便系统匹配
+Chile,1,CN2503555-S3,请提供正确的港口代码（如GBFXT）以便系统匹配
+Liège,1,CN2503611-RS1,请提供正确的港口代码（如GBFXT）以便系统匹配
+BRV,1,CN2503616-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Kolkatta,1,CN2503653-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Tntun RDS,1,CN2503662-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+226131 NANTONG CITY,1,CN2504016-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Piazza Armerina,1,CN2504100-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Brunei,1,CN2504128-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Longoni,1,CN2504170-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Antwerp & Zeebrugge,1,CN2504215-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Tianjin,1,CN2504224-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Jiangsu,1,CN2504247-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Londaon Gateway,1,CN2504254-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Mombassa,1,CN2504264-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Zhejiang,1,CN2504286-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Tokoyo,1,CN2504419-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+"Gildestrasse 20,48356 Nordwalde",1,CN2504441-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+91620 NOZAY FRANCE,1,CN2504489-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Canada,1,CN2504634-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+"Sasar, 437229, Maramures County",1,CN2505049-R,请提供正确的港口代码（如GBFXT）以便系统匹配
+Ohio,1,CN2505055-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+"Huitai Industrial, Huizhou Hager",1,CN2505074-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+"HANAUER STR. 1-5, 75181 PFORZHEIM, GERMANY",1,CN2505096-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+"Oldham, OL4",1,CN2505136-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+ICD PANKI,1,CN2505151-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Famagusta 99450,1,CN2505160-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+"Leicestershire
+LE5 0HU",1,CN2505169-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Elizabeth,1,CN2505184-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Durbai,1,CN2505221-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Yatala Qld 4207,1,CN2505264-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Manzanillo and Lazaro Cardenas,1,CN2505276-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+"Kunshan City, Jiangsu Province",1,CN2505293-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Deli,1,CN2505328-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Bolton BL4,1,CN2505349-AS1,请提供正确的港口代码（如GBFXT）以便系统匹配
+St. Louis,1,CN2505393-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+"Kent, OH",1,CN2505454-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+COMBS LA VILLE,1,CN2505491-R,请提供正确的港口代码（如GBFXT）以便系统匹配
+Iquiqe,1,CN2505534-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+"75181 PFORZHEIM, GERMANY",1,CN2505546-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+ITAJAI OR ITAPOA,1,CN2505553-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+"Clinton
+MA 01510",1,CN2505622-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+"Freud America, US – 27284 Kernesville",1,CN2506084-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+TANGER,1,CN2506114-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+24700 Le Pizou SAINT HONORE PARIS,1,CN2506118-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Victoria,1,CN2506167-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+"Xinbei district , Jiangsu",1,CN2506198-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Felixstoew,1,CN2506215-AS1,请提供正确的港口代码（如GBFXT）以便系统匹配
+Jebal Ali,1,CN2506219-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Buenventura,1,CN2506231-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Al Karama,1,CN2506292-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+SOU,1,CN2506319-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+FLX,1,CN2506319-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Spain,1,CN2506335-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+California 95377,1,CN2506351-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Cat Lai,1,CN2506525-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+RDS,1,CN2506571-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+ICD Harare,1,CN2507161-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+301700 TIANJIN CITY,1,CN2507182-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Rotterdam(Amsterdam),1,CN2507216-AS1,请提供正确的港口代码（如GBFXT）以便系统匹配
+TAISHAN GUANGDONG 529228,1,CN2507225-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+ASUNCIÓN,1,CN2507375-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Valdosta,1,CN2507383-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Durkerque,1,CN2507400-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+USA,1,CN2507506-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Port of Varna,1,CN2507509-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+"Ridea Supply
+78 Wright Blvd
+Stratford, ON
+N4Z 1H3",1,CN2507530-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+"Nanshan District
+518053",1,CN2507614-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+NJ 08831,1,CN2507664-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+NV 89521,1,CN2507664-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Charleston,1,CN2508062-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Milan,1,CN2508153-R,请提供正确的港口代码（如GBFXT）以便系统匹配
+BRALIA,1,CN2508236-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Hungary,1,CN2508274-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Niedersachsen 37081,1,CN2508348-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+"44628 Herne, Germany",1,CN2508359-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Port of Ngqura,1,CN2508473-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+"Herstal, Belgium",1,CN2508484-R,请提供正确的港口代码（如GBFXT）以便系统匹配
+PORT KELANG,1,CN2508490-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+55411 Bingen GERMANY,1,CN2509017-R,请提供正确的港口代码（如GBFXT）以便系统匹配
+Seychelles,1,CN2509021-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+PIRAEIS,1,CN2509059-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+India,1,CN2509191-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+OAKLAND,1,CN2509261-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+TURKEY,1,CN2509269-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+"New South Wales
+2170",1,CN2509275-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+EDMONTON,1,CN2509403-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Montréal,1,CN2509542-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Olso,1,CN2509706-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+"Sha Tian,HK",1,CN2510141-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Greece,1,CN2510173-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+2170 Australia,1,CN2510181-AS1,请提供正确的港口代码（如GBFXT）以便系统匹配
+518107 Shenzhen,1,CN2510191-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Alex port,1,CN2510278-AS1,请提供正确的港口代码（如GBFXT）以便系统匹配
+Chateauguay,1,CN2510294-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+LOS ANGELES,1,CN2510354-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+NY 10962,1,CN2510393-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+PANAMA,1,CN2510443-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+BRENDOLA,1,CN2510484-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Zhangjiagang,1,CN2510495-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Sha Tin N.T Hong Kong,1,CN2510496-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Wuchong,1,CN2510497-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Ajaccio,1,CN2510507-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+"EX2 8FD, UK",1,CN2510531-R,请提供正确的港口代码（如GBFXT）以便系统匹配
+XINGANG,1,CN2510546-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+"London 
+SW19 3UP",1,CN2510576-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+UK Port,1,CN2510598-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+ROSARIO,1,CN2510609-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+N A TUEN MUN HK,1,CN2510614-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+201107 SHANGHAI,1,CN2510616-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Gujarat,1,CN2510633-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+San Pedro Sula,1,CN2510662-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+273 51 Pavlov,1,CN2511049-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+lodon gateway,1,CN2511095-AS1,请提供正确的港口代码（如GBFXT）以便系统匹配
+NOUKCHOTT,1,CN2511101-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+SJO,1,CN2511128-AS,请提供正确的港口代码（如GBFXT）以便系统匹配
+San José,1,CN2511128-AS1,请提供正确的港口代码（如GBFXT）以便系统匹配
+Qingdao 266114,1,CN2511154-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+NJ 07064,1,CN2511162-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+TOR,1,CN2511172-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Pointes des Galets,1,CN2511193-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Maimi,1,CN2511240-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Cartagena,1,CN2511267-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Mauritania,1,CN2511271-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Gabon,1,CN2511271-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Congo,1,CN2511271-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+LOME,1,CN2511274-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Morocco,1,CN2511276-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Australia,1,CN2511280-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Rade,1,CN2511389-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Wan-Chai Hong-Kong,1,CN2511391-AS,请提供正确的港口代码（如GBFXT）以便系统匹配
+OH 44240,1,CN2511402-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+SASKATCHEWAN,1,CN2511423-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+BELL BAY,1,CN2511428-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Lome,1,CN2511474-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+NN8 4NL,1,CN2511476-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Oman,1,CN2511496-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Taluk Bayur,1,CN2511552-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+NO-2100 Skarnes,1,CN2511586-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+HX3 6RL,1,CN2511587-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+"Huangpu District, Guangzhou
+510555",1,CN2511595-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Doburg,1,CN2511632-R,请提供正确的港口代码（如GBFXT）以便系统匹配
+VALPARSISO,1,CN2511661-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Taichuang,1,CN2512010-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+VOLOS,1,CN2512047-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Feilxstowe,1,CN2512050-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+COLOMBIA,1,CN2512058-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Bristol BS3 2HA,1,CN2512105-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Nouadhibou,1,CN2512188-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+TRI,1,CN2512197-AS,请提供正确的港口代码（如GBFXT）以便系统匹配
+Southyampton,1,CN2512259-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+BARTON,1,CN2512260-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Tilburg,1,CN2512352-R,请提供正确的港口代码（如GBFXT）以便系统匹配
+Shaoguan City,1,CN2512362-S1,请提供正确的港口代码（如GBFXT）以便系统匹配
+Constantza,1,CN2512388-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+SE 78173 - Borlange,1,CN2512392-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+"Kent, Ohio US",1,CN2512441-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Zhonshan,1,CN2512446-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+"Zhenjiang City, Jiangsu Province",1,CN2512480-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+SURABAYA,1,CN2512540-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Oslo,1,CN2512549-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+"LV-1079, Latvia",1,CN2512551-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Dehli,1,CN2512704-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Southapton,1,CN2601060-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Olive Branch,1,CN2601253-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Recife,1,CN2601284-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Jakarte,1,CN2601295-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+42131 Vastra Frolunda,1,CN2601307-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+NO-2100 Skarenas,1,CN2601313-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+SDF,1,CN2601328-AS,请提供正确的港口代码（如GBFXT）以便系统匹配
+LOUISVILLE,1,CN2601328-AS1,请提供正确的港口代码（如GBFXT）以便系统匹配
+Lithuania,1,CN2601371-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Ontario,1,CN2601409-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+MALAWI,1,CN2601414-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Hiroshima,1,CN2601556-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+CLEVELAND OH,1,CN2601616-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+PENANG,1,CN2601617-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Southamopton,1,CN2601788-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Lesquin,1,CN2601809-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Colchester CO1,1,CN2601848-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+A-6971 Hard,1,CN2602009-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Lebanon,1,CN2602010-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Jakerta,1,CN2602015-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+TAHITI,1,CN2602113-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Batam,1,CN2602168-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Tangshan,1,CN2602180-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Quetzal,1,CN2602186-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Caldera,1,CN2602186-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Apassea EL Grande,1,CN2602189-S,请提供正确的港口代码（如GBFXT）以便系统匹配

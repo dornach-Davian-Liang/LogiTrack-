@@ -39,6 +39,12 @@ public class OfferCreateDTO {
     /** 是否为最新版本 (默认 true) */
     private Boolean isLatest;
 
+    /** 运费/集装箱价格币种 (如 USD, EUR) */
+    private String containerCurrency;
+
+    /** Local Charge 币种 */
+    private String localChargeCurrency;
+
     /** 价格明细行 — 已经过前端笛卡尔积展开 */
     @Valid
     private List<OfferPriceLineDTO> priceLines = new ArrayList<>();

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Edit, Trash2, Plus, Package, Ship, User, Calendar, FileText, DollarSign, RefreshCw } from 'lucide-react';
-import { Enquiry, Offer, OfferCreatePayload, ContainerTypeSelectOption, SalesPicSelectOption, Port, SelectOption, SalesOffice, OfferPriceLine } from '../../types';
+import { Enquiry, Offer, OfferCreatePayload, ContainerTypeSelectOption, SalesPicSelectOption, Port, SelectOption, SalesOffice, OfferPriceLine, OfferContainerDetail } from '../../types';
 import { enquiryApi, offerApi, masterDataApi } from '../../services/api';
 import OfferDialog from '../offer/OfferDialog';
 import StatusChangeDialog from './StatusChangeDialog';
@@ -404,6 +404,66 @@ export const EnquiryDetail: React.FC<EnquiryDetailProps> = ({ enquiryId, onBack,
                   <dt className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Remark</dt>
                   <dd className="text-sm text-gray-900 whitespace-pre-wrap leading-relaxed">{enquiry.remark || '-'}</dd>
                 </div>
+
+                {/* Container Information */}
+                {enquiry.containerRows && enquiry.containerRows.length > 0 && (
+                  <div className="col-span-2 bg-gradient-to-br from-indigo-50 to-blue-50 p-5 rounded-xl border border-indigo-200 hover:shadow-md transition-shadow duration-200">
+                    <dt className="text-xs font-semibold text-indigo-700 uppercase tracking-wider mb-3">Container Information</dt>
+                    <dd>
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full text-xs border-collapse">
+                          <thead>
+                            <tr className="bg-indigo-100/60">
+                              <th className="border border-indigo-200 px-3 py-1.5 text-center font-semibold text-indigo-700">20'GP</th>
+                              <th className="border border-indigo-200 px-3 py-1.5 text-center font-semibold text-indigo-700">Wt(KG)</th>
+                              <th className="border border-indigo-200 px-3 py-1.5 text-center font-semibold text-indigo-700">40'GP</th>
+                              <th className="border border-indigo-200 px-3 py-1.5 text-center font-semibold text-indigo-700">40'HQ</th>
+                              <th className="border border-indigo-200 px-3 py-1.5 text-center font-semibold text-indigo-700">45'HQ</th>
+                              {/* Dynamic extra container columns (with Wt for 20-foot types) */}
+                              {enquiry.containerRows.some((r: any) => r.extraContainers && Object.keys(r.extraContainers).length > 0) &&
+                                Object.keys(enquiry.containerRows[0]?.extraContainers || {}).map((code: string) => (
+                                  <React.Fragment key={code}>
+                                    <th className="border border-indigo-200 px-3 py-1.5 text-center font-semibold text-orange-700">{code}</th>
+                                    {code.startsWith('20') && (
+                                      <th className="border border-indigo-200 px-3 py-1.5 text-center font-semibold text-orange-700">Wt(KG)</th>
+                                    )}
+                                  </React.Fragment>
+                                ))
+                              }
+                              <th className="border border-indigo-200 px-3 py-1.5 text-center font-semibold text-indigo-700">Total TEU</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {enquiry.containerRows.map((row: any, idx: number) => (
+                              <tr key={idx} className="hover:bg-indigo-50/40">
+                                <td className="border border-indigo-200 px-3 py-1.5 text-center font-medium text-gray-800 tabular-nums">{row.qty20 || 0}</td>
+                                <td className="border border-indigo-200 px-3 py-1.5 text-center text-gray-700 tabular-nums">{row.weight20 != null ? Number(row.weight20).toLocaleString() : '-'}</td>
+                                <td className="border border-indigo-200 px-3 py-1.5 text-center font-medium text-gray-800 tabular-nums">{row.qty40 || 0}</td>
+                                <td className="border border-indigo-200 px-3 py-1.5 text-center font-medium text-gray-800 tabular-nums">{row.qty40hq || 0}</td>
+                                <td className="border border-indigo-200 px-3 py-1.5 text-center font-medium text-gray-800 tabular-nums">{row.qty45 || 0}</td>
+                                {/* Dynamic extra container values (with Wt for 20-foot types) */}
+                                {row.extraContainers && Object.keys(row.extraContainers).length > 0 &&
+                                  Object.entries(row.extraContainers).map(([code, qty]: [string, any]) => (
+                                    <React.Fragment key={code}>
+                                      <td className="border border-indigo-200 px-3 py-1.5 text-center font-medium text-orange-700 tabular-nums">{qty || 0}</td>
+                                      {code.startsWith('20') && (
+                                        <td className="border border-indigo-200 px-3 py-1.5 text-center text-orange-700 tabular-nums">
+                                          {row.extraContainerWeights?.[code] != null ? Number(row.extraContainerWeights[code]).toLocaleString() : '-'}
+                                        </td>
+                                      )}
+                                    </React.Fragment>
+                                  ))
+                                }
+                                <td className="border border-indigo-200 px-3 py-1.5 text-center font-bold text-indigo-700 tabular-nums">{row.lineTeu != null ? Number(row.lineTeu).toFixed(1) : '-'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </dd>
+                  </div>
+                )}
+
                 {/* rejectedReason / actualReason removed in v3 */}
               </div>
             </div>
@@ -509,105 +569,251 @@ export const EnquiryDetail: React.FC<EnquiryDetailProps> = ({ enquiryId, onBack,
                   )}
                 </div>
               ) : (
-                <div className="grid gap-4">
-                  {offers.map((offer, index) => (
-                    <div key={offer.id} className="group bg-gradient-to-br from-white to-gray-50 border-2 border-gray-100 rounded-xl p-6 hover:shadow-xl hover:border-emerald-200 transition-all duration-200 hover:scale-[1.02]">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-3">
-                            <div className="p-2 bg-emerald-100 rounded-lg">
-                              <DollarSign className="w-5 h-5 text-emerald-600" />
-                            </div>
-                            <span className="text-lg font-bold text-gray-900">
-                              Offer #{offer.sequenceNo || index + 1}
-                            </span>
-                            {offer.isLatest && (
-                              <span className="px-3 py-1 text-xs font-bold rounded-lg bg-gradient-to-r from-green-400 to-emerald-500 text-white shadow-sm">
-                                ⭐ Latest
-                              </span>
-                            )}
-                            <span className={`px-2 py-0.5 text-xs font-semibold rounded ${
-                              offer.offerType === 'FCL' ? 'bg-blue-100 text-blue-700' :
-                              offer.offerType === 'AIR' ? 'bg-purple-100 text-purple-700' :
-                              offer.offerType === 'LCL' ? 'bg-green-100 text-green-700' :
-                              'bg-orange-100 text-orange-700'
-                            }`}>
-                              {offer.offerType}
-                            </span>
+                <div className="space-y-6">
+                  {offers.map((offer, index) => {
+                    const isFCL = offer.offerType === 'FCL' || offer.offerType === 'BUYER-CONSOL';
+                    // Collect all unique container size codes across all price lines
+                    const allSizeCodes: string[] = [];
+                    (offer.priceLines || []).forEach(pl => {
+                      (pl.containerDetails || []).forEach(cd => {
+                        if (cd.containerSizeType && !allSizeCodes.includes(cd.containerSizeType)) {
+                          allSizeCodes.push(cd.containerSizeType);
+                        }
+                      });
+                    });
+                    // Ensure default order: 20GP, 40GP, 40HQ, 45HQ first
+                    const defaultOrder = ['20GP', '40GP', '40HQ', '45HQ'];
+                    const sortedSizeCodes = [
+                      ...defaultOrder.filter(c => allSizeCodes.includes(c)),
+                      ...allSizeCodes.filter(c => !defaultOrder.includes(c)),
+                    ];
+
+                    const sizeLabel = (code: string): string => {
+                      const map: Record<string, string> = {
+                        '20GP': "20'", '40GP': "40'", '40HQ': "40'HQ", '45HQ': "45'",
+                        '20RF': "20'RF", '40RF': "40'RF", '20OT': "20'OT", '40OT': "40'OT",
+                        '20FR': "20'FR", '40FR': "40'FR",
+                      };
+                      return map[code] || code;
+                    };
+
+                    const getDetail = (line: OfferPriceLine, sizeCode: string): OfferContainerDetail | undefined => {
+                      return (line.containerDetails || []).find(d => d.containerSizeType === sizeCode);
+                    };
+
+                    // TEU/container counts are shown in Container Information section, not here
+
+                    return (
+                    <div key={offer.id} className="bg-white border-2 border-gray-100 rounded-xl shadow-md overflow-hidden">
+                      {/* Offer Header */}
+                      <div className="flex justify-between items-center px-6 py-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-200">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-emerald-100 rounded-lg">
+                            <DollarSign className="w-5 h-5 text-emerald-600" />
                           </div>
-                          <div className="flex gap-6 text-sm text-gray-600 mb-4">
-                            <div className="flex items-center gap-2">
-                              <Calendar className="w-4 h-4" />
-                              <span>Date: <span className="font-semibold text-gray-900">{offer.offerDate || '-'}</span></span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <FileText className="w-4 h-4" />
-                              <span>{offer.priceLines?.length || 0} price line(s)</span>
-                            </div>
-                            {(offer.offerType === 'FCL' || offer.offerType === 'BUYER-CONSOL') && offer.priceLines?.length > 0 && (
-                              <div className="flex items-center gap-2 text-indigo-600">
-                                <Package className="w-4 h-4" />
-                                <span>
-                                  {offer.priceLines.reduce((s, l) => s + (l.containerDetails || []).reduce((cs, d) => cs + (d.numberOfContainers || 0), 0), 0)} containers
-                                  {' / '}
-                                  {offer.priceLines.reduce((s, l) => s + (l.containerDetails || []).reduce((cs, d) => cs + (d.numberOfContainers || 0) * (d.teuValue || 0), 0), 0).toFixed(1)} TEU
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                          {/* Price lines detail preview */}
-                          {offer.priceLines?.length > 0 && (
-                            <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg p-3">
-                              <p className="text-xs text-emerald-700 font-semibold mb-1.5 uppercase tracking-wide">Routes</p>
-                              <div className="space-y-1">
-                                {offer.priceLines.slice(0, 4).map((pl, plIdx) => (
-                                  <div key={plIdx} className="flex items-center gap-2 text-xs text-gray-600">
-                                    <span className="font-medium text-gray-800">{pl.polName || `Port#${pl.polId}`}</span>
-                                    <span className="text-gray-400">→</span>
-                                    <span className="font-medium text-gray-800">{pl.podName || `Port#${pl.podId}`}</span>
-                                    {pl.subMode && (
-                                      <span className="px-1.5 py-0.5 text-[10px] rounded bg-gray-100 text-gray-500">{pl.subMode}</span>
-                                    )}
-                                    {(pl.price || pl.containerDetails?.length) && (
-                                      <span className="ml-auto text-emerald-600 font-semibold">
-                                        {pl.price ? `$${pl.price}` : `${(pl.containerDetails || []).reduce((s, d) => s + (d.numberOfContainers || 0), 0)}x ctrs`}
-                                      </span>
-                                    )}
-                                  </div>
-                                ))}
-                                {offer.priceLines.length > 4 && (
-                                  <p className="text-xs text-gray-400 italic">+ {offer.priceLines.length - 4} more...</p>
-                                )}
-                              </div>
-                            </div>
+                          <span className="text-lg font-bold text-gray-900">
+                            Offer #{offer.sequenceNo || index + 1}
+                          </span>
+                          {offer.isLatest && (
+                            <span className="px-3 py-1 text-xs font-bold rounded-lg bg-gradient-to-r from-green-400 to-emerald-500 text-white shadow-sm">
+                              ⭐ Latest
+                            </span>
                           )}
-                          {!offer.priceLines?.length && offer.remark && (
-                            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm text-gray-600 italic">
-                              {offer.remark}
-                            </div>
-                          )}
+                          <span className={`px-2 py-0.5 text-xs font-semibold rounded ${
+                            offer.offerType === 'FCL' ? 'bg-blue-100 text-blue-700' :
+                            offer.offerType === 'AIR' ? 'bg-purple-100 text-purple-700' :
+                            offer.offerType === 'LCL' ? 'bg-green-100 text-green-700' :
+                            'bg-orange-100 text-orange-700'
+                          }`}>
+                            {offer.offerType}
+                          </span>
                         </div>
                         {canManage && (
                           <div className="flex gap-2">
-                            <button 
+                            <button
                               onClick={() => handleEditOffer(offer)}
-                              className="p-3 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all duration-200 hover:scale-110"
+                              className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all duration-200"
                               title="Edit Offer"
                             >
-                              <Edit className="w-5 h-5" />
+                              <Edit className="w-4 h-4" />
                             </button>
-                            <button 
+                            <button
                               onClick={() => handleDeleteOffer(offer.id!)}
-                              className="p-3 text-red-500 hover:bg-red-50 rounded-xl transition-all duration-200 hover:scale-110"
+                              className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all duration-200"
                               title="Delete Offer"
                             >
-                              <Trash2 className="w-5 h-5" />
+                              <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
                         )}
                       </div>
+
+                      {/* Offer Meta Info */}
+                      <div className="px-6 py-3 border-b border-gray-100 bg-gray-50/50">
+                        <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm text-gray-600">
+                          <div className="flex items-center gap-1.5">
+                            <Calendar className="w-4 h-4 text-gray-400" />
+                            <span className="text-gray-500">Date:</span>
+                            <span className="font-semibold text-gray-900">{offer.offerDate || '-'}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <FileText className="w-4 h-4 text-gray-400" />
+                            <span>{offer.priceLines?.length || 0} price line(s)</span>
+                          </div>
+                          {/* Currency Display */}
+                          {isFCL && (
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-1.5">
+                                <DollarSign className="w-3.5 h-3.5 text-gray-400" />
+                                <span className="text-gray-500">Frg.:</span>
+                                <span className="font-semibold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded text-xs">{offer.containerCurrency || 'USD'}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-gray-500">Local:</span>
+                                <span className="font-semibold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded text-xs">{offer.localChargeCurrency || 'USD'}</span>
+                              </div>
+                            </div>
+                          )}
+                          {!isFCL && (offer.containerCurrency || offer.localChargeCurrency) && (
+                            <div className="flex items-center gap-3">
+                              {offer.containerCurrency && (
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-gray-500">Currency:</span>
+                                  <span className="font-semibold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded text-xs">{offer.containerCurrency}</span>
+                                </div>
+                              )}
+                              {offer.localChargeCurrency && (
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-gray-500">Local:</span>
+                                  <span className="font-semibold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded text-xs">{offer.localChargeCurrency}</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        {offer.remark && (
+                          <div className="mt-2 text-sm text-gray-600 italic">
+                            <span className="text-gray-500">Remark:</span> {offer.remark}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Full Price Details Table */}
+                      {offer.priceLines?.length > 0 && (
+                        <div className="px-6 py-4">
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full text-xs border-collapse">
+                              <thead>
+                                <tr className="bg-gray-100">
+                                  <th className="border border-gray-200 px-2 py-1.5 text-left font-semibold text-gray-600 whitespace-nowrap">POL</th>
+                                  <th className="border border-gray-200 px-2 py-1.5 text-left font-semibold text-gray-600 whitespace-nowrap">POD</th>
+                                  {/* FCL/BUYER-CONSOL: container columns */}
+                                  {isFCL && sortedSizeCodes.map(code => {
+                                    const is20Foot = code.startsWith('20');
+                                    return (
+                                      <th key={code} colSpan={is20Foot ? 3 : 2} className="border border-gray-200 px-1 py-1 text-center font-semibold text-gray-600">
+                                        <div>{sizeLabel(code)}</div>
+                                        <div className="flex text-[9px] text-gray-400 font-normal justify-center gap-1">
+                                          <span>Price</span>
+                                          <span>Qty</span>
+                                          {is20Foot && <span>Wt</span>}
+                                        </div>
+                                      </th>
+                                    );
+                                  })}
+                                  {/* FCL: Carrier */}
+                                  {isFCL && <th className="border border-gray-200 px-2 py-1.5 text-center font-semibold text-gray-600 whitespace-nowrap">Carrier</th>}
+                                  {/* LCL/AIR: Price + Min Charge */}
+                                  {!isFCL && <th className="border border-gray-200 px-2 py-1.5 text-center font-semibold text-gray-600 whitespace-nowrap">Price</th>}
+                                  {!isFCL && <th className="border border-gray-200 px-2 py-1.5 text-center font-semibold text-gray-600 whitespace-nowrap">Min Charge</th>}
+                                  <th className="border border-gray-200 px-2 py-1.5 text-center font-semibold text-gray-600 whitespace-nowrap">Local Charge</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {offer.priceLines.map((pl, plIdx) => (
+                                  <tr key={plIdx} className="hover:bg-blue-50/40">
+                                    <td className="border border-gray-200 px-2 py-1.5 text-gray-800 whitespace-nowrap font-medium">
+                                      {pl.polName || `Port#${pl.polId}`}
+                                    </td>
+                                    <td className="border border-gray-200 px-2 py-1.5 text-gray-800 whitespace-nowrap font-medium">
+                                      {pl.podName || `Port#${pl.podId}`}
+                                    </td>
+                                    {/* FCL container columns: Price / Qty */}
+                                    {isFCL && sortedSizeCodes.map(code => {
+                                      const cd = getDetail(pl, code);
+                                      const is20Foot = code.startsWith('20');
+                                      return (
+                                        <React.Fragment key={code}>
+                                          <td className="border border-gray-200 px-1.5 py-1.5 text-right text-gray-700 tabular-nums">
+                                            {cd?.containerPrice != null && cd.containerPrice > 0
+                                              ? cd.containerPrice.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+                                              : <span className="text-gray-300">-</span>
+                                            }
+                                          </td>
+                                          <td className="border border-gray-200 px-1.5 py-1.5 text-center text-gray-700 tabular-nums">
+                                            {cd?.numberOfContainers != null && cd.numberOfContainers > 0
+                                              ? cd.numberOfContainers
+                                              : <span className="text-gray-300">-</span>
+                                            }
+                                          </td>
+                                          {is20Foot && (
+                                            <td className="border border-gray-200 px-1.5 py-1.5 text-right text-gray-700 tabular-nums">
+                                              {cd?.cargoWeightPerContainer != null && cd.cargoWeightPerContainer > 0
+                                                ? Number(cd.cargoWeightPerContainer).toLocaleString()
+                                                : <span className="text-gray-300">-</span>
+                                              }
+                                            </td>
+                                          )}
+                                        </React.Fragment>
+                                      );
+                                    })}
+                                    {/* Carrier (FCL) */}
+                                    {isFCL && (
+                                      <td className="border border-gray-200 px-2 py-1.5 text-center text-gray-700">{pl.carrier || <span className="text-gray-300">-</span>}</td>
+                                    )}
+                                    {/* Price (LCL/AIR) */}
+                                    {!isFCL && (
+                                      <td className="border border-gray-200 px-2 py-1.5 text-right text-gray-700 tabular-nums">
+                                        {pl.price != null && Number(pl.price) > 0
+                                          ? Number(pl.price).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+                                          : <span className="text-gray-300">-</span>
+                                        }
+                                      </td>
+                                    )}
+                                    {/* Min Charge (LCL/AIR) */}
+                                    {!isFCL && (
+                                      <td className="border border-gray-200 px-2 py-1.5 text-right text-gray-700 tabular-nums">
+                                        {pl.minCharge != null && Number(pl.minCharge) > 0
+                                          ? Number(pl.minCharge).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+                                          : <span className="text-gray-300">-</span>
+                                        }
+                                      </td>
+                                    )}
+                                    {/* Local Charge */}
+                                    <td className="border border-gray-200 px-2 py-1.5 text-right text-gray-700 tabular-nums">
+                                      {pl.localCharge != null && Number(pl.localCharge) > 0
+                                        ? Number(pl.localCharge).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+                                        : <span className="text-gray-300">-</span>
+                                      }
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+
+                            </table>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* No price lines state */}
+                      {(!offer.priceLines || offer.priceLines.length === 0) && (
+                        <div className="px-6 py-6 text-center text-gray-400 text-sm">
+                          No price details configured for this offer.
+                        </div>
+                      )}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

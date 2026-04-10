@@ -30,6 +30,9 @@ public class SalesOffice {
     @Column(name = "name_norm", length = 120, unique = true, nullable = false)
     private String nameNorm;
     
+    @Column(name = "sales_country_code", length = 50)
+    private String salesCountryCode;
+    
     @Column(name = "country_code", length = 10, columnDefinition = "char(10)")
     private String countryCode;
     

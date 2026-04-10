@@ -1,0 +1,214 @@
+﻿CSV原始POD值,运输类型,出现次数,对应Reference Number（前5个）,建议操作：请提供正确的Air Port代码
+STR,Air Port,86,CN2501310-A; CN2501351-A; CN2501374-A; CN2502013-AS; CN2502214-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+JFK,Air Port,13,CN2506189-A; CN2506428-A; CN2506428-A1; CN2506609-A; CN2507319-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+MAA,Air Port,10,CN2504225-A; CN2504354-A; CN2504452-A; CN2505061-A; CN2505189-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+BUD,Air Port,9,CN2504393-A; CN2507159-A; CN2507172-A; CN2507173-A; CN2507193-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+ALG,Air Port,7,CN2502151-A; CN2502487-A; CN2503529-A; CN2505278-A; CN2505455-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+SGN,Air Port,7,CN2502173-A; CN2502354-A; CN2502369-A; CN2504213-A; CN2504522-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Felixstowe,Air Port,6,CN2501199-AS; CN2501199-AS3; CN2501199-AS4; CN2501199-AS5; CN2505128-AS1,请填写正确的Air Port代码（如 IATA 3字母代码）
+ABJ,Air Port,6,CN2503025-A; CN2503148-A; CN2504472-A; CN2508092-AS; CN2509380-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+MEL,Air Port,6,CN2507191-AS; CN2507453-A; CN2510342-A; CN2511540-A; CN2512191-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+AMM,Air Port,6,CN2512150-A; CN2512252-A; CN2512315-A; CN2512319-A; CN2512466-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+IAH,Air Port,5,CN2506115-AS; CN2506555-AS; CN2508209-A; CN2508563-AS; CN2512689-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+ORD,Air Port,4,CN2505471-A; CN2506479-A; CN2510584-A; CN2511683-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+LPB,Air Port,4,CN2509470-A; CN2510325-A; CN2512223-A; CN2602181-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+MIA,Air Port,4,CN2509505-A; CN2509587-A; CN2511252-A; CN2511403-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Huizhou City,Air Port,4,CN2510069-A; CN2510502-A; CN2510503-A; CN2511668-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+100027 Beijing,Air Port,4,CN2511045-A; CN2511045-A1; CN2511045-A2; CN2511615-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+LAX,Air Port,3,CN2501083-A; CN2505253-A1; CN2511484-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+JAX,Air Port,3,CN2501167-A; CN2501237-A; CN2505477-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+HEL,Air Port,3,CN2502059-A; CN2502059-A1; CN2505423-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+SYD,Air Port,3,CN2502393-A; CN2504278-A; CN2510181-AS,请填写正确的Air Port代码（如 IATA 3字母代码）
+215151 SUZHOU,Air Port,3,CN2505171-A; CN2510268-A; CN2512508-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Toronto,Air Port,3,CN2505535-AS1; CN2512197-AS1; CN2512708-AS1,请填写正确的Air Port代码（如 IATA 3字母代码）
+Houston,Air Port,3,CN2506115-AS1; CN2506555-AS1; CN2508563-AS1,请填写正确的Air Port代码（如 IATA 3字母代码）
+BAH,Air Port,3,CN2506355-A; CN2509088-A; CN2509176-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Dongguan City,Air Port,3,CN2507442-A; CN2507442-A1; CN2512385-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+LAS,Air Port,3,CN2511108-A; CN2512336-A; CN2512604-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+519085 Zhuhai,Air Port,2,CN2501316-A1; CN2501316-A2,请填写正确的Air Port代码（如 IATA 3字母代码）
+523873 Dongguan,Air Port,2,CN2501437-A; CN2507575-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+200233 Shanghai,Air Port,2,CN2502133-A; CN2512289-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Maryland,Air Port,2,CN2502169-AS; CN2502169-AS1,请填写正确的Air Port代码（如 IATA 3字母代码）
+Hangzhou city,Air Port,2,CN2502467-A; CN2509439-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Chengdu 611731,Air Port,2,CN2503204-A; CN2503370-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+266510 QINGDAO,Air Port,2,CN2503403-A; CN2507464-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+XiaoShan . HangZhou,Air Port,2,CN2503470-AS; CN2503470-AS1,请填写正确的Air Port代码（如 IATA 3字母代码）
+Wenzhou 325103,Air Port,2,CN2503602-A; CN2507667-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Lille,Air Port,2,CN2503626-AS1; CN2505247-AS1,请填写正确的Air Port代码（如 IATA 3字母代码）
+Suqian city,Air Port,2,CN2504073-AS; CN2504073-AS1,请填写正确的Air Port代码（如 IATA 3字母代码）
+SFO,Air Port,2,CN2504076-A; CN2505016-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+VVI,Air Port,2,CN2504078-A; CN2509470-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+BOM,Air Port,2,CN2504147-A; CN2504624-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+CCU,Air Port,2,CN2504321-A; CN2504353-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+CPH,Air Port,2,CN2505510-A; CN2506413-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+PRG,Air Port,2,CN2505612-A; CN2601177-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Black Point Power Station,Air Port,2,CN2506386-AS; CN2506386-AS1,请填写正确的Air Port代码（如 IATA 3字母代码）
+DAC,Air Port,2,CN2507034-A; CN2601752-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Guangning County,Air Port,2,CN2507244-A; CN2508088-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Lishui city,Air Port,2,CN2507693-A; CN2509108-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Qidong city,Air Port,2,CN2511041-A; CN2511706-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+"Kowloon, HK",Air Port,2,CN2511391-AS1; CN2512468-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+201108 Shanghai,Air Port,2,CN2512591-A; CN2602001-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+201812 Shanghai,Air Port,2,CN2512593-A; CN2601373-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+CTA,Air Port,2,CN2602137-A; CN2602137-A1,请填写正确的Air Port代码（如 IATA 3字母代码）
+KWUN TONG,Air Port,1,CN2501142-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+DFW,Air Port,1,CN2501155-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Tianchang,Air Port,1,CN2501158-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Qidong City,Air Port,1,CN2501160-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Shatin,Air Port,1,CN2501245-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Hui Zhongbeili,Air Port,1,CN2501263-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Tsim Sha Tsui,Air Port,1,CN2501311-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+KOWLOON HKG,Air Port,1,CN2501312-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Zhangzou,Air Port,1,CN2501365-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+200131 Shanghai,Air Port,1,CN2501413-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Clear Water Bay.Hong Kong,Air Port,1,CN2501419-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+571126 Haikou,Air Port,1,CN2501439-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Hongqiao Airport,Air Port,1,CN2502011-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Chaoyang District 100027,Air Port,1,CN2502014-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+"TUEN MUN,HK",Air Port,1,CN2502115-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+215000 Suzhou,Air Port,1,CN2502126-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+"Shatin, NT Hong Kong",Air Port,1,CN2502148-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+"Suizhou City, Hubei Province",Air Port,1,CN2502201-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+510850 Guangzhou,Air Port,1,CN2502221-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+"Boluo,Hui zhou City",Air Port,1,CN2502350-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+317599 Wenling,Air Port,1,CN2502412-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+311215 HANGZHOU,Air Port,1,CN2502425-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Weihai City,Air Port,1,CN2503035-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Hangzhou 310018,Air Port,1,CN2503037-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+"Shiqiaozi Town, Zhucheng City",Air Port,1,CN2503084-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+17180 PERIGNY,Air Port,1,CN2503138-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+201108 SHANGHAI,Air Port,1,CN2503333-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+"TS2 1TT, UK",Air Port,1,CN2503335-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+519085 ZHUHAI,Air Port,1,CN2503498-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+110141 SHENYANG,Air Port,1,CN2503515-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+ANHUI 239323,Air Port,1,CN2503552-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Fos,Air Port,1,CN2503559-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+213033 Changzhou,Air Port,1,CN2503574-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Tianjin city,Air Port,1,CN2503592-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Wuxi City,Air Port,1,CN2503624-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+"Binhai, Tianjin",Air Port,1,CN2503628-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+510530 Guangzhou,Air Port,1,CN2503685-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+200131 Beijing,Air Port,1,CN2504005-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+"Jordan, Kowloon",Air Port,1,CN2504012-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+QINGDAO LIUTING INDUSTRIAL ZONE,Air Port,1,CN2504034-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Bengbu city,Air Port,1,CN2504095-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+200245 Shanghai,Air Port,1,CN2504132-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+430078 WUHAN,Air Port,1,CN2504138-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+"Jiangsu, 215434",Air Port,1,CN2504152-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+"Handan City,Heibe Province",Air Port,1,CN2504243-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+518103 Shenzhen,Air Port,1,CN2504296-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Shanghai 201812,Air Port,1,CN2504303-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Anhui city,Air Port,1,CN2504323-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+518104 Shenzhen,Air Port,1,CN2504336-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+215400 SUZHOU,Air Port,1,CN2504362-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Shanghai 201413,Air Port,1,CN2504366-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Shanghai 201808,Air Port,1,CN2504478-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+BEIJING 100012,Air Port,1,CN2504481-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+100028 Beijing,Air Port,1,CN2504502-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+MLE,Air Port,1,CN2505059-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Suzhou 215434,Air Port,1,CN2505066-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+WDH,Air Port,1,CN2505114-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+317607 Yuhuan,Air Port,1,CN2505170-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+QIDONG 226251,Air Port,1,CN2505173-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Bolton BL4,Air Port,1,CN2505349-AS1,请填写正确的Air Port代码（如 IATA 3字母代码）
+Jiangsu 215300,Air Port,1,CN2505387-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+MAO,Air Port,1,CN2505399-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Haikou 571126,Air Port,1,CN2505418-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Shanghai City,Air Port,1,CN2505484-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+116102 DALIAN,Air Port,1,CN2505537-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+YUNTAI,Air Port,1,CN2505619-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+TLV,Air Port,1,CN2506044-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+CWB,Air Port,1,CN2506076-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+"Suzhou Jiangsu, 215434",Air Port,1,CN2506081-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+"zhuji city, zhejiang",Air Port,1,CN2506083-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Zhaoqing City,Air Port,1,CN2506092-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+"Kennedy Town,HK",Air Port,1,CN2506193-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Felixstoew,Air Port,1,CN2506215-AS1,请填写正确的Air Port代码（如 IATA 3字母代码）
+"528437, Zhongshan city",Air Port,1,CN2506261-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+213149 Jiangsu,Air Port,1,CN2506280-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Shanghai 200436,Air Port,1,CN2506441-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+"362343, Nan An city",Air Port,1,CN2506512-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+JINAN CITY,Air Port,1,CN2506608-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+301700 TIANJIN,Air Port,1,CN2507083-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Rotterdam(Amsterdam),Air Port,1,CN2507216-AS1,请填写正确的Air Port代码（如 IATA 3字母代码）
+519060 Zhuhai,Air Port,1,CN2507247-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+TSING YI HONG KONG,Air Port,1,CN2507416-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+999077 HK,Air Port,1,CN2507495-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+100043 Beijing,Air Port,1,CN2507674-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+CKY,Air Port,1,CN2508058-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+"Bao'an, shenzhen city",Air Port,1,CN2508388-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+"Hung Hom, Kowloon,HK",Air Port,1,CN2508513-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+WEIFANG CITY,Air Port,1,CN2508545-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+"Tuen Mun, N.T.HK",Air Port,1,CN2508557-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+PNR,Air Port,1,CN2509054-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+226236 JIANGSU,Air Port,1,CN2509064-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+201108 Shanghai.,Air Port,1,CN2509066-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Anhui 239323,Air Port,1,CN2509160-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+300402 Tianjin,Air Port,1,CN2509188-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+"Cheung Sha Wan, HK",Air Port,1,CN2509209-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+"kowloon, HK",Air Port,1,CN2509272-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+065201 Sanhe,Air Port,1,CN2509350-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Changsha City,Air Port,1,CN2509378-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+511495 GUANGZHOU,Air Port,1,CN2509401-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Dong Guan 52300,Air Port,1,CN2509402-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+200040 shanghai,Air Port,1,CN2509577-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+LONGGANG City,Air Port,1,CN2509702-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Dongguan city,Air Port,1,CN2509703-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Yantai City,Air Port,1,CN2510095-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+116600 DALIAN,Air Port,1,CN2510115-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+2170 Australia,Air Port,1,CN2510181-AS1,请填写正确的Air Port代码（如 IATA 3字母代码）
+Alex port,Air Port,1,CN2510278-AS1,请填写正确的Air Port代码（如 IATA 3字母代码）
+BNE,Air Port,1,CN2510327-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+201619 SHANGHAI,Air Port,1,CN2510361-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Suzhou City,Air Port,1,CN2510394-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+FOSHAN CITY,Air Port,1,CN2510526-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Shenzhen city,Air Port,1,CN2510543-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+"266111, Qingdao city",Air Port,1,CN2510571-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+FELIXSTOWE,Air Port,1,CN2510683-AS1,请填写正确的Air Port代码（如 IATA 3字母代码）
+lodon gateway,Air Port,1,CN2511095-AS1,请填写正确的Air Port代码（如 IATA 3字母代码）
+110179 Shenyang city,Air Port,1,CN2511116-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+SJO,Air Port,1,CN2511128-AS,请填写正确的Air Port代码（如 IATA 3字母代码）
+San José,Air Port,1,CN2511128-AS1,请填写正确的Air Port代码（如 IATA 3字母代码）
+Kwai Chung,Air Port,1,CN2511262-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Wan-Chai Hong-Kong,Air Port,1,CN2511391-AS,请填写正确的Air Port代码（如 IATA 3字母代码）
+261000 Weifang,Air Port,1,CN2511475-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+LEH,Air Port,1,CN2511482-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+BLZ,Air Port,1,CN2511510-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+LLW,Air Port,1,CN2511510-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Suzhou city,Air Port,1,CN2511512-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+MSP,Air Port,1,CN2511517-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+231400 TONGCHENG,Air Port,1,CN2511569-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+NSW 2161,Air Port,1,CN2511599-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+HAJ,Air Port,1,CN2511645-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+MEM,Air Port,1,CN2511666-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+SAP,Air Port,1,CN2511708-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+SIN,Air Port,1,CN2512082-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Nansha District,Air Port,1,CN2512152-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+TRI,Air Port,1,CN2512197-AS,请填写正确的Air Port代码（如 IATA 3字母代码）
+Beijing 100061,Air Port,1,CN2512325-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+SVO,Air Port,1,CN2512360-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Ziegler HONG KONG Warehouse,Air Port,1,CN2512361-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Pinghu City,Air Port,1,CN2512364-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+"TSUEN WAN, HK",Air Port,1,CN2512469-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Shenzhen 518103,Air Port,1,CN2512564-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+KOWLOON HONG KONG,Air Port,1,CN2512576-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Nanjing city,Air Port,1,CN2512637-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+MCI,Air Port,1,CN2512720-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+SEA,Air Port,1,CN2601076-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+ADB,Air Port,1,CN2601094-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Mianyang city,Air Port,1,CN2601282-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+SDF,Air Port,1,CN2601328-AS,请填写正确的Air Port代码（如 IATA 3字母代码）
+LOUISVILLE,Air Port,1,CN2601328-AS1,请填写正确的Air Port代码（如 IATA 3字母代码）
+CDK,Air Port,1,CN2601518-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+GYD,Air Port,1,CN2601520-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+354105 Nanping City,Air Port,1,CN2601546-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+"412200 LILING,HUNAN PROVINCE",Air Port,1,CN2601574-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+MBA,Air Port,1,CN2601607-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+ZAG,Air Port,1,CN2601703-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+MAM,Air Port,1,CN2601733-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+CLE,Air Port,1,CN2602008-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+HND,Air Port,1,CN2602081-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+CVG,Air Port,1,CN2602132-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+ZHUHAI city,Air Port,1,CN2602158-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+Leshan City,Air Port,1,CN2602167-A,请填写正确的Air Port代码（如 IATA 3字母代码）
+MLA,Air Port,1,CN2602179-A,请填写正确的Air Port代码（如 IATA 3字母代码）

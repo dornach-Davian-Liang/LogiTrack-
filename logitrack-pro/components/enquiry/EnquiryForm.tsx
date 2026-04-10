@@ -4,6 +4,7 @@ import {
   Enquiry, 
   Offer,
   OfferPriceLine,
+  OfferContainerDetail,
   RouteGroup,
   SalesPic, 
   Port, 
@@ -25,6 +26,9 @@ import { VirtualizedMultiSelect } from '../VirtualizedMultiSelect';
 import { DatePickerInput } from '../DatePickerInput';
 import { RouteGroupEditor } from './RouteGroupEditor';
 import { OfferPriceTable } from './OfferPriceTable';
+import { SearchableSelect } from '../SearchableSelect';
+import { CargoContainerTable } from './CargoContainerTable';
+import { EnquiryContainerRow } from '../../types';
 
 interface EnquiryFormProps {
   initialData?: Partial<Enquiry> | null;
@@ -50,6 +54,10 @@ interface FormData extends Partial<Enquiry> {
   // Display / legacy fields not in Enquiry type
   cargoReadyDateRawText?: string;
   actualReason?: string;
+  additionalRequirements?: string;
+
+  // Container info at Enquiry level (FCL/BUYER-CONSOL)
+  containerRows?: EnquiryContainerRow[];
 }
 
 export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit, onCancel }) => {
@@ -84,7 +92,10 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
   const [products, setProducts] = useState<SelectOption[]>([]);
   const [cargoTypes, setCargoTypes] = useState<SelectOption[]>([]);
   const [containerTypesOpts, setContainerTypesOpts] = useState<ContainerTypeSelectOption[]>([]);
+  const [carrierOptions, setCarrierOptions] = useState<string[]>([]);
+  const [currencyOptions, setCurrencyOptions] = useState<string[]>(['USD', 'EUR', 'GBP', 'CNY', 'HKD', 'VND']);
   const [isLoading, setIsLoading] = useState(false);
+  const isSubmittingRef = useRef(false); // 防止双击/竞争提交
   const [isPortSearching, setIsPortSearching] = useState(false); // ✅ 新增：港口搜索加载状态
   const [referencePreview, setReferencePreview] = useState('');
   const [isReferenceLoading, setIsReferenceLoading] = useState(false);
@@ -96,12 +107,23 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
     loadMasterData();
   }, []);
 
+  // ✅ 辅助函数：将 LocalDateTime 格式 "2026-01-15T10:30:00" 转为 date input 所需的 "YYYY-MM-DD"
+  const normalizeDate = (val: string | undefined): string | undefined => {
+    if (!val) return val;
+    // 如果包含 'T'，取 T 前面的日期部分
+    if (val.includes('T')) return val.split('T')[0];
+    return val;
+  };
+
   useEffect(() => {
     if (initialData) {
 
       setFormData(prev => ({
         ...prev,
         ...initialData,
+        // ✅ 修复日期格式：确保 <input type="date"> 能正确显示
+        enquiryCreatedDate: normalizeDate(initialData.enquiryCreatedDate) || normalizeDate(prev.enquiryCreatedDate),
+        enquiryReceivedDate: normalizeDate(initialData.enquiryReceivedDate) || normalizeDate(prev.enquiryReceivedDate),
         // ✅ 修复：使用 polIds/podIds 数组
         polIds: initialData.polIds && initialData.polIds.length > 0 
           ? initialData.polIds 
@@ -206,7 +228,8 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
           (line.perCbm != null && line.perCbm > 0) ||
           (line.minCharge != null && line.minCharge > 0) ||
           (line.localCharge != null && line.localCharge > 0) ||
-          (line.priceText != null && line.priceText.trim().length > 0);
+          (line.priceText != null && line.priceText.trim().length > 0) ||
+          (line.carrier != null && line.carrier.trim().length > 0);
         const hasContainerPrice = (line.containerDetails || []).some(
           d => d.containerPrice != null && d.containerPrice > 0
         );
@@ -294,6 +317,26 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
       setContainerTypesOpts(containerTypesData || []);
       setCancelledReasons(cancelledReasonsData || []);
       setLostReasons(lostReasonsData || []);
+
+      // ✅ 加载 Carrier 列表 (active)
+      try {
+        const carriers = await masterDataApi.getActiveCarriers();
+        setCarrierOptions(carriers.map(c => c.carrierCode));
+      } catch (carrierErr) {
+        console.error('Failed to load carriers:', carrierErr);
+        // fallback to default
+        setCarrierOptions(['MSC', 'COSCO', 'ONE', 'CMA', 'OOCL', 'EVERGREEN', 'HAPAG-LLOYD', 'HMM', 'YANG MING', 'CO-LOADER']);
+      }
+
+      // ✅ 加载 Currency 列表 (active)
+      try {
+        const currencies = await masterDataApi.getActiveCurrencies();
+        if (currencies.length > 0) {
+          setCurrencyOptions(currencies.map(c => c.currencyCode));
+        }
+      } catch {
+        // keep default USD/EUR/GBP/CNY/HKD/VND
+      }
       
       // ✅ 修复：初始加载常用港口（前50个），避免编辑时下拉框空白
       try {
@@ -491,11 +534,75 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
 
   // TODO: Container details moved to Offer price lines in v3
 
+  // ── Helper: 从 Container Information 行生成预填的 containerDetails ──
+  const buildContainerDetailsFromRows = (): OfferContainerDetail[] => {
+    const row = (formData.containerRows && formData.containerRows.length > 0)
+      ? formData.containerRows[0]
+      : null;
+    if (!row) return [];
+
+    // Build TEU lookup from containerTypesOpts (DB values)
+    const teuMap: Record<string, number> = {};
+    containerTypesOpts.forEach(ct => {
+      const code = ct.label.split(' - ')[0] || ct.label;
+      teuMap[code] = ct.teuValue;
+    });
+    // Defaults
+    if (!teuMap['20GP']) teuMap['20GP'] = 1.0;
+    if (!teuMap['40GP']) teuMap['40GP'] = 2.0;
+    if (!teuMap['40HQ']) teuMap['40HQ'] = 2.0;
+    if (!teuMap['45HQ']) teuMap['45HQ'] = 2.0;
+
+    const details: OfferContainerDetail[] = [];
+
+    // Default columns
+    const defaultMapping: { code: string; qty: number | undefined; weight?: number | undefined }[] = [
+      { code: '20GP', qty: row.qty20, weight: row.weight20 },
+      { code: '40GP', qty: row.qty40 },
+      { code: '40HQ', qty: row.qty40hq },
+      { code: '45HQ', qty: row.qty45 },
+    ];
+    for (const { code, qty, weight } of defaultMapping) {
+      if (qty && qty > 0) {
+        const teuFactor = teuMap[code] || 1;
+        details.push({
+          containerSizeType: code,
+          numberOfContainers: qty,
+          cargoWeightPerContainer: weight || undefined,
+          teuValue: teuFactor,
+          lineTeu: qty * teuFactor,
+        });
+      }
+    }
+
+    // Extra dynamic columns
+    const extras = row.extraContainers || {};
+    const extraWeights = row.extraContainerWeights || {};
+    for (const [code, qty] of Object.entries(extras)) {
+      if (qty && qty > 0) {
+        const teuFactor = teuMap[code] || (code.startsWith('20') ? 1.0 : 2.0);
+        const wt = code.startsWith('20') ? (extraWeights[code] || undefined) : undefined;
+        details.push({
+          containerSizeType: code,
+          numberOfContainers: qty,
+          cargoWeightPerContainer: wt,
+          teuValue: teuFactor,
+          lineTeu: qty * teuFactor,
+        });
+      }
+    }
+
+    return details;
+  };
+
   // ── Helper: 根据当前POL/POD选择，生成 PriceLine 笛卡尔积 ──
   const generatePriceLinesFromPorts = (): OfferPriceLine[] => {
     const lines: OfferPriceLine[] = [];
     const productCode = formData.productCode || 'SEA';
     const mixed = isMixedProduct(productCode as ProductCode);
+
+    // Pre-fill container details from Container Information table
+    const prefillDetails = buildContainerDetailsFromRows();
 
     if (mixed && formData.routeGroups && formData.routeGroups.length > 0) {
       // 混合模式: 每个 RouteGroup 单独生成
@@ -508,7 +615,7 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
               routeGroupId: rg.groupIndex,  // 临时存放 groupIndex，提交时由handleSubmit处理
               subMode: rg.subMode,
               sortOrder: rg.groupIndex,     // 用sortOrder携带分组序号，后端用此关联真实ID
-              containerDetails: [],
+              containerDetails: prefillDetails.map(d => ({ ...d })),
             });
           });
         });
@@ -520,7 +627,7 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
           lines.push({
             polId: Number(polId),
             podId: Number(podId),
-            containerDetails: [],
+            containerDetails: prefillDetails.map(d => ({ ...d })),
           });
         });
       });
@@ -575,13 +682,61 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
     if (!offer) return;
     const freshLines = generatePriceLinesFromPorts();
     // 尝试保留已有的价格数据
+    // 使用 polId + podId + subMode 匹配（而不是 routeGroupId，因为已有数据的
+    // routeGroupId 是数据库ID，而新生成行的 routeGroupId 是 groupIndex，两者不一致）
     const merged = freshLines.map(fl => {
       const existing = offer.priceLines.find(
-        el => el.polId === fl.polId && el.podId === fl.podId && el.routeGroupId === fl.routeGroupId
+        el => el.polId === fl.polId && el.podId === fl.podId &&
+              (el.subMode || '') === (fl.subMode || '')
       );
-      return existing ? { ...fl, ...existing } : fl;
+      if (existing) {
+        // 合并 containerDetails：以新生成的为基准，保留已有价格数据
+        const mergedDetails = mergeContainerDetails(
+          fl.containerDetails || [],
+          existing.containerDetails || [],
+        );
+        // 保留已有价格数据，但使用新的路由结构字段和合并后的容器详情
+        return {
+          ...fl,
+          ...existing,
+          containerDetails: mergedDetails,
+          routeGroupId: fl.routeGroupId,
+          sortOrder: fl.sortOrder,
+          subMode: fl.subMode,
+        };
+      }
+      return fl;
     });
     updateOfferPriceLines(offerIndex, merged);
+  };
+
+  /**
+   * 合并 containerDetails 数组:
+   * - 保留 existing 中已有价格数据的条目
+   * - 添加 fresh 中新出现的容器类型（如新增的 20'OT, 40'HC）
+   * - 移除 fresh 中不再存在的容器类型
+   */
+  const mergeContainerDetails = (
+    freshDetails: OfferContainerDetail[],
+    existingDetails: OfferContainerDetail[],
+  ): OfferContainerDetail[] => {
+    return freshDetails.map(fd => {
+      const ex = existingDetails.find(
+        ed => ed.containerSizeType === fd.containerSizeType
+      );
+      if (ex) {
+        // 保留已有价格数据，用新的数量/TEU 更新
+        return {
+          ...ex,
+          numberOfContainers: fd.numberOfContainers,
+          cargoWeightPerContainer: fd.cargoWeightPerContainer ?? ex.cargoWeightPerContainer,
+          teuValue: fd.teuValue,
+          lineTeu: fd.lineTeu,
+        };
+      }
+      // 新增的容器类型
+      return fd;
+    });
   };
 
   const removeOffer = (index: number) => {
@@ -627,15 +782,31 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
     
     // NOTE: isCore removed from Country in v3 — user must set Core/Non-Core manually
     
+    // ✅ 根据 POD 国家的 isCore 属性自动计算 CORE/NON-CORE
+    let autoCore: string | undefined = undefined;
+    if (countryCodes.length > 0 && allCountries.length > 0) {
+      // 如果任何 POD 国家是 Core，则整体为 Core
+      const hasCoreCountry = countryCodes.some(code => {
+        const country = allCountries.find(c => String(c.countryCode).toUpperCase() === String(code).toUpperCase());
+        return country && (country as any).isCore === true;
+      });
+      autoCore = hasCoreCountry ? 'Core' : 'Non-Core';
+      setCoreFlagWarning(`✅ Auto (POD Country): ${autoCore}`);
+    }
+
     setFormData(prev => ({
       ...prev,
       podIds: podIdStrings.map(id => parseInt(id, 10)), // 存储为数字数组
       podCountry: countryNames || '未找到对应国家', // 显示所有国家名称
+      ...(autoCore ? { coreNonCore: autoCore as any } : {}),
     }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // 同步防重复提交：useRef 不依赖 React 渲染周期，双击时第二次立即返回
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     setIsLoading(true);
 
     try {
@@ -654,6 +825,27 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
         alert('Please select Assigned CN Office');
         setIsLoading(false);
         return;
+      }
+
+      // 验证 Cargo Ready Date 二选一
+      if (formData.hasSpecificCargoReadyDate && !formData.cargoReadyDate) {
+        alert('Please fill in Cargo Ready Date or check "No Cargo Ready Date Provided"');
+        setIsLoading(false);
+        return;
+      }
+
+      // 验证容器信息（FCL/BUYER-CONSOL 时至少一个柜型 > 0）
+      if (CONTAINER_CARGO_TYPES.includes(formData.cargoTypeCode || '')) {
+        const containerRows = formData.containerRows || [];
+        const hasAnyContainer = containerRows.some(r =>
+          (r.qty20 || 0) > 0 || (r.qty40 || 0) > 0 || (r.qty40hq || 0) > 0 || (r.qty45 || 0) > 0 ||
+          Object.values(r.extraContainers || {}).some(v => (v || 0) > 0)
+        );
+        if (!hasAnyContainer) {
+          alert('At least one container type must have Number of containers > 0');
+          setIsLoading(false);
+          return;
+        }
       }
 
       // 验证港口选择
@@ -721,6 +913,8 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
               isLatest: offer.isLatest ?? false,
               offerDate: offer.offerDate || null,
               remark: offer.remark || null,
+              containerCurrency: offer.containerCurrency || null,
+              localChargeCurrency: offer.localChargeCurrency || null,
               priceLines: (offer.priceLines || []).map((pl: any) => ({
                 ...pl,
                 // 编辑已有数据时保留真实 routeGroupId（数据库ID较大），新行的 groupIndex 值设为 null
@@ -735,6 +929,8 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
             isLatest: offer.isLatest ?? false,
             offerDate: offer.offerDate || null,
             remark: offer.remark || null,
+            containerCurrency: offer.containerCurrency || null,
+            localChargeCurrency: offer.localChargeCurrency || null,
             priceLines: (offer.priceLines || []).map((pl: any) => ({
               ...pl,
               routeGroupId: null,  // ← 新建时不传 routeGroupId，避免 FK 错误
@@ -774,6 +970,7 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
       console.error('Failed to save enquiry:', error);
       alert('Failed to save enquiry');
     } finally {
+      isSubmittingRef.current = false;
       setIsLoading(false);
     }
   };
@@ -897,20 +1094,17 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
 
               <div>
                 <label className="block text-sm font-medium text-gray-700">Sales PIC <span className="text-red-500 font-bold">*</span></label>
-                <select
+                <SearchableSelect
+                  options={salesPics.map(pic => ({
+                    value: Number(pic.value),
+                    label: pic.label,
+                  }))}
                   value={formData.salesPicId || ''}
-                  onChange={(e) => handleSalesPicChange(Number(e.target.value))}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  required
+                  onChange={(val) => handleSalesPicChange(Number(val))}
+                  placeholder="Search Sales PIC..."
                   disabled={!formData.salesCountryCode}
-                >
-                  <option value="">Select Sales PIC</option>
-                  {salesPics.map(pic => (
-                    <option key={String(pic.value)} value={Number(pic.value)}>
-                      {pic.label}
-                    </option>
-                  ))}
-                </select>
+                  required
+                />
               </div>
             </div>
 
@@ -1039,21 +1233,20 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
               />
             </div>
 
-            {/* FCL/BUYER-CONSOL 提示：容器信息在 Offer Price Details 中 */}
+            {/* FCL/BUYER-CONSOL: 容器信息表格 */}
             {CONTAINER_CARGO_TYPES.includes(formData.cargoTypeCode || '') && (
-              <div className="bg-blue-50 border border-blue-200 rounded-md p-3 flex items-center gap-2">
-                <span className="text-blue-600">ⓘ</span>
-                <span className="text-sm text-blue-800">
-                  Container details are managed in Offer → Price Details
-                </span>
-              </div>
+              <CargoContainerTable
+                rows={formData.containerRows || [{ qty20: 0, qty40: 0, qty40hq: 0, qty45: 0 }]}
+                onChange={(rows) => handleChange('containerRows', rows)}
+                containerTypes={containerTypesOpts}
+              />
             )}
           </div>
         </AccordionItem>
 
         {/* TODO: Container details moved to Offer price lines in v3 */}
 
-        {/* 5. Route Information */}
+        {/* 4. Route Information */}
         <AccordionItem title="Route Information" defaultExpanded={true} required>
           <div className="space-y-4">
             {/* Top-level POL/POD: only for non-mixed products */}
@@ -1197,6 +1390,99 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
           </div>
         </AccordionItem>
 
+        {/* 5. Business Classification */}
+        <AccordionItem title="Business Classification" defaultExpanded={true}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                CORE / NON-CORE
+                {coreFlagWarning && (
+                  <span className={`ml-2 text-xs ${coreFlagWarning.includes('⚠️') ? 'text-yellow-600' : 'text-green-600'}`}>
+                    {coreFlagWarning}
+                  </span>
+                )}
+              </label>
+              <select
+                value={formData.coreNonCore || ''}
+                onChange={(e) => {
+                  handleChange('coreNonCore', e.target.value);
+                  setCoreFlagWarning(''); // 清除警告，表示用户已手动选择
+                }}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              >
+                <option value="">Select...</option>
+                <option value="Core">Core</option>
+                <option value="Non-Core">Non-Core</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Category</label>
+              <select
+                value={formData.category || ''}
+                onChange={(e) => handleChange('category', e.target.value)}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              >
+                <option value="">Select category</option>
+                <option value="OCEAN_FREIGHT">Ocean Freight</option>
+                <option value="OCEAN_FREIGHT_ORIGIN">Ocean Freight + Origin Charges &amp; EXW</option>
+                <option value="OCEAN_FREIGHT_ORIGIN_DEST">Ocean Freight + Origin Charges &amp; EXW + Dest. Charges</option>
+                <option value="ORIGIN_CHARGES_EXW">Origin Charges &amp; EXW</option>
+                <option value="DEST_CHARGES">Dest. Charges</option>
+                <option value="LCL">LCL</option>
+                <option value="AIR_FREIGHT">Air Freight</option>
+                <option value="AIR_FREIGHT_ORIGIN">Air Freight + Origin Charge &amp; EXW</option>
+              </select>
+            </div>
+
+            {/* Cargo Ready Date — 二选一逻辑 */}
+            <div className="md:col-span-3 space-y-3">
+              {/* 复选框: No Cargo Ready Date Provided（勾选 = 没有具体日期 = hasSpecificCargoReadyDate=false） */}
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.hasSpecificCargoReadyDate === false || formData.hasSpecificCargoReadyDate === undefined}
+                    onChange={(e) => {
+                      const noCrdProvided = e.target.checked;
+                      handleChange('hasSpecificCargoReadyDate', !noCrdProvided);
+                      if (noCrdProvided) {
+                        // 勾选"没有具体日期"→ CRD = 创建日期
+                        handleChange('cargoReadyDate', formData.enquiryCreatedDate || getLocalDateISO());
+                      }
+                    }}
+                    className="h-4 w-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                  />
+                  <span className="text-sm font-medium text-gray-700">No Cargo Ready Date Provided</span>
+                </label>
+              </div>
+
+              {/* 日期选择器: 始终显示，但勾选"No CRD"时禁用(置灰) */}
+              <DatePickerInput
+                label={formData.hasSpecificCargoReadyDate ? "Cargo Ready Date *" : "Cargo Ready Date (disabled)"}
+                value={formData.cargoReadyDate || ''}
+                onChange={(date) => handleChange('cargoReadyDate', date)}
+                placeholder="YYYY/MM/DD"
+                disabled={!formData.hasSpecificCargoReadyDate}
+              />
+
+              {/* Cargo Ready Date Details: 勾选 No CRD 时显示 */}
+              {(!formData.hasSpecificCargoReadyDate) && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Cargo Ready Date Details (TBA/Week etc.)</label>
+                  <input
+                    type="text"
+                    value={formData.cargoReadyDateDetails || ''}
+                    onChange={(e) => handleChange('cargoReadyDateDetails', e.target.value)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    placeholder="e.g. TBA, Week 5, End of Feb, Any time"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        </AccordionItem>
+
         {/* 6. Offer Information */}
         <AccordionItem title="Offer Information" badge={formData.offers?.length?.toString()} defaultExpanded={true}>
           <div className="space-y-4">
@@ -1295,11 +1581,14 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
                       offerIndex={index}
                       ports={ports}
                       containerTypes={containerTypesOpts}
+                      carrierOptions={carrierOptions}
+                      currencyOptions={currencyOptions}
                       routeGroups={formData.routeGroups}
                       isMixed={isMixedProduct((formData.productCode || 'SEA') as ProductCode)}
                       onUpdatePriceLines={updateOfferPriceLines}
                       isOversizeCargo={formData.isOversizeCargo || false}
                       onOversizeCargoChange={(val) => setFormData(prev => ({ ...prev, isOversizeCargo: val }))}
+                      onUpdateOffer={updateOffer}
                     />
                   </div>
                 ))}
@@ -1308,101 +1597,7 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
           </div>
         </AccordionItem>
 
-        {/* 7. Business Classification */}
-        <AccordionItem title="Business Classification" defaultExpanded={true}>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                CORE / NON-CORE
-                {coreFlagWarning && (
-                  <span className={`ml-2 text-xs ${coreFlagWarning.includes('⚠️') ? 'text-yellow-600' : 'text-green-600'}`}>
-                    {coreFlagWarning}
-                  </span>
-                )}
-              </label>
-              <select
-                value={formData.coreNonCore || ''}
-                onChange={(e) => {
-                  handleChange('coreNonCore', e.target.value);
-                  setCoreFlagWarning(''); // 清除警告，表示用户已手动选择
-                }}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              >
-                <option value="">Select...</option>
-                <option value="Core">Core</option>
-                <option value="Non-Core">Non-Core</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Category</label>
-              <select
-                value={formData.category || ''}
-                onChange={(e) => handleChange('category', e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              >
-                <option value="">Select category</option>
-                <option value="OCEAN_FREIGHT">Ocean Freight</option>
-                <option value="OCEAN_FREIGHT_ORIGIN">Ocean Freight + Origin Charges &amp; EXW</option>
-                <option value="OCEAN_FREIGHT_ORIGIN_DEST">Ocean Freight + Origin Charges &amp; EXW + Dest. Charges</option>
-                <option value="ORIGIN_CHARGES_EXW">Origin Charges &amp; EXW</option>
-                <option value="DEST_CHARGES">Dest. Charges</option>
-                <option value="LCL">LCL</option>
-                <option value="AIR_FREIGHT">Air Freight</option>
-                <option value="AIR_FREIGHT_ORIGIN">Air Freight + Origin Charge &amp; EXW</option>
-              </select>
-            </div>
-
-            {/* V3 需求12: Cargo Ready Date — 按文档设计 */}
-            <div className="md:col-span-3 space-y-3">
-              {/* 复选框: Any Cargo Ready Date */}
-              <div className="flex items-center gap-3">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.hasSpecificCargoReadyDate === true}
-                    onChange={(e) => {
-                      handleChange('hasSpecificCargoReadyDate', e.target.checked);
-                      if (!e.target.checked) {
-                        // 未勾选时 CRD = 创建日期
-                        handleChange('cargoReadyDate', formData.enquiryCreatedDate || getLocalDateISO());
-                      }
-                    }}
-                    className="h-4 w-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
-                  />
-                  <span className="text-sm font-medium text-gray-700">Any Cargo Ready Date</span>
-                </label>
-                {!formData.hasSpecificCargoReadyDate && (
-                  <span className="text-xs text-gray-400">(CRD = Enquiry Created Date)</span>
-                )}
-              </div>
-
-              {/* 勾选时显示日期选择器 */}
-              {formData.hasSpecificCargoReadyDate && (
-                <DatePickerInput
-                  label="Cargo Ready Date *"
-                  value={formData.cargoReadyDate || ''}
-                  onChange={(date) => handleChange('cargoReadyDate', date)}
-                  placeholder="YYYY/MM/DD"
-                />
-              )}
-
-              {/* Always visible: Cargo Ready Date Details */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Cargo Ready Date Details (TBA/Week etc.)</label>
-                <input
-                  type="text"
-                  value={formData.cargoReadyDateDetails || ''}
-                  onChange={(e) => handleChange('cargoReadyDateDetails', e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  placeholder="e.g. TBA, Week 5, End of Feb, Any time"
-                />
-              </div>
-            </div>
-          </div>
-        </AccordionItem>
-
-        {/* 8. Additional Information */}
+        {/* 7. Additional Information */}
         <AccordionItem title="Additional Information" defaultExpanded={true}>
           <div className="space-y-4">
             <div>
@@ -1432,7 +1627,7 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
           </div>
         </AccordionItem>
 
-        {/* 9. Status & Result */}
+        {/* 8. Status & Result */}
         <AccordionItem title="Status & Result" defaultExpanded={true}>
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

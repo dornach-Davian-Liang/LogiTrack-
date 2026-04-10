@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
@@ -46,6 +47,8 @@ public class EnquiryController {
             @RequestParam(required = false) String coreNonCore,
             @RequestParam(required = false) String dateFrom,
             @RequestParam(required = false) String dateTo,
+            @RequestParam(required = false) Integer polPortId,
+            @RequestParam(required = false) Integer podPortId,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(required = false) String sortOrder,
             @RequestParam(required = false) String sortDir) {
@@ -65,7 +68,8 @@ public class EnquiryController {
         boolean hasFilters = (keyword != null && !keyword.isBlank()) ||
                 status != null || productCode != null || cargoTypeCode != null ||
                 salesCountryCode != null || assignedCnOffice != null ||
-                coreNonCore != null || dateFrom != null || dateTo != null;
+                coreNonCore != null || dateFrom != null || dateTo != null ||
+                polPortId != null || podPortId != null;
         
         Page<Enquiry> enquiryPage;
         if (hasFilters) {
@@ -73,7 +77,7 @@ public class EnquiryController {
                     keyword != null ? keyword.trim() : null,
                     status, productCode, cargoTypeCode,
                     salesCountryCode, assignedCnOffice, coreNonCore,
-                    dateFrom, dateTo, pageable);
+                    dateFrom, dateTo, polPortId, podPortId, pageable);
         } else {
             enquiryPage = enquiryService.getEnquiries(pageable);
         }
@@ -136,6 +140,13 @@ public class EnquiryController {
         try {
             Enquiry created = enquiryService.createEnquiry(enquiry);
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
+        } catch (DataIntegrityViolationException e) {
+            // 悲观锁已阻止大多数竞争，此处作为最后防线：返回 409 而非 500
+            log.warn("Duplicate key on createEnquiry (concurrent request?): {}", e.getMessage());
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Duplicate reference number - please retry");
+            error.put("type", "DUPLICATE_REF");
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
         } catch (Exception e) {
             log.error("Error creating enquiry: {}", e.getMessage(), e);
             Map<String, String> error = new HashMap<>();

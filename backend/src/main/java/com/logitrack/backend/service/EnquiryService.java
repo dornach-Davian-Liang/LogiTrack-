@@ -66,11 +66,13 @@ public class EnquiryService {
             String keyword, String status, String productCode,
             String cargoTypeCode, String salesCountryCode,
             String assignedCnOffice, String coreNonCore,
-            String dateFrom, String dateTo, Pageable pageable) {
+            String dateFrom, String dateTo,
+            Integer polPortId, Integer podPortId,
+            Pageable pageable) {
         Specification<Enquiry> spec = EnquirySpecification.withFilters(
                 keyword, status, productCode, cargoTypeCode,
                 salesCountryCode, assignedCnOffice, coreNonCore,
-                dateFrom, dateTo);
+                dateFrom, dateTo, polPortId, podPortId);
         Page<Enquiry> page = enquiryRepository.findAll(spec, pageable);
         page.getContent().forEach(this::loadTransientData);
         return page;
@@ -187,7 +189,8 @@ public class EnquiryService {
             enquiry.setSerialNumber(nextSerial);
             enquiry.setRefNumber(buildRefNumber(refMonth, seq, abbr, nextSerial));
         } else {
-            Integer maxSeq = enquiryRepository.findMaxMonthlySequence(refMonth);
+            // 使用 FOR UPDATE 悲观锁，防止并发请求读到相同的 maxSeq（双击/多用户同时新建）
+            Integer maxSeq = enquiryRepository.findMaxMonthlySequenceForUpdate(refMonth);
             int nextSeq = (maxSeq == null ? 0 : maxSeq) + 1;
             enquiry.setMonthlySequence(nextSeq);
             enquiry.setSerialNumber(0);
@@ -196,11 +199,14 @@ public class EnquiryService {
         log.info("Generated ref number: {}", enquiry.getRefNumber());
         
         // ═══ 重要: 先保存 Enquiry (不含 offers) ═══
-        // 暂存 offers，先保存 enquiry 和 route groups 拿到真实ID
+        // 暂存 offers 和 containerRows，先保存 enquiry 和 route groups 拿到真实ID
         List<Offer> pendingOffers = enquiry.getOffers() != null ? new ArrayList<>(enquiry.getOffers()) : new ArrayList<>();
         enquiry.setOffers(new ArrayList<>());
         
-        // 保存 Enquiry（无 offers）
+        List<EnquiryContainerLine> pendingContainerRows = enquiry.getContainerRows() != null ? new ArrayList<>(enquiry.getContainerRows()) : new ArrayList<>();
+        enquiry.setContainerRows(new ArrayList<>());
+        
+        // 保存 Enquiry（无 offers/containerRows）
         Enquiry saved = enquiryRepository.save(enquiry);
         
         // 保存多港口关联（普通模式）
@@ -252,6 +258,16 @@ public class EnquiryService {
                 }
             }
             saved.setOffers(pendingOffers);
+            saved = enquiryRepository.save(saved);
+        }
+        
+        // ═══ 保存容器行 (FCL/BUYER-CONSOL) ═══
+        if (!pendingContainerRows.isEmpty()) {
+            for (EnquiryContainerLine row : pendingContainerRows) {
+                row.setId(null);
+                row.setEnquiry(saved);
+            }
+            saved.setContainerRows(pendingContainerRows);
             saved = enquiryRepository.save(saved);
         }
         
@@ -363,6 +379,17 @@ public class EnquiryService {
                             }
                         }
                         existing.getOffers().add(offer);
+                    }
+                }
+                
+                // ── 更新容器行 (FCL/BUYER-CONSOL) ──
+                if (enquiry.getContainerRows() != null) {
+                    existing.getContainerRows().clear();
+                    enquiryRepository.saveAndFlush(existing);
+                    for (EnquiryContainerLine row : enquiry.getContainerRows()) {
+                        row.setId(null);
+                        row.setEnquiry(existing);
+                        existing.getContainerRows().add(row);
                     }
                 }
                 

@@ -31,6 +31,7 @@ public class DictController {
     private final ProductCargoAllowedRepository productCargoAllowedRepository;
     private final CancelledReasonRepository cancelledReasonRepository;
     private final LostReasonRepository lostReasonRepository;
+    private final CarrierRepository carrierRepository;
     
     // ========== Product 产品 ==========
     
@@ -208,6 +209,12 @@ public class DictController {
                 .map(DictDTO::fromContainerType)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(result);
+    }
+    
+    @GetMapping("/carriers")
+    public ResponseEntity<List<Carrier>> getActiveCarriers() {
+        List<Carrier> carriers = carrierRepository.findByIsActiveTrueOrderBySortOrderAscCarrierNameAsc();
+        return ResponseEntity.ok(carriers);
     }
 }
     

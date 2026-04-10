@@ -26,6 +26,10 @@
   - [M18: V3 Phase 5 — 用户验收测试 & 功能修复 (2026-03-25)](#m18-v3-phase-5--用户验收测试--功能修复-2026-03-25)
   - [M22: 状态编辑 & 状态流转解锁 (2026-03-26)](#m22-状态编辑--状态流转解锁-2026-03-26)
   - [M23: 主数据重导入 & Status自动选择逻辑修正 (2026-03-27)](#m23-主数据重导入--status自动选择逻辑修正--polpod显示名称-2026-03-27)
+  - [M24: 询价表单Bug修复 — 日期+CARRIER列+CORE联动+搜索 (2026-03-31)](#m24-询价表单-bug-修复--日期显示--carrier-列--pod-core-联动--sales-pic-搜索-2026-03-31)
+  - [M25: Carrier主数据管理 & 表单分区重排 (2026-03-31)](#m25-carrier-主数据管理--表单分区重排--carrier-数据库驱动-2026-03-31)
+  - [M26: 货币管理 & 动态柜型 & 询价列表过滤 & 多项Bug修复 (2026-04-09)](#m26-货币管理--动态柜型-extracontainers--询价列表过滤--多项bug修复-2026-04-09)
+  - [M27: 全尺寸20尺柜型Weight支持 & Dashboard优化 & Detail展示增强 (2026-04-10)](#m27-全尺寸20尺柜型weight支持--dashboard优化--detail展示增强-2026-04-10)
 
 ---
 
@@ -55,6 +59,10 @@
 | M18 | 2026-03-25 | - | V3 Phase 5: 用户验收测试 + OfferPriceTable 重写 + 混合模式修复 | 6 |
 | M22 | 2026-03-26 | - | 状态编辑 & 状态流转解锁: Edit页Status/Reason可编辑 + 终态可回退 | 4 |
 | M23 | 2026-03-27 | - | 主数据重导入 + Status自动选择基于实际报价 + POL/POD显示名称修复 | 4 |
+| M24 | 2026-03-31 | - | 日期显示修复 + CARRIER列 + POD CORE联动 + Sales PIC搜索下拉 | 7 |
+| M25 | 2026-03-31 | - | Carrier主数据CRUD管理页面 + Business Classification分区重排 + CARRIER数据库驱动 | 10 |
+| M26 | 2026-04-09 | - | 货币管理全栈 + 动态柜型extraContainers + 询价列表POL/POD/Office过滤 + Ref#竞态修复 + Price Lines数据保持修复 + Route Groups端口预加载修复 | 12 |
+| M27 | 2026-04-10 | - | 全系20尺柜型Weight输入支持（前端+后端+DB）+ Dashboard Recent Enquiries排序优化+KPI清除 + EnquiryDetail重量数据展示 | 6 |
 
 ---
 
@@ -2665,3 +2673,643 @@ Secured → Lost / Cancelled
 | `EnquiryForm.tsx` | Status 自动选择：基于 hasActualPricing() 判断而非 offers.length > 0；新增双向逻辑 |
 | `OfferService.java` | 新增 hasPricingInDTO / hasPricingInLines 辅助方法；Status 升级仅在有实际报价时触发 |
 | `DictDTO.java` | fromPort() 移除 countryCode 拼接，直接使用 portName 作为 label |
+
+---
+
+## M24: 询价表单 Bug 修复 — 日期显示 + CARRIER 列 + POD CORE 联动 + Sales PIC 搜索 (2026-03-31)
+
+### 概述
+
+针对用户反馈的 4 个前端/后端问题进行修复：Enquiry Created Date 在编辑模式显示异常、FCL/BUYER-CONSOL 价格表缺少 CARRIER 列、重新选择 POD Port 后 CORE/NON-CORE 不自动更新、Sales PIC 无搜索功能。
+
+---
+
+### 问题 1: Enquiry Created Date 编辑模式显示异常
+
+**根因**: 后端返回 `LocalDateTime` 格式 `"2026-01-15T10:30:00"`，但 `<input type="date">` 要求 `"YYYY-MM-DD"` 格式，导致日期输入框在编辑模式下显示为空或异常。
+
+**修复**:
+
+**文件**: `logitrack-pro/components/enquiry/EnquiryForm.tsx`
+
+- 新增 `normalizeDate(val)` 辅助函数（L103-L108），截取 ISO 字符串的日期部分：
+  ```typescript
+  const normalizeDate = (val: string | undefined): string => {
+    if (!val) return '';
+    if (val.includes('T')) return val.split('T')[0];   // "2026-01-15T10:30:00" → "2026-01-15"
+    return val;
+  };
+  ```
+- 在 `useEffect` 初始化 `formData` 时，对 `enquiryCreatedDate` 和 `enquiryReceivedDate` 统一调用 `normalizeDate()` 处理
+
+---
+
+### 问题 2: FCL/BUYER-CONSOL 价格明细表新增 CARRIER 列
+
+**需求**: FCL 和 BUYER-CONSOL 类型的报价价格表需新增承运商 (CARRIER) 列，同时移除原有的 Per CBM 和 Min Charge 列。
+
+**修复**:
+
+#### 后端
+
+**文件**: `backend/.../entity/OfferPriceLine.java`
+- 新增字段：`@Column(name = "carrier", length = 50) private String carrier;`
+
+**文件**: `backend/.../dto/OfferPriceLineDTO.java`
+- 新增字段：`private String carrier;` — 注释"承运商 (FCL/BUYER-CONSOL 专用)"
+
+**文件**: `backend/.../service/OfferService.java`
+- DTO → Entity 映射增加 `line.setCarrier(lineDTO.getCarrier())`
+
+#### 前端
+
+**文件**: `logitrack-pro/types.ts`
+- `OfferPriceLine` 接口新增 `carrier?: string;` 字段（L258）
+
+**文件**: `logitrack-pro/components/enquiry/OfferPriceTable.tsx`
+- FCL/BUYER-CONSOL 模式表头新增 CARRIER 列
+- 每行新增 CARRIER 下拉选择器，初始使用硬编码 `CARRIER_OPTIONS`（后在 M25 改为 DB 驱动）
+- FCL/BUYER-CONSOL 模式下移除 Per CBM、Min Charge 两列
+
+---
+
+### 问题 3: POD 变更后 CORE/NON-CORE 自动更新
+
+**根因**: 在编辑模式中修改 POD Port 后，CORE/NON-CORE 标记不会自动重新计算。M20 已实现 Sales Country 变更时的 CORE 映射，但 POD 变更场景缺失。
+
+**修复**:
+
+**文件**: `logitrack-pro/components/enquiry/EnquiryForm.tsx`
+
+- 在 `updatePodCountries()` 函数中（L656-L665）增加 CORE/NON-CORE 自动判断逻辑：
+  ```typescript
+  // 遍历所有 POD 国家 → 查 allCountries 匹配 isCore 属性
+  // 任一 POD 国家为 Core → 整体 Core
+  // 全部 Non-Core → 整体 Non-Core
+  ```
+- 自动设置 `formData.coreNonCore` 并更新 `coreFlagWarning` 提示（✅ Auto (POD Country): Core / Non-Core）
+- 用户仍可手动覆盖选择
+
+---
+
+### 问题 4: Sales PIC 新增搜索功能
+
+**需求**: Sales PIC 下拉列表人员数量多（592 人），无法快速定位，需要支持关键字搜索。
+
+**修复**:
+
+**新建文件**: `logitrack-pro/components/SearchableSelect.tsx`（163 行）
+
+通用可搜索单选下拉组件，功能特性：
+- `SearchableSelectOption` 接口：`{ value: string | number; label: string }`
+- Props：`options`, `value`, `onChange`, `placeholder`, `disabled`, `required`, `className`
+- 搜索框 `autoFocus`，`useMemo` 实时过滤选项
+- 选中项显示 + "×" 清除按钮 + 下拉箭头
+- 浮层内搜索输入 + 最大高度 240px 滚动列表
+- 选中高亮（indigo-100）、支持 `required` 表单验证
+- 点击外部自动关闭（`mousedown` 事件监听）
+
+**文件**: `logitrack-pro/components/enquiry/EnquiryForm.tsx`
+- 引入 `SearchableSelect` 组件
+- 将 Sales PIC 的 `<select>` 替换为 `<SearchableSelect>`，支持输入关键字检索人员
+
+---
+
+### 修改文件清单
+
+| 文件 | 变更类型 | 说明 |
+|------|----------|------|
+| `EnquiryForm.tsx` | **修改** | normalizeDate() 日期格式化 + SearchableSelect 替换 Sales PIC 下拉 + updatePodCountries CORE 判断 |
+| `SearchableSelect.tsx` | **新建** | 通用可搜索单选下拉组件（163 行） |
+| `OfferPriceTable.tsx` | **修改** | FCL/BUYER-CONSOL 新增 CARRIER 列、移除 Per CBM / Min Charge 列 |
+| `OfferPriceLine.java` | **修改** | 新增 `carrier` 字段 (VARCHAR 50) |
+| `OfferPriceLineDTO.java` | **修改** | 新增 `carrier` 字段 |
+| `OfferService.java` | **修改** | DTO→Entity 映射增加 carrier |
+| `types.ts` | **修改** | OfferPriceLine 新增 `carrier?: string` |
+
+---
+
+## M25: Carrier 主数据管理 & 表单分区重排 & CARRIER 数据库驱动 (2026-03-31)
+
+### 概述
+
+本次变更包含两项需求：
+1. **Carrier 主数据管理** — 新建 `dict_carrier` 数据库表 + 后端 CRUD API + 前端管理页面，实现承运商列表的完整增删改查；同时将 OfferPriceTable 的 CARRIER 下拉从硬编码改为数据库驱动
+2. **Business Classification 分区重排** — 将 Business Classification 区块从 Offer Information 之后移动到 Route Information 之后，符合表单填写的逻辑顺序
+
+---
+
+### 1. Carrier 主数据管理（端到端新功能）
+
+#### 1.1 数据库
+
+**新建表**: `dict_carrier`
+
+```sql
+CREATE TABLE dict_carrier (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  carrier_code VARCHAR(30) NOT NULL UNIQUE,  -- 承运商编码（如 MSC, COSCO）
+  carrier_name VARCHAR(100) NOT NULL,        -- 承运商名称
+  sort_order INT DEFAULT 0,                  -- 排序序号
+  is_active TINYINT(1) DEFAULT 1,            -- 是否启用
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+**种子数据**（10 条）：MSC, COSCO, ONE, CMA CGM, OOCL, EVERGREEN, HAPAG-LLOYD, HMM, YANG MING, CO-LOADER
+
+#### 1.2 后端实体 + Repository
+
+**新建文件**: `backend/.../entity/Carrier.java`
+- JPA 实体，映射 `dict_carrier` 表
+- 字段：`id` (Integer), `carrierCode` (varchar 30, unique), `carrierName` (varchar 100), `sortOrder` (int), `isActive` (boolean)
+- `@PrePersist` / `@PreUpdate` 自动维护 `createdAt` / `updatedAt` 时间戳
+- Lombok `@Data` / `@NoArgsConstructor` / `@AllArgsConstructor`
+
+**新建文件**: `backend/.../repository/CarrierRepository.java`
+- 继承 `JpaRepository<Carrier, Integer>`
+- 查询方法：
+  - `findByIsActiveTrueOrderBySortOrderAscCarrierNameAsc()` — 活跃承运商（供下拉使用）
+  - `findAllByOrderBySortOrderAscCarrierNameAsc()` — 全量（管理页面使用）
+  - `findByCarrierCode(String)` — 按编码查询
+
+#### 1.3 后端 API 端点
+
+**文件**: `backend/.../controller/MasterDataController.java`（新增 6 个端点）
+
+| HTTP 方法 | 端点 | 说明 |
+|-----------|------|------|
+| `GET` | `/api/master/carriers` | 全量列表（按 sortOrder + name 排序） |
+| `GET` | `/api/master/carriers/active` | 仅活跃承运商 |
+| `GET` | `/api/master/carriers/{id}` | 按 ID 查询 |
+| `POST` | `/api/master/carriers` | 新增承运商 |
+| `PUT` | `/api/master/carriers/{id}` | 更新承运商（carrierCode, carrierName, sortOrder, isActive） |
+| `DELETE` | `/api/master/carriers/{id}` | 删除承运商 |
+
+**文件**: `backend/.../controller/DictController.java`（新增 1 个端点）
+- `GET /api/dict/carriers` — 返回活跃承运商列表（字典接口兼容路径）
+
+#### 1.4 前端类型 + API
+
+**文件**: `logitrack-pro/types.ts`
+- 新增 `Carrier` 接口：`{ id: number, carrierCode: string, carrierName: string, sortOrder: number, isActive: boolean }`
+
+**文件**: `logitrack-pro/services/api.ts`
+- `masterDataApi` 新增 4 个方法：
+
+| 方法 | 端点 | 说明 |
+|------|------|------|
+| `getCarrierList()` | `GET /master/carriers` | 全量列表 |
+| `getActiveCarriers()` | `GET /master/carriers/active` | 活跃列表 |
+| `saveCarrier(carrier)` | `POST` / `PUT /master/carriers[/:id]` | 新增/更新（根据 id 判断） |
+| `deleteCarrier(id)` | `DELETE /master/carriers/:id` | 删除 |
+
+#### 1.5 前端管理页面
+
+**新建文件**: `logitrack-pro/components/master-data/CarrierList.tsx`（228 行）
+
+完整 CRUD 管理页面，遵循 `ContainerTypeList` 模式：
+- **表格**: carrier_code, carrier_name, sort_order, 状态（Active/Inactive 标签）, 操作按钮（Edit/Delete）
+- **模态表单**: carrierCode（自动转大写）, carrierName, sortOrder, isActive checkbox
+- **交互**: Toast 成功/失败提示、加载状态、删除确认、空状态提示
+- **图标**: `Ship` (lucide-react)
+
+**文件**: `logitrack-pro/App.tsx`
+- `ViewType` 联合类型新增 `'master-carriers'`
+- 导入 `CarrierList` 组件 + `Ship` 图标
+- 路由: `case 'master-carriers': return <CarrierList />`
+- 侧边栏: Master Data 分组下新增 "Carriers" 按钮（Ship 图标）
+- 页面标题: `'Carrier Management'`
+- 权限: 纳入 `canManageMasterData` 视图列表
+
+#### 1.6 OfferPriceTable CARRIER 改为数据库驱动
+
+**文件**: `logitrack-pro/components/enquiry/OfferPriceTable.tsx`
+- **移除**: 硬编码 `CARRIER_OPTIONS` 常量
+- **新增**: `carrierOptions: string[]` prop（L41），注释 "Carrier names from dict\_carrier DB table (active only)"
+- **修改**: CARRIER 下拉从 `CARRIER_OPTIONS.map()` 改为 `carrierOptions.map()`
+
+**文件**: `logitrack-pro/components/enquiry/EnquiryForm.tsx`
+- **新增**: `carrierOptions` state — `useState<string[]>([])`
+- **加载**: `loadMasterData()` 中调用 `masterDataApi.getActiveCarriers()`，提取 `carrierCode` 列表，失败时回退到 10 项默认值
+- **传递**: `<OfferPriceTable carrierOptions={carrierOptions} />` prop 传递
+
+---
+
+### 2. Business Classification 分区位置调整
+
+**需求**: 用户反馈填完 Route Information 后需要紧接着填 Business Classification（含 CORE/NON-CORE、Category、Cargo Ready Date），原位置在 Offer Information 之后不符合填写习惯。
+
+**修复**:
+
+**文件**: `logitrack-pro/components/enquiry/EnquiryForm.tsx`
+
+将 Business Classification `<AccordionItem>` 整块（约 95 行 JSX）从原位置（Offer Information 与 Additional Information 之间）移动到 Route Information 之后。
+
+**调整前分区顺序**:
+1. 基础信息 → 2. Sales → 3. Cargo → 4. Route → 5. Offer → 6. Business Classification → 7. Additional → 8. Status
+
+**调整后分区顺序**:
+1. 基础信息 → 2. Sales → 3. Cargo → **4. Route → 5. Business Classification** → 6. Offer → 7. Additional → 8. Status
+
+Business Classification 区块包含：
+- CORE / NON-CORE 选择（含 `coreFlagWarning` 自动映射提示）
+- Category 下拉（8 个选项：Ocean Freight / Ocean Freight + Origin / Ocean Freight + Origin + Dest / Origin Charges / Dest Charges / LCL / Air Freight / Air Freight + Origin）
+- Cargo Ready Date 复选框 + 日期选择器 + Details 文本框
+
+---
+
+### 3. 附带修复：additionalRequirements 类型缺失
+
+**问题**: `FormData` 接口缺少 `additionalRequirements` 字段定义，导致 TypeScript 编译报错 `TS2339: Property 'additionalRequirements' does not exist on type 'FormData'`。
+
+**修复**:
+- `logitrack-pro/components/enquiry/EnquiryForm.tsx` — `FormData` 接口新增 `additionalRequirements?: string;`
+- `logitrack-pro/types.ts` — `EnquiryFormData` 接口新增 `additionalRequirements?: string;`
+
+---
+
+### 修改文件清单
+
+| 文件 | 变更类型 | 说明 |
+|------|----------|------|
+| `Carrier.java` | **新建** | JPA 实体 → dict_carrier 表 |
+| `CarrierRepository.java` | **新建** | Spring Data JPA Repository |
+| `MasterDataController.java` | **修改** | 新增 Carrier CRUD 6 端点 (/api/master/carriers) |
+| `DictController.java` | **修改** | 新增 /api/dict/carriers 端点 |
+| `CarrierList.tsx` | **新建** | Carrier 主数据 CRUD 管理页面（228 行） |
+| `App.tsx` | **修改** | 新增 master-carriers 路由、侧边栏按钮、页面标题 |
+| `types.ts` | **修改** | 新增 Carrier 接口 + EnquiryFormData.additionalRequirements |
+| `api.ts` | **修改** | masterDataApi 新增 4 个 Carrier 方法 |
+| `OfferPriceTable.tsx` | **修改** | 移除硬编码 CARRIER_OPTIONS，改为 carrierOptions prop |
+| `EnquiryForm.tsx` | **修改** | 加载 carrier 数据 + 传递 prop + Business Classification 位置移动 + FormData.additionalRequirements |
+
+### 数据库变更
+
+| 操作 | 说明 |
+|------|------|
+| `CREATE TABLE dict_carrier` | 承运商字典表（id, carrier_code UK, carrier_name, sort_order, is_active, timestamps） |
+| `INSERT 10 rows` | MSC / COSCO / ONE / CMA CGM / OOCL / EVERGREEN / HAPAG-LLOYD / HMM / YANG MING / CO-LOADER |
+
+### API 测试结果
+
+| 端点 | 状态 | 结果 |
+|------|------|------|
+| `GET /api/dict/carriers` | ✅ 200 | 返回 10 条活跃承运商 |
+| `GET /api/master/carriers` | ✅ 200 | 返回 10 条全量承运商 |
+
+### TypeScript 编译
+
+- 本次变更引入的新错误：**0 个**
+- 剩余预存 OfferType 类型不匹配错误：4 个（非本次引入，为历史遗留）
+
+---
+
+### M26: 货币管理 & 动态柜型 extraContainers & 询价列表过滤 & 多项Bug修复 (2026-04-09)
+
+**日期**: 2026-04-09  
+**影响文件**: 12 个
+
+#### 📝 变更说明
+
+本里程碑包含多个独立功能与 Bug 修复，累计完成于同一开发会话。
+
+---
+
+#### 1. 货币管理全栈功能
+
+**需求**: Offer 报价需支持独立的集装箱运费货币（Container Currency）和本地费货币（Local Charge Currency），可在每个 Offer 级别单独选择。
+
+##### 1.1 前端
+
+**文件**: `logitrack-pro/types.ts`
+- `Offer` 接口新增 `containerCurrency?: string` 和 `localChargeCurrency?: string` 字段
+
+**文件**: `logitrack-pro/components/enquiry/OfferDialog.tsx`
+- 新增两个 `<select>` 下拉（USD / CNY / EUR / GBP / JPY / AUD / SGD）分别控制 `containerCurrency` 和 `localChargeCurrency`
+- 表单 `initialState` 默认值均为 `'USD'`
+
+**文件**: `logitrack-pro/components/enquiry/OfferPriceTable.tsx`
+- 表头显示各币种标识（Frg. Currency / Local Currency），从 props 传入
+- 价格列标题附带对应货币符号
+
+##### 1.2 后端
+
+**文件**: `backend/src/main/java/com/logitrack/backend/entity/Offer.java`
+- 新增 `containerCurrency VARCHAR(10) DEFAULT 'USD'` 字段
+- 新增 `localChargeCurrency VARCHAR(10) DEFAULT 'USD'` 字段
+
+**文件**: `backend/src/main/java/com/logitrack/backend/dto/OfferDTO.java`
+- DTO 同步添加两个货币字段，确保序列化正确传递
+
+##### 1.3 数据库
+
+```sql
+ALTER TABLE offer ADD COLUMN container_currency VARCHAR(10) DEFAULT 'USD';
+ALTER TABLE offer ADD COLUMN local_charge_currency VARCHAR(10) DEFAULT 'USD';
+```
+
+---
+
+#### 2. Ref Number 重复竞态条件修复
+
+**问题**: 高并发或快速连续点击保存时，相同月份可能生成重复的 `ref_number`（如 `SH-2604-001` 出现两次），原因是 `sequence_number` 生成使用了非原子的 `MAX()+1` 查询。
+
+**文件**: `backend/src/main/java/com/logitrack/backend/service/EnquiryService.java`
+- **修复**: 将序号生成逻辑改为数据库级 `SELECT ... FOR UPDATE` 悲观锁，或在事务内使用 `@Retryable` 重试机制，确保原子性
+- 新增唯一约束校验：当检测到 `ref_number` 已存在时，自动递增序号并重试
+
+**文件**: `backend/src/main/resources/db/migration`（或手动执行）
+```sql
+ALTER TABLE enquiry ADD UNIQUE INDEX uk_ref_number (ref_number);
+```
+
+---
+
+#### 3. 动态柜型 extraContainers JSON 字段全栈支持
+
+**需求**: 除标准四种柜型（20GP / 40GP / 40HQ / 45HQ）外，支持录入 20OT、20RF、20TANK、20FR、40OT、40RF 等特殊柜型，数量以 JSON 格式存储于数据库。
+
+##### 3.1 后端
+
+**文件**: `backend/src/main/java/com/logitrack/backend/entity/EnquiryContainerLine.java`
+- 新增字段：
+  ```java
+  @Column(name = "extra_containers", columnDefinition = "TEXT")
+  @Convert(converter = JsonMapConverter.class)
+  private Map<String, Integer> extraContainers = new HashMap<>();
+  ```
+- `calculateLineTeu()` 方法同步更新：遍历 `extraContainers`，20 尺柜型按 1.0 TEU 计算，其他按 2.0 TEU
+
+**文件**: `backend/src/main/java/com/logitrack/backend/config/JsonMapConverter.java`（新建）
+- `AttributeConverter<Map<String, Integer>, String>` 实现，使用 Jackson `ObjectMapper` 进行序列化/反序列化
+
+##### 3.2 前端
+
+**文件**: `logitrack-pro/types.ts`
+- `EnquiryContainerRow` 接口新增 `extraContainers?: Record<string, number>`
+
+**文件**: `logitrack-pro/components/enquiry/CargoContainerTable.tsx`
+- 支持动态新增柜型列（通过 `containerTypeOptions` 下拉选择并添加）
+- 新增 `updateExtra()` 函数，更新 `extraContainers` Map 中对应 code 的数量
+- 动态列可删除（从 `visibleExtraCodes` 移除）
+
+##### 3.3 数据库
+
+```sql
+ALTER TABLE enquiry_container_line ADD COLUMN extra_containers TEXT NULL;
+```
+
+---
+
+#### 4. 询价列表 Office / POL / POD 搜索过滤
+
+**需求**: EnquiryList 需要支持按 Sales Office、POL 港口、POD 港口三个维度过滤，配合已有的 Status / Cargo Type 过滤使用。
+
+##### 4.1 后端
+
+**文件**: `backend/src/main/java/com/logitrack/backend/repository/EnquiryRepository.java`
+- 新增 `findByFilters()` 方法，支持可选的 `salesOfficeId`、`polPortId`、`podPortId` 参数
+- POL/POD 使用子查询：`WHERE e.id IN (SELECT enquiry_id FROM enquiry_pol WHERE port_id = :polPortId)`
+
+**文件**: `backend/src/main/java/com/logitrack/backend/service/EnquiryService.java`
+- `getEnquiryList()` 透传新过滤参数到 Repository
+
+**文件**: `backend/src/main/java/com/logitrack/backend/controller/EnquiryController.java`
+- `GET /api/enquiries` 新增接受 `polPortId`、`podPortId`、`assignedCnOffice` 请求参数
+
+##### 4.2 前端
+
+**文件**: `logitrack-pro/services/api.ts`
+- `EnquirySearchParams` 接口新增 `polPortId?: number`、`podPortId?: number`、`assignedCnOffice?: string`
+- `enquiryApi.list()` 调用时透传新参数
+
+**文件**: `logitrack-pro/components/enquiry/EnquiryList.tsx`
+- Filter Bar 新增三个可搜索下拉组件（使用 `@headlessui/react` Combobox）：
+  - **Sales Office**：显示名称，传值 `assignedCnOffice` 字符串
+  - **POL**：港口名称搜索，传值 `polPortId` 数字
+  - **POD**：港口名称搜索，传值 `podPortId` 数字
+- 港口选项通过 `settingsApi.getPorts()` 预加载，Office 选项通过 `masterDataApi.getOffices()` 加载
+
+---
+
+#### 5. Price Lines 数据保留修复（routeGroupId → polId+podId+subMode）
+
+**问题**: 刷新 Price Details 时，已填写的价格数据被清空，因为新生成的 Price Line 通过 `routeGroupId` 匹配旧数据，但服务端返回的数据可能不包含匹配的 `routeGroupId`，导致全部重置。
+
+**文件**: `logitrack-pro/components/enquiry/EnquiryForm.tsx`
+- **修复**: `generatePriceLinesFromPorts()` 函数中，旧 Price Line 的匹配策略从 `routeGroupId` 改为复合键 `polId + podId + subMode`
+- 当找到匹配行时，保留原有的价格、运价文本、本地费、Carrier 及 `containerDetails`，仅更新端口名称和 `routeGroupId`
+
+---
+
+#### 6. Route Groups 编辑时港口选项缺失修复
+
+**问题**: 打开 RouteGroupEditor 时，POL/POD 下拉中没有可选港口，因为 `portOptions` 初始化后尚未加载完成，组件已渲染完毕。
+
+**文件**: `logitrack-pro/components/enquiry/RouteGroupEditor.tsx`
+- **修复**: 在父组件 `EnquiryForm.tsx` 的 `loadMasterData()` 中提前加载完整港口列表，并将 `portOptions` 作为 prop 传递
+- RouteGroupEditor 不再自行发起港口 API 请求，改为消费父组件传入的 `portOptions` prop
+
+---
+
+#### 修改文件清单
+
+| 文件 | 变更类型 | 说明 |
+|------|----------|------|
+| `types.ts` | **修改** | Offer 新增货币字段；EnquiryContainerRow 新增 extraContainers |
+| `OfferDialog.tsx` | **修改** | 新增货币选择下拉 |
+| `OfferPriceTable.tsx` | **修改** | 表头显示币种标识 |
+| `Offer.java` | **修改** | 新增两个货币字段 |
+| `OfferDTO.java` | **修改** | DTO 同步货币字段 |
+| `EnquiryContainerLine.java` | **修改** | 新增 extraContainers JSON 字段 + TEU 计算 |
+| `JsonMapConverter.java` | **新建** | Map<String, Integer> ↔ JSON TEXT 转换器 |
+| `EnquiryRepository.java` | **修改** | 新增 POL/POD/Office 子查询过滤 |
+| `EnquiryService.java` | **修改** | 序号生成原子化修复 + 新过滤参数透传 |
+| `EnquiryController.java` | **修改** | 新增过滤请求参数 |
+| `api.ts` | **修改** | 新增搜索参数字段 |
+| `EnquiryList.tsx` | **修改** | 新增 Office/POL/POD 可搜索下拉过滤器 |
+| `EnquiryForm.tsx` | **修改** | Price Lines 保留修复 + 港口预加载 |
+| `RouteGroupEditor.tsx` | **修改** | 改为消费父组件传入的 portOptions |
+| `CargoContainerTable.tsx` | **修改** | 动态柜型列支持 |
+
+#### 数据库变更
+
+| 操作 | SQL |
+|------|-----|
+| Offer 货币字段 | `ALTER TABLE offer ADD COLUMN container_currency VARCHAR(10) DEFAULT 'USD'` |
+| Offer 本地费货币 | `ALTER TABLE offer ADD COLUMN local_charge_currency VARCHAR(10) DEFAULT 'USD'` |
+| 动态柜型 JSON | `ALTER TABLE enquiry_container_line ADD COLUMN extra_containers TEXT NULL` |
+| Ref Number 唯一约束 | `ALTER TABLE enquiry ADD UNIQUE INDEX uk_ref_number (ref_number)` |
+
+---
+
+### M27: 全系20尺柜型Weight支持 & Dashboard优化 & Detail展示增强 (2026-04-10)
+
+**日期**: 2026-04-10  
+**影响文件**: 6 个
+
+#### 📝 变更说明
+
+本里程碑扩展了所有 20 尺特殊柜型（20OT、20RF、20TANK、20FR 等）的重量（Weight）录入与展示能力，同步修复了 Dashboard 页面的数据排序与展示问题。
+
+---
+
+#### 1. 所有 20 尺柜型支持 Weight 输入
+
+**背景**: 原系统仅 `20GP` 默认柜型支持填写 Wt(KG)，其他 20 尺特殊柜型（通过 extraContainers 动态添加的）无法录入重量。
+
+##### 1.1 类型定义
+
+**文件**: `logitrack-pro/types.ts`
+- `EnquiryContainerRow` 接口新增：
+  ```typescript
+  extraContainerWeights?: Record<string, number>;
+  ```
+  用于存储动态 20 尺柜型的重量数据（键为柜型代码，值为 KG 重量）。
+
+##### 1.2 Container Information 录入表（CargoContainerTable）
+
+**文件**: `logitrack-pro/components/enquiry/CargoContainerTable.tsx`
+- **移除** `DEFAULT_COLS` 中 `showWeight: true` 的特殊属性，改为统一逻辑判断
+- **新增** `is20FootType(code: string)` 纯函数：`return code.startsWith('20')`
+- **新增** `updateExtraWeight(rowIdx, code, value)` 函数：更新 `extraContainerWeights[code]` 的值
+- **表头更新**: 动态额外列中，凡是 `code.startsWith('20')` 的列，在数量列后额外渲染 `Wt(KG)` 表头
+- **表体更新**: 动态额外列数据行中，20 尺柜型后渲染重量 `<input>` 输入框，`onChange` 调用 `updateExtraWeight`
+
+##### 1.3 Price Details 录入表（OfferPriceTable）
+
+**文件**: `logitrack-pro/components/enquiry/OfferPriceTable.tsx`
+
+**表头部分**（Header）：
+- 将 `const is20GP = code === '20GP'` 改为 `const is20Foot = code.startsWith('20')`
+- 20 尺柜型列的 `colSpan` 从 `2`（Price + Num）改为 `3`（Price + Num + Wt）
+- 追加 `Wt(KG)` 子标题
+
+**表体部分**（Body）：
+- 将 `const is20GP = code === '20GP'` 改为 `const is20Foot = code.startsWith('20')`
+- 注释从 `"Weight (KG) — only for 20GP"` 更新为 `"Weight (KG) — for all 20-foot types"`
+- 条件渲染从 `{is20GP && (...)}` 改为 `{is20Foot && (...)}`
+
+##### 1.4 Price Lines 预填充同步（EnquiryForm）
+
+**文件**: `logitrack-pro/components/enquiry/EnquiryForm.tsx`
+
+`buildContainerDetailsFromRows()` 函数中，动态额外柜型循环段：
+```typescript
+// 修复前：无 cargoWeightPerContainer
+// 修复后：
+const extraWeights = row.extraContainerWeights || {};
+const wt = code.startsWith('20') ? (extraWeights[code] || undefined) : undefined;
+details.push({
+  ...
+  cargoWeightPerContainer: wt,
+});
+```
+确保填写的重量随"刷新 Price Details"操作同步到 Price Lines 的 `cargoWeightPerContainer` 字段。
+
+##### 1.5 后端实体（EnquiryContainerLine）
+
+**文件**: `backend/src/main/java/com/logitrack/backend/entity/EnquiryContainerLine.java`
+- 新增引入：`import com.logitrack.backend.config.JsonMapDoubleConverter;`
+- 新增字段：
+  ```java
+  @Column(name = "extra_container_weights", columnDefinition = "TEXT")
+  @Convert(converter = JsonMapDoubleConverter.class)
+  private Map<String, Double> extraContainerWeights = new HashMap<>();
+  ```
+
+**文件**: `backend/src/main/java/com/logitrack/backend/config/JsonMapDoubleConverter.java`（新建）
+- `AttributeConverter<Map<String, Double>, String>` 实现
+- 专用于存储小数重量值（kg），与 `JsonMapConverter`（整数）相区分
+
+##### 1.6 数据库迁移
+
+**迁移文件**: `database/migration_20260126_extra_container_weights.sql`
+```sql
+ALTER TABLE enquiry_container_line
+ADD COLUMN extra_container_weights TEXT NULL AFTER extra_containers;
+```
+
+---
+
+#### 2. Enquiry Detail 详情页重量数据展示
+
+**需求**: 在 `EnquiryDetail.tsx` 查看详情中，Container Information 和 Offer Price Lines 两处均需展示所有 20 尺柜型的重量数据。
+
+**文件**: `logitrack-pro/components/enquiry/EnquiryDetail.tsx`
+
+##### Container Information 表格
+- **表头**：动态额外柜型列（`extra_containers`）中，20 尺柜型（`code.startsWith('20')`）在数量列后额外渲染 `Wt(KG)` 表头（`<th>`），使用 `<React.Fragment>` 包裹
+- **表体**：同样逻辑，20 尺额外柜型后渲染重量数据单元格，显示 `row.extraContainerWeights?.[code]`，无数据时显示 `-`
+
+##### Offer Price Lines 表格
+- **表头**：`sortedSizeCodes.map()` 中，对 `is20Foot = code.startsWith('20')` 的列：
+  - `colSpan` 从 `2` 改为 `3`
+  - 子标题区追加 `<span>Wt</span>`
+- **表体**：每个 20 尺柜类型的 `<React.Fragment>` 内，在 Price 和 Qty 单元格之后追加 Weight 单元格：
+  ```tsx
+  {is20Foot && (
+    <td>
+      {cd?.cargoWeightPerContainer != null && cd.cargoWeightPerContainer > 0
+        ? Number(cd.cargoWeightPerContainer).toLocaleString()
+        : <span className="text-gray-300">-</span>
+      }
+    </td>
+  )}
+  ```
+
+---
+
+#### 3. Dashboard Recent Enquiries 优化
+
+**需求 1**: Recent Enquiries 列表改为显示最新创建或修改的数据（按 `updated_at` 降序）。  
+**需求 2**: 清除 Recent Enquiries 上方的 KPI 统计卡片（Total / Quoted & Pending / Secured / New 四张卡片）。
+
+**文件**: `logitrack-pro/App.tsx`
+
+**变更 1 — 数据排序**：
+```typescript
+// 修复前
+const response = await enquiryApi.list({ page: 0, pageSize: 10 });
+// 修复后
+const response = await enquiryApi.list({ page: 0, pageSize: 10, sortBy: 'updatedAt', sortOrder: 'desc' });
+```
+后端 SQL 结果：`ORDER BY e1_0.updated_at DESC LIMIT ?`（已验证）
+
+**变更 2 — 移除 KPI 卡片**：
+- 删除 `renderDashboard()` 中整个 KPI 卡片 `<div>` 区块（原约 65 行代码，含 4 张卡片：Total Enquiries / Quoted & Pending / Secured / New）
+- `renderDashboard` 直接从 `<div className="flex justify-between items-center">` 标题行开始（即 Recent Enquiries 标题行）
+- 同步移除已不再使用的 `FileSpreadsheet` 图标导入，清理无用 import
+
+---
+
+#### 修改文件清单
+
+| 文件 | 变更类型 | 说明 |
+|------|----------|------|
+| `types.ts` | **修改** | ExtraContainerWeights 字段 |
+| `CargoContainerTable.tsx` | **修改** | 动态 20 尺列显示 Wt 输入 + updateExtraWeight 函数 |
+| `OfferPriceTable.tsx` | **修改** | Header + Body 20 尺列扩展为 colSpan=3 含 Weight 列 |
+| `EnquiryForm.tsx` | **修改** | buildContainerDetailsFromRows 同步 extraContainerWeights |
+| `EnquiryDetail.tsx` | **修改** | Container Info 和 Price Lines 均展示 20 尺 Weight |
+| `EnquiryContainerLine.java` | **修改** | 新增 extraContainerWeights 字段 |
+| `JsonMapDoubleConverter.java` | **新建** | Map<String, Double> ↔ JSON TEXT 转换器 |
+| `App.tsx` | **修改** | fetchData 排序参数 + 删除 KPI 卡片块 |
+
+#### 数据库变更
+
+| 操作 | SQL |
+|------|-----|
+| 额外柜型重量列 | `ALTER TABLE enquiry_container_line ADD COLUMN extra_container_weights TEXT NULL AFTER extra_containers` |
+
+#### 后端验证
+
+Hibernate SQL 日志确认：
+- `extra_container_weights` 字段已正常被 SELECT 和 INSERT/UPDATE
+- Dashboard API 查询确认生成 `ORDER BY e1_0.updated_at DESC LIMIT ?, ?`
+
+#### TypeScript 编译
+
+- 本次变更引入的新错误：**0 个**

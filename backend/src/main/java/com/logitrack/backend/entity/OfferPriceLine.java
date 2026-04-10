@@ -59,6 +59,9 @@ public class OfferPriceLine {
     @Column(name = "price_text", length = 500)
     private String priceText;
     
+    @Column(name = "carrier", length = 50)
+    private String carrier;
+    
     @Column(name = "sort_order", nullable = false)
     private Integer sortOrder = 0;
     

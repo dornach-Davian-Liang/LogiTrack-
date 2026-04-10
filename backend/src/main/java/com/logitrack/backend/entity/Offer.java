@@ -46,7 +46,13 @@ public class Offer {
     
     @Column(name = "remark", columnDefinition = "TEXT")
     private String remark;
-    
+
+    @Column(name = "container_currency", length = 10)
+    private String containerCurrency;
+
+    @Column(name = "local_charge_currency", length = 10)
+    private String localChargeCurrency;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
     

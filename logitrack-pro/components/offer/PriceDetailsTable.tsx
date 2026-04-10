@@ -327,12 +327,35 @@ export const PriceDetailsTable: React.FC<PriceDetailsTableProps> = ({
     return (line.containerDetails || []).find((d) => d.containerSizeType === containerCode);
   };
 
-  /** Format a container cell display */
-  const formatContainerCell = (detail?: OfferContainerDetail): string => {
-    if (!detail || !detail.numberOfContainers) return '-';
-    const price = detail.containerPrice ? ` @${detail.containerPrice}` : '';
-    return `${detail.numberOfContainers}x${price}`;
-  };
+  /** Update a single field within a containerDetail inline */
+  const updateContainerField = useCallback(
+    (lineIndex: number, containerCode: string, field: keyof OfferContainerDetail, value: any) => {
+      const updated = priceLines.map((line, i) => {
+        if (i !== lineIndex) return line;
+        const details = [...(line.containerDetails || [])];
+        const idx = details.findIndex(d => d.containerSizeType === containerCode);
+        const col = containerColumns.find(c => c.containerCode === containerCode);
+        const teuFactor = col?.teuValue || (containerCode.startsWith('20') ? 1.0 : 2.0);
+        if (idx >= 0) {
+          const d = { ...details[idx], [field]: value };
+          d.lineTeu = (d.numberOfContainers || 0) * teuFactor;
+          details[idx] = d;
+        } else {
+          const newDetail: OfferContainerDetail = {
+            containerSizeType: containerCode,
+            numberOfContainers: 0,
+            teuValue: teuFactor,
+            [field]: value,
+          };
+          newDetail.lineTeu = (newDetail.numberOfContainers || 0) * teuFactor;
+          details.push(newDetail);
+        }
+        return { ...line, containerDetails: details };
+      });
+      onChange(updated);
+    },
+    [priceLines, onChange, containerColumns]
+  );
 
   // Available container types to add (not already in columns)
   const availableContainerTypes = useMemo(() => {
@@ -341,7 +364,12 @@ export const PriceDetailsTable: React.FC<PriceDetailsTableProps> = ({
   }, [containerTypes, containerColumns]);
 
   // Total columns count for colSpan
-  const totalCols = 3 + (isFCL ? containerColumns.length : 1) + 4 + (disabled ? 0 : 1);
+  // FCL: #/POL/POD = 3, + containerColSpan, + Carrier + LocalCharge + PriceText = 3
+  // LCL/AIR: #/POL/POD = 3, + Price + PerCBM + MinCharge + LocalCharge + PriceText = 5
+  const containerColSpan = isFCL ? containerColumns.reduce((sum, col) => sum + (col.containerCode === '20GP' ? 3 : 2), 0) : 0;
+  const totalCols = isFCL
+    ? 3 + containerColSpan + 3 + (disabled ? 0 : 1)
+    : 3 + 5 + (disabled ? 0 : 1);
 
   // ---- Render a single table row ----
   const renderRow = (line: OfferPriceLine, idx: number, linePortType?: PortType) => {
@@ -374,25 +402,49 @@ export const PriceDetailsTable: React.FC<PriceDetailsTableProps> = ({
           />
         </td>
 
-        {/* FCL: Container cells (clickable) */}
+        {/* FCL: Inline container fields (Price / Number / Weight for 20GP only) */}
         {isFCL &&
           containerColumns.map((col) => {
             const detail = getContainerDetail(line, col.containerCode);
+            const is20GP = col.containerCode === '20GP';
             return (
-              <td
-                key={col.containerCode}
-                className={`px-2 py-1.5 text-center cursor-pointer hover:bg-indigo-50/50 transition ${
-                  detail?.numberOfContainers ? 'bg-indigo-50/30 font-medium text-indigo-700' : 'text-gray-400'
-                }`}
-                onClick={() => {
-                  if (!disabled && onOpenContainerDialog) {
-                    onOpenContainerDialog(idx, col.containerCode, detail);
-                  }
-                }}
-                title="Click to edit container details"
-              >
-                {formatContainerCell(detail)}
-              </td>
+              <React.Fragment key={col.containerCode}>
+                {/* Container Price */}
+                <td className="px-1 py-1.5">
+                  <input
+                    type="number" step="0.01" min={0}
+                    value={detail?.containerPrice ?? ''}
+                    onChange={(e) => updateContainerField(idx, col.containerCode, 'containerPrice', e.target.value ? Number(e.target.value) : undefined)}
+                    className="w-14 px-1 py-1 text-xs text-right border border-gray-200 rounded focus:ring-1 focus:ring-indigo-300"
+                    placeholder="Price"
+                    disabled={disabled}
+                  />
+                </td>
+                {/* Number of Containers */}
+                <td className="px-1 py-1.5">
+                  <input
+                    type="number" min={0}
+                    value={detail?.numberOfContainers || ''}
+                    onChange={(e) => updateContainerField(idx, col.containerCode, 'numberOfContainers', e.target.value ? Number(e.target.value) : 0)}
+                    className="w-10 px-1 py-1 text-xs text-right border border-gray-200 rounded focus:ring-1 focus:ring-indigo-300"
+                    placeholder="Num"
+                    disabled={disabled}
+                  />
+                </td>
+                {/* Weight (KG) — only for 20GP */}
+                {is20GP && (
+                  <td className="px-1 py-1.5">
+                    <input
+                      type="number" step="0.01" min={0}
+                      value={detail?.cargoWeightPerContainer ?? ''}
+                      onChange={(e) => updateContainerField(idx, col.containerCode, 'cargoWeightPerContainer', e.target.value ? Number(e.target.value) : undefined)}
+                      className="w-14 px-1 py-1 text-xs text-right border border-gray-200 rounded focus:ring-1 focus:ring-indigo-300"
+                      placeholder="Wt(KG)"
+                      disabled={disabled}
+                    />
+                  </td>
+                )}
+              </React.Fragment>
             );
           })}
 
@@ -410,29 +462,47 @@ export const PriceDetailsTable: React.FC<PriceDetailsTableProps> = ({
           </td>
         )}
 
-        {/* PerCBM */}
-        <td className="px-2 py-1.5">
-          <input
-            type="number"
-            value={line.perCbm ?? ''}
-            onChange={(e) => updateLine(idx, 'perCbm', e.target.value ? Number(e.target.value) : undefined)}
-            className="w-full px-1.5 py-1 text-xs text-right border border-gray-200 rounded focus:ring-1 focus:ring-indigo-300"
-            placeholder="0.00"
-            disabled={disabled}
-          />
-        </td>
+        {/* Carrier (FCL/BUYER-CONSOL only) */}
+        {isFCL && (
+          <td className="px-2 py-1.5">
+            <input
+              type="text"
+              value={line.carrier || ''}
+              onChange={(e) => updateLine(idx, 'carrier', e.target.value || undefined)}
+              className="w-full px-1.5 py-1 text-xs border border-gray-200 rounded focus:ring-1 focus:ring-indigo-300"
+              placeholder="Carrier"
+              disabled={disabled}
+            />
+          </td>
+        )}
 
-        {/* MinCharge */}
-        <td className="px-2 py-1.5">
-          <input
-            type="number"
-            value={line.minCharge ?? ''}
-            onChange={(e) => updateLine(idx, 'minCharge', e.target.value ? Number(e.target.value) : undefined)}
-            className="w-full px-1.5 py-1 text-xs text-right border border-gray-200 rounded focus:ring-1 focus:ring-indigo-300"
-            placeholder="0.00"
-            disabled={disabled}
-          />
-        </td>
+        {/* PerCBM (LCL/AIR only) */}
+        {!isFCL && (
+          <td className="px-2 py-1.5">
+            <input
+              type="number"
+              value={line.perCbm ?? ''}
+              onChange={(e) => updateLine(idx, 'perCbm', e.target.value ? Number(e.target.value) : undefined)}
+              className="w-full px-1.5 py-1 text-xs text-right border border-gray-200 rounded focus:ring-1 focus:ring-indigo-300"
+              placeholder="0.00"
+              disabled={disabled}
+            />
+          </td>
+        )}
+
+        {/* MinCharge (LCL/AIR only) */}
+        {!isFCL && (
+          <td className="px-2 py-1.5">
+            <input
+              type="number"
+              value={line.minCharge ?? ''}
+              onChange={(e) => updateLine(idx, 'minCharge', e.target.value ? Number(e.target.value) : undefined)}
+              className="w-full px-1.5 py-1 text-xs text-right border border-gray-200 rounded focus:ring-1 focus:ring-indigo-300"
+              placeholder="0.00"
+              disabled={disabled}
+            />
+          </td>
+        )}
 
         {/* LocalCharge */}
         <td className="px-2 py-1.5">
@@ -544,32 +614,45 @@ export const PriceDetailsTable: React.FC<PriceDetailsTableProps> = ({
               <th className="px-2 py-2 text-left font-medium text-gray-600 min-w-[130px]">POL</th>
               <th className="px-2 py-2 text-left font-medium text-gray-600 min-w-[130px]">POD</th>
 
-              {/* FCL: Container columns */}
+              {/* FCL: Container columns — inline sub-columns (Price/Num/Weight for 20GP) */}
               {isFCL &&
-                containerColumns.map((col) => (
-                  <th key={col.containerCode} className="px-2 py-2 text-center font-medium text-gray-600 min-w-[80px]">
-                    <div className="flex items-center justify-center gap-1">
-                      <span>{col.containerName}</span>
-                      {!disabled && (
-                        <button
-                          type="button"
-                          onClick={() => removeContainerColumn(col.containerCode)}
-                          className="text-gray-300 hover:text-red-500 ml-1"
-                          title="Remove column"
-                        >
-                          <Trash2 size={10} />
-                        </button>
-                      )}
-                    </div>
-                  </th>
-                ))}
+                containerColumns.map((col) => {
+                  const is20GP = col.containerCode === '20GP';
+                  return (
+                    <th key={col.containerCode} colSpan={is20GP ? 3 : 2} className="px-1 py-2 text-center font-medium text-gray-600 min-w-[80px]">
+                      <div className="flex items-center justify-center gap-1">
+                        <span>{col.containerName}</span>
+                        {!disabled && (
+                          <button
+                            type="button"
+                            onClick={() => removeContainerColumn(col.containerCode)}
+                            className="text-gray-300 hover:text-red-500 ml-1"
+                            title="Remove column"
+                          >
+                            <Trash2 size={10} />
+                          </button>
+                        )}
+                      </div>
+                      <div className="flex text-[9px] text-gray-400 font-normal justify-center gap-0">
+                        <span className="px-1">Price</span>
+                        <span className="px-1">Num</span>
+                        {is20GP && <span className="px-1 text-green-500">Wt(KG)</span>}
+                      </div>
+                    </th>
+                  );
+                })}
 
-              {/* Common price columns */}
+              {/* FCL: Carrier column */}
+              {isFCL && (
+                <th className="px-2 py-2 text-center font-medium text-gray-600 min-w-[80px]">Carrier</th>
+              )}
+              {/* LCL/AIR: Price column */}
               {!isFCL && (
                 <th className="px-2 py-2 text-right font-medium text-gray-600 min-w-[80px]">Price</th>
               )}
-              <th className="px-2 py-2 text-right font-medium text-gray-600 min-w-[80px]">PerCBM</th>
-              <th className="px-2 py-2 text-right font-medium text-gray-600 min-w-[80px]">MinCharge</th>
+              {/* LCL/AIR: PerCBM + MinCharge */}
+              {!isFCL && <th className="px-2 py-2 text-right font-medium text-gray-600 min-w-[80px]">PerCBM</th>}
+              {!isFCL && <th className="px-2 py-2 text-right font-medium text-gray-600 min-w-[80px]">MinCharge</th>}
               <th className="px-2 py-2 text-right font-medium text-gray-600 min-w-[80px]">LocalCharge</th>
               <th className="px-2 py-2 text-right font-medium text-gray-600 w-12">PriceText</th>
               {!disabled && <th className="px-2 py-2 w-8" />}
@@ -617,43 +700,6 @@ export const PriceDetailsTable: React.FC<PriceDetailsTableProps> = ({
           </tbody>
         </table>
       </div>
-
-      {/* Summary for FCL */}
-      {isFCL && priceLines.length > 0 && (
-        <div className="text-xs text-gray-500 flex items-center gap-4">
-          <span>
-            Total TEU:{' '}
-            <span className="font-medium text-gray-700">
-              {priceLines
-                .reduce((sum, line) => {
-                  const lineContainers = line.containerDetails || [];
-                  return (
-                    sum +
-                    lineContainers.reduce(
-                      (cs, d) => cs + (d.numberOfContainers || 0) * (d.teuValue || 0),
-                      0
-                    )
-                  );
-                }, 0)
-                .toFixed(2)}
-            </span>
-          </span>
-          <span>
-            Total Containers:{' '}
-            <span className="font-medium text-gray-700">
-              {priceLines.reduce((sum, line) => {
-                return (
-                  sum +
-                  (line.containerDetails || []).reduce(
-                    (cs, d) => cs + (d.numberOfContainers || 0),
-                    0
-                  )
-                );
-              }, 0)}
-            </span>
-          </span>
-        </div>
-      )}
     </div>
   );
 };

@@ -15,9 +15,12 @@ import {
   OfferCreatePayload,
   Country,
   Port,
+  SalesCountry,
   SalesOffice,
   SalesPic,
   ContainerType,
+  Carrier,
+  Currency,
   CnOffice,
   CargoTypeDict,
   ProductDict,
@@ -282,8 +285,41 @@ export const masterDataApi = {
   deleteSalesPic: async (id: number): Promise<void> =>
     request<void>(`/master/sales-pics/${id}`, { method: 'DELETE' }),
 
-  getSalesOffices: async (): Promise<SalesOffice[]> =>
-    request<SalesOffice[]>('/master/sales-offices'),
+  getSalesOffices: async (salesCountryCode?: string): Promise<SalesOffice[]> => {
+    const params = salesCountryCode ? `?salesCountryCode=${salesCountryCode}` : '';
+    return request<SalesOffice[]>(`/master/sales-offices${params}`);
+  },
+
+  saveSalesOffice: async (office: Partial<SalesOffice>): Promise<SalesOffice> => {
+    const method = office.id ? 'PUT' : 'POST';
+    const url = office.id ? `/master/sales-offices/${office.id}` : '/master/sales-offices';
+    return request<SalesOffice>(url, { method, body: JSON.stringify(office) });
+  },
+
+  deleteSalesOffice: async (id: number): Promise<void> =>
+    request<void>(`/master/sales-offices/${id}`, { method: 'DELETE' }),
+
+  // Sales Country CRUD
+  getSalesCountryList: async (): Promise<SalesCountry[]> =>
+    request<SalesCountry[]>('/master/sales-countries'),
+
+  saveSalesCountry: async (country: Partial<SalesCountry>): Promise<SalesCountry> => {
+    const isNew = !country.code || country.code === (country as any)._originalCode;
+    // For updates, use PUT with the code; for new, use POST
+    if ((country as any)._isNew) {
+      return request<SalesCountry>('/master/sales-countries', { method: 'POST', body: JSON.stringify(country) });
+    }
+    return request<SalesCountry>(`/master/sales-countries/${country.code}`, { method: 'PUT', body: JSON.stringify(country) });
+  },
+
+  createSalesCountry: async (country: Partial<SalesCountry>): Promise<SalesCountry> =>
+    request<SalesCountry>('/master/sales-countries', { method: 'POST', body: JSON.stringify(country) }),
+
+  updateSalesCountry: async (code: string, country: Partial<SalesCountry>): Promise<SalesCountry> =>
+    request<SalesCountry>(`/master/sales-countries/${code}`, { method: 'PUT', body: JSON.stringify(country) }),
+
+  deleteSalesCountry: async (code: string): Promise<void> =>
+    request<void>(`/master/sales-countries/${code}`, { method: 'DELETE' }),
 
   getContainerTypeList: async (): Promise<ContainerType[]> =>
     request<ContainerType[]>('/master/container-types'),
@@ -296,6 +332,38 @@ export const masterDataApi = {
 
   deleteContainerType: async (id: number): Promise<void> =>
     request<void>(`/master/container-types/${id}`, { method: 'DELETE' }),
+
+  // ===== Carrier 承运商管理 =====
+  getCarrierList: async (): Promise<Carrier[]> =>
+    request<Carrier[]>('/master/carriers'),
+
+  getActiveCarriers: async (): Promise<Carrier[]> =>
+    request<Carrier[]>('/master/carriers/active'),
+
+  saveCarrier: async (carrier: Carrier): Promise<Carrier> => {
+    const method = carrier.id ? 'PUT' : 'POST';
+    const url = carrier.id ? `/master/carriers/${carrier.id}` : '/master/carriers';
+    return request<Carrier>(url, { method, body: JSON.stringify(carrier) });
+  },
+
+  deleteCarrier: async (id: number): Promise<void> =>
+    request<void>(`/master/carriers/${id}`, { method: 'DELETE' }),
+
+  // ===== Currency 货币管理 =====
+  getCurrencyList: async (): Promise<Currency[]> =>
+    request<Currency[]>('/master/currencies'),
+
+  getActiveCurrencies: async (): Promise<Currency[]> =>
+    request<Currency[]>('/master/currencies/active'),
+
+  saveCurrency: async (currency: Currency): Promise<Currency> => {
+    const method = currency.id ? 'PUT' : 'POST';
+    const url = currency.id ? `/master/currencies/${currency.id}` : '/master/currencies';
+    return request<Currency>(url, { method, body: JSON.stringify(currency) });
+  },
+
+  deleteCurrency: async (id: number): Promise<void> =>
+    request<void>(`/master/currencies/${id}`, { method: 'DELETE' }),
 
   /** CN Pricing Admin 列表 (仅 active) */
   getCnPricingAdmins: async (): Promise<SelectOption[]> => {
@@ -321,6 +389,8 @@ export const enquiryApi = {
     if (params?.salesCountryCode) sp.set('salesCountryCode', params.salesCountryCode);
     if (params?.assignedCnOffice) sp.set('assignedCnOffice', params.assignedCnOffice);
     if (params?.coreNonCore) sp.set('coreNonCore', params.coreNonCore);
+    if (params?.polPortId) sp.set('polPortId', String(params.polPortId));
+    if (params?.podPortId) sp.set('podPortId', String(params.podPortId));
     if (params?.dateFrom) sp.set('dateFrom', params.dateFrom);
     if (params?.dateTo) sp.set('dateTo', params.dateTo);
     if (params?.sortBy) sp.set('sortBy', params.sortBy);
@@ -403,6 +473,8 @@ export const enquiryApi = {
     salesPicId?: number;
     coreNonCore?: CoreNonCore;
     assignedCnOffice?: string;
+    polPortId?: number;
+    podPortId?: number;
     startDate?: string;
     endDate?: string;
     sortBy?: string;
@@ -417,6 +489,8 @@ export const enquiryApi = {
       salesCountryCode: params?.salesCountryCode || undefined,
       coreNonCore: params?.coreNonCore || undefined,
       assignedCnOffice: params?.assignedCnOffice || undefined,
+      polPortId: params?.polPortId || undefined,
+      podPortId: params?.podPortId || undefined,
       dateFrom: params?.startDate || undefined,
       dateTo: params?.endDate || undefined,
       sortBy: params?.sortBy || undefined,

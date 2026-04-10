@@ -1,0 +1,170 @@
+﻿CSV原始值,出现次数,对应Reference Number（前5个）,建议操作
+STR,86,CN2501310-A; CN2501351-A; CN2501374-A; CN2502013-AS; CN2502214-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+JFK,13,CN2506189-A; CN2506428-A; CN2506428-A1; CN2506609-A; CN2507319-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+MAA,10,CN2504225-A; CN2504354-A; CN2504452-A; CN2505061-A; CN2505189-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+BUD,9,CN2504393-A; CN2507159-A; CN2507172-A; CN2507173-A; CN2507193-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+ALG,7,CN2502151-A; CN2502487-A; CN2503529-A; CN2505278-A; CN2505455-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+SGN,7,CN2502173-A; CN2502354-A; CN2502369-A; CN2504213-A; CN2504522-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+MEL,7,CN2507191-AS; CN2507453-A; CN2510236-S; CN2510342-A; CN2511540-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+ABJ,6,CN2503025-A; CN2503148-A; CN2504472-A; CN2508092-AS; CN2509380-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+AMM,6,CN2512150-A; CN2512252-A; CN2512315-A; CN2512319-A; CN2512466-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+IAH,5,CN2506115-AS; CN2506555-AS; CN2508209-A; CN2508563-AS; CN2512689-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+SYD,4,CN2502393-A; CN2504278-A; CN2510181-AS; CN2510236-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+ORD,4,CN2505471-A; CN2506479-A; CN2510584-A; CN2511683-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+LPB,4,CN2509470-A; CN2510325-A; CN2512223-A; CN2602181-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+MIA,4,CN2509505-A; CN2509587-A; CN2511252-A; CN2511403-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+100027 Beijing,4,CN2511045-A; CN2511045-A1; CN2511045-A2; CN2511615-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+LAX,3,CN2501083-A; CN2505253-A1; CN2511484-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+JAX,3,CN2501167-A; CN2501237-A; CN2505477-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+HEL,3,CN2502059-A; CN2502059-A1; CN2505423-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+215151 SUZHOU,3,CN2505171-A; CN2510268-A; CN2512508-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+BAH,3,CN2506355-A; CN2509088-A; CN2509176-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+LEH,3,CN2507263-S; CN2507265-S; CN2511482-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+LAS,3,CN2511108-A; CN2512336-A; CN2512604-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+519085 Zhuhai,2,CN2501316-A1; CN2501316-A2,请提供正确的港口代码（如GBFXT）以便系统匹配
+523873 Dongguan,2,CN2501437-A; CN2507575-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+200233 Shanghai,2,CN2502133-A; CN2512289-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+Chengdu 611731,2,CN2503204-A; CN2503370-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+266510 QINGDAO,2,CN2503403-A; CN2507464-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+519085 ZHUHAI,2,CN2503498-A; CN2511585-S,请提供正确的港口代码（如GBFXT）以便系统匹配
+Wenzhou 325103,2,CN2503602-A; CN2507667-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+SFO,2,CN2504076-A; CN2505016-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+VVI,2,CN2504078-A; CN2509470-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+BOM,2,CN2504147-A; CN2504624-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+CCU,2,CN2504321-A; CN2504353-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+CPH,2,CN2505510-A; CN2506413-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+PRG,2,CN2505612-A; CN2601177-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+DAC,2,CN2507034-A; CN2601752-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+Guangning County,2,CN2507244-A; CN2508088-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+BNE,2,CN2510236-S; CN2510327-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+"Kowloon, HK",2,CN2511391-AS1; CN2512468-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+201108 Shanghai,2,CN2512591-A; CN2602001-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+201812 Shanghai,2,CN2512593-A; CN2601373-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+CTA,2,CN2602137-A; CN2602137-A1,请提供正确的港口代码（如GBFXT）以便系统匹配
+KWUN TONG,1,CN2501142-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+DFW,1,CN2501155-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+Tianchang,1,CN2501158-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+Shatin,1,CN2501245-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+Hui Zhongbeili,1,CN2501263-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+Tsim Sha Tsui,1,CN2501311-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+KOWLOON HKG,1,CN2501312-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+Zhangzou,1,CN2501365-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+200131 Shanghai,1,CN2501413-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+Clear Water Bay.Hong Kong,1,CN2501419-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+571126 Haikou,1,CN2501439-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+Hongqiao Airport,1,CN2502011-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+Chaoyang District 100027,1,CN2502014-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+"TUEN MUN,HK",1,CN2502115-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+215000 Suzhou,1,CN2502126-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+"Shatin, NT Hong Kong",1,CN2502148-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+"Suizhou City, Hubei Province",1,CN2502201-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+510850 Guangzhou,1,CN2502221-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+"Boluo,Hui zhou City",1,CN2502350-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+317599 Wenling,1,CN2502412-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+311215 HANGZHOU,1,CN2502425-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+Hangzhou 310018,1,CN2503037-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+"Shiqiaozi Town, Zhucheng City",1,CN2503084-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+17180 PERIGNY,1,CN2503138-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+201108 SHANGHAI,1,CN2503333-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+"TS2 1TT, UK",1,CN2503335-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+110141 SHENYANG,1,CN2503515-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+ANHUI 239323,1,CN2503552-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+213033 Changzhou,1,CN2503574-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+Tianjin city,1,CN2503592-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+"Binhai, Tianjin",1,CN2503628-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+510530 Guangzhou,1,CN2503685-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+200131 Beijing,1,CN2504005-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+"Jordan, Kowloon",1,CN2504012-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+QINGDAO LIUTING INDUSTRIAL ZONE,1,CN2504034-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+200245 Shanghai,1,CN2504132-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+430078 WUHAN,1,CN2504138-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+"Jiangsu, 215434",1,CN2504152-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+"Handan City,Heibe Province",1,CN2504243-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+518103 Shenzhen,1,CN2504296-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+Shanghai 201812,1,CN2504303-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+Anhui city,1,CN2504323-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+518104 Shenzhen,1,CN2504336-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+215400 SUZHOU,1,CN2504362-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+Shanghai 201413,1,CN2504366-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+"Fengxian district, Shanghai, China",1,CN2504455-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+Shanghai 201808,1,CN2504478-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+BEIJING 100012,1,CN2504481-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+100028 Beijing,1,CN2504502-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+MLE,1,CN2505059-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+Suzhou 215434,1,CN2505066-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+WDH,1,CN2505114-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+317607 Yuhuan,1,CN2505170-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+QIDONG 226251,1,CN2505173-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+Jiangsu 215300,1,CN2505387-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+MAO,1,CN2505399-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+Haikou 571126,1,CN2505418-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+116102 DALIAN,1,CN2505537-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+YUNTAI,1,CN2505619-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+TLV,1,CN2506044-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+CWB,1,CN2506076-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+"Suzhou Jiangsu, 215434",1,CN2506081-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+"zhuji city, zhejiang",1,CN2506083-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+"Kennedy Town,HK",1,CN2506193-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+"528437, Zhongshan city",1,CN2506261-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+213149 Jiangsu,1,CN2506280-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+Shanghai 200436,1,CN2506441-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+"362343, Nan An city",1,CN2506512-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+301700 TIANJIN,1,CN2507083-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+519060 Zhuhai,1,CN2507247-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+TSING YI HONG KONG,1,CN2507416-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+999077 HK,1,CN2507495-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+100043 Beijing,1,CN2507674-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+CKY,1,CN2508058-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+"Bao'an, shenzhen city",1,CN2508388-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+"Hung Hom, Kowloon,HK",1,CN2508513-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+"Tuen Mun, N.T.HK",1,CN2508557-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+PNR,1,CN2509054-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+226236 JIANGSU,1,CN2509064-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+201108 Shanghai.,1,CN2509066-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+Anhui 239323,1,CN2509160-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+300402 Tianjin,1,CN2509188-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+"Cheung Sha Wan, HK",1,CN2509209-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+"kowloon, HK",1,CN2509272-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+065201 Sanhe,1,CN2509350-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+511495 GUANGZHOU,1,CN2509401-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+Dong Guan 52300,1,CN2509402-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+200040 shanghai,1,CN2509577-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+LONGGANG City,1,CN2509702-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+116600 DALIAN,1,CN2510115-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+201619 SHANGHAI,1,CN2510361-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+"266111, Qingdao city",1,CN2510571-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+110179 Shenyang city,1,CN2511116-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+Kwai Chung,1,CN2511262-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+261000 Weifang,1,CN2511475-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+BLZ,1,CN2511510-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+LLW,1,CN2511510-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+MSP,1,CN2511517-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+231400 TONGCHENG,1,CN2511569-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+NSW 2161,1,CN2511599-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+HAJ,1,CN2511645-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+MEM,1,CN2511666-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+SAP,1,CN2511708-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+SIN,1,CN2512082-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+Beijing 100061,1,CN2512325-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+SVO,1,CN2512360-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+Ziegler HONG KONG Warehouse,1,CN2512361-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+Pinghu City,1,CN2512364-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+"TSUEN WAN, HK",1,CN2512469-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+Shenzhen 518103,1,CN2512564-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+KOWLOON HONG KONG,1,CN2512576-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+MCI,1,CN2512720-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+SEA,1,CN2601076-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+ADB,1,CN2601094-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+Mianyang city,1,CN2601282-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+CDK,1,CN2601518-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+GYD,1,CN2601520-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+354105 Nanping City,1,CN2601546-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+"412200 LILING,HUNAN PROVINCE",1,CN2601574-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+MBA,1,CN2601607-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+ZAG,1,CN2601703-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+MAM,1,CN2601733-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+CLE,1,CN2602008-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+HND,1,CN2602081-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+CVG,1,CN2602132-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+Leshan City,1,CN2602167-A,请提供正确的港口代码（如GBFXT）以便系统匹配
+MLA,1,CN2602179-A,请提供正确的港口代码（如GBFXT）以便系统匹配

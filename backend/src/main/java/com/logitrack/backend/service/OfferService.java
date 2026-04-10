@@ -77,6 +77,8 @@ public class OfferService {
         offer.setOfferType(dto.getOfferType());
         offer.setOfferDate(dto.getOfferDate());
         offer.setRemark(dto.getRemark());
+        offer.setContainerCurrency(dto.getContainerCurrency());
+        offer.setLocalChargeCurrency(dto.getLocalChargeCurrency());
         offer.setIsLatest(true);
 
         if (dto.getSequenceNo() != null) {
@@ -130,6 +132,8 @@ public class OfferService {
         existing.setOfferType(dto.getOfferType());
         existing.setOfferDate(dto.getOfferDate());
         existing.setRemark(dto.getRemark());
+        existing.setContainerCurrency(dto.getContainerCurrency());
+        existing.setLocalChargeCurrency(dto.getLocalChargeCurrency());
         if (dto.getIsLatest() != null) {
             existing.setIsLatest(dto.getIsLatest());
         }
@@ -331,6 +335,7 @@ public class OfferService {
             line.setLocalCharge(dto.getLocalCharge());
             line.setPrice(dto.getPrice());
             line.setPriceText(dto.getPriceText());
+            line.setCarrier(dto.getCarrier());
             line.setSortOrder(dto.getSortOrder() != null ? dto.getSortOrder() : sortOrder);
             sortOrder++;
 

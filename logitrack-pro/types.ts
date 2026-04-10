@@ -109,11 +109,21 @@ export interface Port {
   isActive: boolean;
 }
 
+export interface SalesCountry {
+  code: string;
+  name: string;
+  sortOrder: number;
+  isActive: boolean;
+}
+
 export interface SalesOffice {
   id: number;
   code: string;
   name: string;
+  salesCountryCode?: string;
   countryCode: string;
+  nameNorm?: string;
+  remark?: string;
   isActive: boolean;
 }
 
@@ -135,6 +145,22 @@ export interface ContainerType {
   lengthFeet: number;
   isSpecial: boolean;
   isActive: boolean;
+}
+
+export interface Carrier {
+  id: number;
+  carrierCode: string;
+  carrierName: string;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+export interface Currency {
+  id?: number;
+  currencyCode: string;
+  currencyName: string;
+  isActive: boolean;
+  sortOrder: number;
 }
 
 export interface CnOffice {
@@ -237,6 +263,7 @@ export interface OfferPriceLine {
   localCharge?: number;
   price?: number;
   priceText?: string;
+  carrier?: string;
   sortOrder?: number;
   containerDetails?: OfferContainerDetail[];
   polName?: string;
@@ -251,6 +278,8 @@ export interface Offer {
   offerType: OfferType;
   offerDate?: string;
   remark?: string;
+  containerCurrency?: string;
+  localChargeCurrency?: string;
   priceLines: OfferPriceLine[];
   createdAt?: string;
   updatedAt?: string;
@@ -264,6 +293,8 @@ export interface OfferCreatePayload {
   remark?: string;
   sequenceNo?: number;
   isLatest?: boolean;
+  containerCurrency?: string;
+  localChargeCurrency?: string;
   priceLines: OfferPriceLine[];
 }
 
@@ -319,6 +350,8 @@ export interface Enquiry {
 
   offers?: Offer[];
 
+  containerRows?: EnquiryContainerRow[];
+
   createdAt?: string;
   updatedAt?: string;
 }
@@ -353,6 +386,29 @@ export interface EnquiryListItem {
 // Enquiry form data (create / update payload)
 // ==========================================
 
+// ==========================================
+// Enquiry Container Row (Cargo Information level)
+// ==========================================
+
+export interface EnquiryContainerRow {
+  id?: number;
+  qty20: number;
+  weight20?: number;
+  qty40: number;
+  weight40?: number;
+  qty40hq: number;
+  weight40hq?: number;
+  qty45: number;
+  weight45?: number;
+  cntrTypeId?: number;
+  cntrTypeCode?: string;
+  lineTeu?: number; // computed
+  /** Dynamic extra container quantities keyed by container code, e.g. { '20RF': 3, '40OT': 1 } */
+  extraContainers?: Record<string, number>;
+  /** Dynamic extra container weights keyed by container code, e.g. { '20OT': 150, '20RF': 200 } */
+  extraContainerWeights?: Record<string, number>;
+}
+
 export interface EnquiryFormData {
   enquiryReceivedDate: string;
   enquiryCreatedDate: string;
@@ -386,7 +442,10 @@ export interface EnquiryFormData {
   hasSpecificCargoReadyDate?: boolean;
   cargoReadyDate?: string;
   cargoReadyDateDetails?: string;
+  additionalRequirements?: string;
   remark?: string;
+
+  containerRows?: EnquiryContainerRow[];
 }
 
 export interface ReferencePreview {
@@ -409,6 +468,8 @@ export interface EnquirySearchParams {
   salesCountryCode?: string;
   assignedCnOffice?: string;
   coreNonCore?: CoreNonCore;
+  polPortId?: number;
+  podPortId?: number;
   dateFrom?: string;
   dateTo?: string;
   page?: number;

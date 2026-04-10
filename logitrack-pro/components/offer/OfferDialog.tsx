@@ -61,6 +61,8 @@ export const OfferDialog: React.FC<OfferDialogProps> = ({
   const [offerType, setOfferType] = useState<OfferType>('' as OfferType);
   const [offerDate, setOfferDate] = useState(new Date().toISOString().split('T')[0]);
   const [remark, setRemark] = useState('');
+  const [containerCurrency, setContainerCurrency] = useState('USD');
+  const [localChargeCurrency, setLocalChargeCurrency] = useState('USD');
   const [priceLines, setPriceLines] = useState<OfferPriceLine[]>([]);
   const [containerTypes, setContainerTypes] = useState<ContainerTypeSelectOption[]>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -92,12 +94,16 @@ export const OfferDialog: React.FC<OfferDialogProps> = ({
         setOfferType(existingOffer.offerType);
         setOfferDate(existingOffer.offerDate || new Date().toISOString().split('T')[0]);
         setRemark(existingOffer.remark || '');
+        setContainerCurrency(existingOffer.containerCurrency || 'USD');
+        setLocalChargeCurrency(existingOffer.localChargeCurrency || 'USD');
         setPriceLines(existingOffer.priceLines || []);
       } else {
         const ot = determineOfferType(cargoTypeCode);
         setOfferType(ot);
         setOfferDate(new Date().toISOString().split('T')[0]);
         setRemark('');
+        setContainerCurrency('USD');
+        setLocalChargeCurrency('USD');
         setPriceLines([]);
         // Auto-generate price lines for new offers
         offerApi.generatePriceLines(enquiryId).then((lines) => {
@@ -200,6 +206,8 @@ export const OfferDialog: React.FC<OfferDialogProps> = ({
         remark,
         sequenceNo: existingOffer?.sequenceNo || offersCount + 1,
         isLatest: true,
+        containerCurrency,
+        localChargeCurrency,
         priceLines: filteredLines,
       };
 
