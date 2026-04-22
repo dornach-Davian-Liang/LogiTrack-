@@ -265,6 +265,7 @@ export interface Translations {
     };
     userRoles: {
       admin: string;
+      salesManager: string;
       pricingAdmin: string;
       user: string;
     };
@@ -599,7 +600,8 @@ export const zhTranslations: Translations = {
     },
     userRoles: {
       admin: 'Admin',
-      pricingAdmin: 'Pricing Admin',
+      salesManager: 'Sales Manager',
+      pricingAdmin: 'CN Pricing Operator',
       user: 'User',
     },
     statusLabels: {
@@ -931,7 +933,8 @@ export const enTranslations: Translations = {
     },
     userRoles: {
       admin: 'Admin',
-      pricingAdmin: 'Pricing Admin',
+      salesManager: 'Sales Manager',
+      pricingAdmin: 'CN Pricing Operator',
       user: 'User',
     },
     statusLabels: {

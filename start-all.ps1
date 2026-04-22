@@ -20,6 +20,7 @@ $FrontendLog = Join-Path $LogDir "frontend.log"
 $FrontendErr = Join-Path $LogDir "frontend.err.log"
 $BackendPort = 8080
 $FrontendPort = 3000
+$FrontendHost = "210.184.51.237"
 
 New-Item -ItemType Directory -Path $LogDir -Force | Out-Null
 
@@ -251,7 +252,7 @@ function Start-Frontend {
             throw "Frontend health check timeout. Check logs: $FrontendLog / $FrontendErr"
         }
 
-        Write-Ok "Frontend is ready at http://127.0.0.1:$FrontendPort"
+        Write-Ok "Frontend is ready at http://${FrontendHost}:$FrontendPort"
     }
     finally {
         Pop-Location
@@ -294,7 +295,7 @@ try {
     Write-Host "`n========================================" -ForegroundColor Green
     Write-Host "Startup completed" -ForegroundColor Green
     Write-Host "========================================" -ForegroundColor Green
-    Write-Host "Frontend: http://127.0.0.1:$FrontendPort" -ForegroundColor White
+    Write-Host "Frontend: http://${FrontendHost}:$FrontendPort" -ForegroundColor White
     Write-Host "Backend:  http://127.0.0.1:$BackendPort" -ForegroundColor White
     Write-Host "Database: localhost:3306/$DbName" -ForegroundColor White
     Write-Host "Logs:     $LogDir" -ForegroundColor White

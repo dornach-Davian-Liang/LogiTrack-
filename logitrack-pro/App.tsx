@@ -113,16 +113,21 @@ const App: React.FC = () => {
   };
 
   const roles = currentUser?.roles ?? [];
-  // 后端返回的角色代码: ADMIN_USER, OPERATING_USER, NORMAL_USER
+  // 后端返回的角色代码: ADMIN_USER, SALES_MANAGER, OPERATING_USER, NORMAL_USER
   const isAdmin = roles.includes('ADMIN_USER') || roles.includes('ADMIN');
-  const isOperatingUser = isAdmin || roles.includes('OPERATING_USER');
-  const isLoginUser = !isAdmin && !isOperatingUser;
+  const isSalesManager = roles.includes('SALES_MANAGER');
+  const isOperatingUser = roles.includes('OPERATING_USER');
+  const isLoginUser = !isAdmin && !isSalesManager && !isOperatingUser;
   
-  // Admin权限：可以访问所有功能
-  const canManageEnquiries = isAdmin || isOperatingUser;
-  const canManageMasterData = isAdmin || isOperatingUser;
-  const canViewReports = isAdmin || isOperatingUser;
-  const canViewSettings = isAdmin;  // ✅ 仅Admin可见设置（不包括operator）
+  // 权限层级: ADMIN > SALES_MANAGER > OPERATING_USER > NORMAL_USER
+  // ADMIN: 全部功能
+  // SALES_MANAGER: 询价管理 + 主数据 + 报表（等同原OPERATING_USER权限）
+  // OPERATING_USER (CN Pricing Operator): 询价管理 + 主数据（不含报表）
+  // NORMAL_USER: 仅查看
+  const canManageEnquiries = isAdmin || isSalesManager || isOperatingUser;
+  const canManageMasterData = isAdmin || isSalesManager || isOperatingUser;
+  const canViewReports = isAdmin || isSalesManager;  // ✅ OPERATING_USER不可见Reports
+  const canViewSettings = isAdmin;  // ✅ 仅Admin可见设置
   const displayName = currentUser?.username ?? 'User';
   const displayRole = roles[0] ?? 'LOGIN_USER';
 
@@ -467,7 +472,7 @@ const App: React.FC = () => {
         <div className="flex items-center justify-center h-16 bg-slate-950 shadow-md">
             <div className="flex items-center gap-2 font-bold text-xl tracking-tight">
                 <Ship className="w-6 h-6 text-indigo-400" />
-                <span>LogiTrack</span>
+                <span>ZAsia Pricing</span>
             </div>
         </div>
         <div className="flex-1 flex flex-col overflow-y-auto pt-5 pb-4">

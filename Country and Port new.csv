@@ -1,0 +1,793 @@
+SEA port code						
+Country		port name		Display name		port code
+Alabama	/	Dothan	/	Dothan, Alabama	/	USDHN
+Albania	/	Durres	/	Durres, Albania	/	ALDRZ
+Algeria	/	Algiers	/	Algiers, Algeria	/	DZALG
+Algeria	/	Bejaia	/	Bejaia, Algeria	/	DZBSK
+Algeria	/	Oran	/	Oran, Algeria	/	DZORN
+Algeria	/	Skikda	/	Skikda, Algeria	/	AGSKI
+Antigua	/	St.John's	/	St.John's, Antigua	/	AGSJO
+Argentina	/	Buenos Aires	/	Buenos Aires, Argentina	/	ARBUE
+Argentina	/	Rosario	/	Rosario, Argentina	/	ARROS
+Argentina	/	San Francisco	/	San Francisco, Argentina	/	ARSFO
+Argentina	/	San Lorenzo	/	San Lorenzo, Argentina	/	ARSLO
+Australia	/	Adelaide	/	Adelaide, Australia	/	AUADL
+Australia	/	Bedourie	/	Bedourie, Australia	/	AUBEU
+Australia	/	Brisbane	/	Brisbane, Australia	/	AUBNE
+Australia	/	Fremantle	/	Fremantle, Australia	/	AUFRE
+Australia	/	Melbourne	/	Melbourne, Australia	/	AUMEL
+Australia	/	Perth	/	Perth, Australia	/	AUPER
+Australia	/	Roebourne	/	Roebourne, Australia	/	AURBU
+Australia	/	Sydney	/	Sydney, Australia	/	AUSYD
+Austria	/	Hard	/	Hard, Austria	/	ATHRD
+Austria	/	Wien	/	Wien, Austria	/	ATVIE
+Bahamas	/	Nassau	/	Nassau, Bahamas	/	BSNAS
+Bahrain	/	Bahrain Port	/	Bahrain Port, Bahrain	/	BHBAH
+Bahrain	/	Khalifa Bin Salman Port	/	Khalifa Bin Salman Port, Bahrain	/	BHMIN
+Bangladesh	/	Chattogram/Chittagong	/	Chattogram/Chittagong, Bangladesh	/	BDCGP
+Bangladesh	/	Dhaka	/	Dhaka, Bangladesh	/	BDDAC
+Bangladesh	/	Mongla	/	Mongla, Bangladesh	/	BDMGL
+Barbados	/	Bridgetown	/	Bridgetown, Barbados	/	BBBGI
+Belgium	/	Antwerp	/	Antwerp, Belgium	/	BEANR
+Belgium	/	Brussels	/	Brussels, Belgium	/	BEBRU
+Belgium	/	Ghent	/	Ghent, Belgium	/	BEGNE
+Belgium	/	Herstal	/	Herstal, Belgium	/	BEHRS
+Belgium	/	Leige	/	Leige, Belgium	/	BELGG
+Belgium	/	Zeebrugge	/	Zeebrugge, Belgium	/	BEZEE
+Belgium 	/	Liege	/	Liege, Belgium 	/	BELGG
+Benin	/	Cotonou	/	Cotonou, Benin	/	BJCOO
+Bolivia	/	El Alto	/	El Alto, Bolivia	/	BOLPB
+Bolivia	/	Santa Cruz	/	Santa Cruz, Bolivia	/	BOVVI
+Brazil	/	Curitiba	/	Curitiba, Brazil	/	BRCWB
+Brazil	/	Itajai	/	Itajai, Brazil	/	BRITJ
+Brazil	/	Itapoá	/	Itapoá, Brazil	/	BRIOA
+Brazil	/	Manaus	/	Manaus, Brazil	/	BRMAO
+Brazil	/	Navegantes	/	Navegantes, Brazil	/	BRNVT
+Brazil	/	Paranagua	/	Paranagua, Brazil	/	BRPNG
+Brazil	/	Pecém	/	Pecém, Brazil	/	BRPEC 
+Brazil	/	Recife	/	Recife, Brazil	/	BRREC
+Brazil	/	Rio Grande	/	Rio Grande, Brazil	/	BRRIG
+Brazil	/	Santos	/	Santos, Brazil	/	BRSSZ
+Brazil	/	Suape	/	Suape, Brazil	/	BRSUA
+Brazil	/	Vitoria	/	Vitoria, Brazil	/	BRVIT
+Brunei	/	Maura	/	Maura, Brunei	/	BNMUA 
+Brunei	/	Muara	/	Muara, Brunei	/	BNMUA
+Bulgaria	/	Sofia	/	Sofia, Bulgaria	/	BGSOF 
+Bulgaria	/	Varna	/	Varna, Bulgaria	/	BGVAR
+Burkina Faso	/	Ouagadougou	/	Ouagadougou, Burkina Faso	/	BFOUA
+Cambodia	/	Sihanoukville	/	Sihanoukville, Cambodia	/	KHKOS
+Cameroon	/	Douala	/	Douala, Cameroon	/	CMDLA
+Canada	/	Armstrong	/	Armstrong, Canada	/	CAARM
+Canada	/	Calgary	/	Calgary, Canada	/	CACAL
+Canada	/	Chateauguay, QC	/	Chateauguay, QC, Canada	/	CACGY
+Canada	/	Edmonton	/	Edmonton, Canada	/	CAEDM
+Canada	/	Halifax	/	Halifax, Canada	/	CAHAL
+Canada	/	Montreal, QC	/	Montreal, QC, Canada	/	CAMTR
+Canada	/	Regina Saskatchewan	/	Regina Saskatchewan, Canada	/	CAREG
+Canada	/	Saskatchewan	/	Saskatchewan, Canada	/	-
+Canada	/	Saskatoon, Sk	/	Saskatoon, Sk, Canada	/	CASAK
+Canada	/	St. John's	/	St. John's, Canada	/	CASJF
+Canada	/	Stratford, ON	/	Stratford, ON, Canada	/	-
+Canada	/	Toronto	/	Toronto, Canada	/	CATOR
+Canada	/	Vancouver	/	Vancouver, Canada	/	CAVAN
+Canada	/	Winnipeg	/	Winnipeg, Canada	/	CAWNP
+Chile	/	Arica	/	Arica, Chile	/	CLARI
+Chile	/	Iquique	/	Iquique, Chile	/	CLIQU
+Chile	/	San Antonio	/	San Antonio, Chile	/	CLSAN
+Chile	/	Santiago	/	Santiago, Chile	/	SANCL
+Chile	/	Valparaiso	/	Valparaiso, Chile	/	CLVAP
+China	/	Baoding	/	Baoding, China	/	CNBDZ
+China	/	Baoji	/	Baoji, China	/	CNBOJ
+China	/	Beijiao	/	Beijiao, China	/	CNBIJ
+China	/	Beijing	/	Beijing, China	/	CNBJS 
+China	/	Bengbu	/	Bengbu, China	/	CNBBU
+China	/	Bozhou	/	Bozhou, China	/	CNBOZ
+China	/	Changsha	/	Changsha, China	/	CNCSH
+China	/	Changzhou	/	Changzhou, China	/	CNCZX
+China	/	Chaozhou 	/	Chaozhou, China	/	CNCOZ
+China	/	Chengdu	/	Chengdu, China	/	CNCTU
+China	/	Chongqing	/	Chongqing, China	/	CNCQI 
+China	/	Dalian	/	Dalian, China	/	CNDLC
+China	/	Dezhou	/	Dezhou, China	/	CNDEZ
+China	/	Dongguan	/	Dongguan, China	/	CNDGG
+China	/	Doumen	/	Doumen, China	/	CNDOU
+China	/	Foshan	/	Foshan, China	/	CNFOS
+China	/	Fuzhou	/	Fuzhou, China	/	CNFOC
+China	/	Gaomi	/	Gaomi, China	/	CNGMI
+China	/	Gaoming	/	Gaoming, China	/	CNGOM
+China	/	Guangzhou	/	Guangzhou, China	/	CNCAN
+China	/	Guiping	/	Guiping, China	/	CNGPG
+China	/	Haikou	/	Haikou, China	/	CNHAK
+China	/	Haimen 	/	Haimen, China	/	CNHME
+China	/	Haining	/	Haining, China	/	CNHIN
+China	/	Handan	/	Handan, China	/	CNHDS
+China	/	Hangzhou	/	Hangzhou, China	/	CNHGH
+China	/	Hefei	/	Hefei, China	/	CNHFI 
+China	/	Hengshui 	/	Hengshui, China	/	CNHES
+China	/	Heyuan 	/	Heyuan, China	/	CNHEY
+China	/	Huanggang	/	Huanggang, Hubei, China	/	-
+China	/	Huangpu	/	Huangpu, China	/	CNHUA
+China	/	Huangshan	/	Huangshan, China	/	CNHSI
+China	/	Huizhou	/	Huizhou, China	/	CNHUI
+China	/	Jiangmen	/	Jiangmen, China	/	CNJMN
+China	/	Jiangyin	/	Jiangyin, China	/	CNJIA
+China	/	Jiaxing 	/	Jiaxing, China	/	CNJAX
+China	/	Jinan	/	Jinan, China	/	CNJNA
+China	/	Jinhua	/	Jinhua, China	/	CNJHA
+China	/	Jining	/	Jining, China	/	CNJNG
+China	/	Jiujiang, Guangdong	/	Jiujiang, Guangdong, China	/	
+China	/	Jiujiang, Jiangxi	/	Jiujiang, Jiangxi, China	/	
+China	/	Kunshan	/	Kunshan, China	/	CNKUS
+China	/	Langfang	/	Langfang, China	/	CNLFZ
+China	/	Lanxi 	/	Lanxi, China	/	CNLXI
+China	/	Lianyungang	/	Lianyungang, China	/	CNLYG
+China	/	Lishui	/	Lishui, China	/	CNLSS
+China	/	Longkou	/	Longkou, China	/	CNLKU
+China	/	Luoyang	/	Luoyang, China	/	CNLYA 
+China	/	Maanshan	/	Maanshan, China	/	CNMAA
+China	/	Nanchang	/	Nanchang, China	/	CNKHN
+China	/	Nanjing	/	Nanjing, China	/	CNNKG
+China	/	Nanping	/	Nanping, China	/	-
+China	/	Nansha	/	Nansha, China	/	CNNSA
+China	/	Nantong	/	Nantong, China	/	CNNTG
+China	/	Neijiang	/	Neijiang, China	/	CNNIJ
+China	/	Ningbo	/	Ningbo, China	/	CNNBG
+China	/	Qidong	/	Qidong, China	/	CNQID
+China	/	Qingdao	/	Qingdao, China	/	CNTAO 
+China	/	Qinzhou	/	Qinzhou, China	/	CNQZH
+China	/	Qiqihar	/	Qiqihar, China	/	CNNDG 
+China	/	Quanzhou	/	Quanzhou, China	/	CNQZJ
+China	/	Rizhao	/	Rizhao, China	/	CNRZH
+China	/	Shanghai	/	Shanghai, China	/	CNSHG
+China	/	Shangluo 	/	Shangluo, China	/	-
+China	/	Shantou	/	Shantou, China	/	CNSWA
+China	/	Shanwei	/	Shanwei, China	/	CNSWE
+China	/	Shaoguan	/	Shaoguan, China	/	CNHSC
+China	/	Shaoxing 	/	Shaoxing, China	/	CNSXG
+China	/	Shekou	/	Shekou, China	/	CNSHK
+China	/	Shenyang	/	Shenyang, China	/	CNSHY 
+China	/	Shenzhen	/	Shenzhen, China	/	CNSZX
+China	/	Shijiazhuang	/	Shijiazhuang, China	/	CNSJW
+China	/	Shishi 	/	Shishi, China	/	CNSHH
+China	/	Shunde	/	Shunde, China	/	CNSUD
+China	/	Suqian	/	Suqian, China	/	CNSUQ
+China	/	Suzhou	/	Suzhou, China	/	CNSZH
+China	/	Taicang	/	Taicang, China	/	CNTAC
+China	/	Taishan	/	Taishan, China	/	CNTIS
+China	/	Taizhou	/	Taizhou, China	/	CNTAZ
+China	/	Tangshan	/	Tangshan, China	/	CNTGS
+China	/	Weifang	/	Weifang, China	/	CNWEF
+China	/	Weihai	/	Weihai, China	/	CNWEI
+China	/	Wenling	/	Wenling, China	/	CNWEN
+China	/	Wenzhou	/	Wenzhou, China	/	CNWNZ
+China	/	Wuhan	/	Wuhan, China	/	CNWUH
+China	/	Wuhu	/	Wuhu, China	/	CNWHI
+China	/	Wujiang 	/	Wujiang, China	/	CNWUJ
+China	/	Wuxi	/	Wuxi, China	/	CNWXS
+China	/	Xiamen	/	Xiamen, China	/	CNXMN 
+China	/	Xian	/	Xian, China	/	CNSIA 
+China	/	Xianning 	/	Xianning, China	/	CNXNG
+China	/	Xiaolan	/	Xiaolan, China	/	CNXIL
+China	/	Xiaoshan	/	Xiaoshan, China	/	CNXIS
+China	/	Xingang, Tianjin	/	Xingang, Tianjin, China	/	CNTXG
+China	/	Yancheng 	/	Yancheng, China	/	CNYNZ
+China	/	Yangpu	/	Yangpu, China	/	CNYGP
+China	/	Yantai	/	Yantai, China	/	CNYNT
+China	/	Yantian	/	Yantian, China	/	CNYTN
+China	/	Yichang	/	Yichang, China	/	CNYIC
+China	/	Yichun 	/	Yichun,Jiangxi, China	/	-
+China	/	Yiwu	/	Yiwu, China	/	CNYIU
+China	/	Yuhuan	/	Yuhuan, China	/	CNYUH
+China	/	Yuyao	/	Yuyao, China	/	CNYOU
+China	/	Yuzhou	/	Yuzhou, China	/	-
+China	/	Zhangjiagang	/	Zhangjiagang, China	/	CNZJG
+China	/	Zhangjiakou	/	Zhangjiakou, China	/	CNZJK
+China	/	Zhangqiu 	/	Zhangqiu, China	/	CNZQH
+China	/	Zhangzhou	/	Zhangzhou, China	/	CNZZU
+China	/	Zhanjiang	/	Zhanjiang, China	/	CNZHA
+China	/	Zhaoqing	/	Zhaoqing, China	/	CNZQG
+China	/	Zhengzhou	/	Zhengzhou, China	/	CNCGZ 
+China	/	Zhenjiang	/	Zhenjiang, China	/	CNZHE
+China	/	Zhongshan	/	Zhongshan, China	/	CNZSN
+China	/	Zhucheng	/	Zhucheng, China	/	CNZCH
+China	/	Zhuhai	/	Zhuhai, China	/	CNZUH
+China	/	Zhuji	/	Zhuji, China	/	CNZHJ
+China	/	Zhumadian 	/	Zhumadian, China	/	CNZHU
+China	/	Zibo	/	Zibo, China	/	CNZBO
+China	/	Zigong	/	Zigong, China	/	CNZGO
+Colombia	/	Buenaventura	/	Buenaventura, Colombia	/	COBUN
+Colombia	/	Buenventura	/	Buenventura, Colombia	/	COBUN
+Colombia	/	Cartagena	/	Cartagena, Colombia	/	COCTG
+Congo	/	Lubumbashi	/	Lubumbashi, Congo	/	CDLUB
+Congo	/	Lusanga	/	Lusanga, Congo	/	CDLUS
+Congo	/	Matadi	/	Matadi, Congo	/	CDMAT
+Congo	/	Pointe Noire	/	Pointe Noire, Congo	/	CGPNR
+Costa Rica	/	Caldera	/	Caldera, Costa Rica	/	CRCAL
+Costa Rica	/	Puerto Caldera	/	Puerto Caldera, Costa Rica	/	CRCAL
+Costa Rica	/	San Jose	/	San Jose, Costa Rica	/	CRSJO
+Côte D’Ivoire	/	Abidjan	/	Abidjan, Côte D’Ivoire	/	CIABJ
+Croatia	/	Jalzabet	/	Jalzabet, Croatia	/	-
+Croatia	/	Rijeka	/	Rijeka, Croatia	/	HRRJK
+Cuba	/	Mariel	/	Mariel, Cuba	/	CUMAR
+Cyprus	/	Famagusta	/	Famagusta, Cyprus	/	CYFMG
+Cyprus	/	Limassol	/	Limassol, Cyprus	/	CYLMS
+Czech Republic	/	Pavlov	/	Pavlov, Czech Republic	/	CZPVV
+Czech Republic	/	Prague	/	Prague, Czech Republic	/	CZPRG
+Denmark	/	Aarhus	/	Aarhus, Denmark	/	DKAAR
+Denmark	/	Fredericia	/	Fredericia, Denmark	/	DKFRC
+Denmark	/	Haslev	/	Haslev, Denmark	/	DKHSV
+Djibouti	/	Djibouti	/	Djibouti, Djibouti	/	DJJIB
+Dominican	/	Caucedo	/	Caucedo, Dominican	/	DOCAU
+Dominican	/	Rousseau	/	Rousseau, Dominican	/	DMRSU
+Ecuador	/	Guayaquil	/	Guayaquil, Ecuador	/	ECGYE
+Egypt	/	Alexandria	/	Alexandria, Egypt	/	EGALY
+Egypt	/	El Dekheila	/	El Dekheila, Egypt	/	EGEDK
+Egypt	/	Pireaus	/	Pireaus, Egypt	/	GRPIR
+Egypt	/	Sokhna	/	Sokhna, Egypt	/	EGSOK
+El Salvador	/	Acajutla	/	Acajutla, El Salvador	/	SVAQJ
+Estonia	/	Saarepera	/	Saarepera, Estonia	/	EESRA
+Estonia	/	Tallinn	/	Tallinn, Estonia	/	EETLL
+Fiji	/	Lautoka	/	Lautoka, Fiji	/	FJLTK
+Finland	/	Hamina	/	Hamina, Finland	/	FIHMN
+Finland	/	Helsinki	/	Helsinki, Finland	/	FIHEL
+Finland	/	Kotka	/	Kotka, Finland	/	FIKTK
+France	/	Ajaccio	/	Ajaccio, France	/	FRAJA
+France	/	Bordeaux 	/	Bordeaux, France	/	FRBOD
+France	/	Combs la Ville	/	Combs la Ville, France	/	FRCLV
+France	/	Danjoutin	/	Danjoutin, France	/	FRDJW
+France	/	Dunkerque	/	Dunkerque, France	/	FRDKK
+France	/	Dunkirk	/	Dunkirk, France	/	FRDKK
+France	/	Fos Sur Mer	/	Fos Sur Mer, France	/	FRFOS
+France	/	Frankfurt	/	Frankfurt, France	/	DEFRA
+France	/	Le Havre	/	Le Havre, France	/	FRLEH
+France	/	Lesquin	/	Lesquin, France	/	FRLSR
+France	/	Lille	/	Lille, France	/	FRLILL
+France	/	London	/	London, France	/	GBLON
+France	/	Lyon	/	Lyon, France	/	FRLIO
+France	/	Manchester	/	Manchester, France	/	GBMNC
+France	/	Marseille	/	Marseille, France	/	FRMRS
+France	/	Martinique	/	Martinique, France	/	MQFDF
+France	/	Mayotte	/	Mayotte, France	/	YTLON
+France	/	Montoir De Bretagne	/	Montoir De Bretagne, France	/	FRMTX
+France	/	Mulhouse	/	Mulhouse, France	/	FRMLH
+France	/	Nantes	/	Nantes, France	/	FRNTE
+France	/	Nozay	/	Nozay, France	/	-
+France	/	Paris	/	Paris, France	/	FRPAR
+France	/	Pointe A Pitre	/	Pointe A Pitre, France	/	GPPTP
+France	/	Reunion	/	Reunion, France	/	REREU
+France	/	Roissy	/	Roissy, France	/	FRROI
+France	/	Rumilly	/	Rumilly, France	/	FRRUM
+France	/	St Nazaire	/	St Nazaire, France	/	FRSNR
+France	/	Toulouse	/	Toulouse, France	/	FRTLS
+French Guiana	/	Cayenne	/	Cayenne, French Guiana	/	GFCAY
+French Guiana	/	Degrad Des Cannes	/	Degrad Des Cannes, French Guiana	/	GFDDC
+French Polynesia	/	Papeete	/	Papeete, French Polynesia	/	PFPPT
+Gabon	/	Libreville	/	Libreville, Gabon	/	GALBV
+Georgia	/	Poti	/	Poti, Georgia	/	GEPTI
+Georgia	/	Tbilisi	/	Tbilisi, Georgia	/	GETBS
+Germany	/	Berlin	/	Berlin, Germany	/	DEUEB
+Germany	/	Bingen	/	Bingen, Germany	/	DEBIN
+Germany	/	Bremerhaven	/	Bremerhaven, Germany	/	DEBRV
+Germany	/	Duisburg	/	Duisburg, Germany	/	DEDUI
+Germany	/	Dusseldorf	/	Dusseldorf, Germany	/	DEDUS
+Germany	/	Düsseldorf	/	Düsseldorf, Germany	/	DEDUS
+Germany	/	Hamburg	/	Hamburg, Germany	/	DEHAM
+Germany	/	Herne	/	Herne, Germany	/	DEHEE
+Germany	/	Munich	/	Munich, Germany	/	DEMUC
+Germany	/	Neuss	/	Neuss, Germany	/	DENSS
+Germany	/	Nordwalde	/	Nordwalde, Germany	/	DENWF
+Germany	/	Nuremberg	/	Nuremberg, Germany	/	DENUE
+Germany	/	Pforzheim	/	Pforzheim, Germany	/	DEPFO
+Germany	/	Stuttgart	/	Stuttgart, Germany	/	DESTU
+Ghana	/	Accra	/	Accra, Ghana	/	GHACC
+Ghana	/	Tema	/	Tema, Ghana	/	GHTEM
+Greece	/	Athens	/	Athens, Greece	/	GRATH
+Greece	/	Piraeus	/	Piraeus, Greece	/	GRPIR
+Greece	/	Thessaloniki	/	Thessaloniki, Greece	/	GRSKG
+Grenada	/	Port Of Saint Georges	/	Port Of Saint Georges, Grenada	/	GDSTG
+Grenada	/	Saint George	/	Saint George, Grenada	/	GDSTG
+Guadeloupe	/	Pointe À Pitre	/	Pointe À Pitre, Guadeloupe	/	GPPTP
+Guatemala	/	Puerto Quetzal	/	Puerto Quetzal, Guatemala	/	GTPRQ
+Guinea	/	Conakry	/	Conakry, Guinea	/	GNCKY
+Guyana	/	Georgetown	/	Georgetown, Guyana	/	GYGEO
+Haiti	/	Port Au Prince	/	Port Au Prince, Haiti	/	HTPAP
+Honduras	/	Puerto Cortes	/	Puerto Cortes, Honduras	/	HNPCR
+Honduras	/	San Pedro Sula	/	San Pedro Sula, Honduras	/	HNSAP
+Hong Kong	/	Hong Kong	/	Hong Kong, Hong Kong	/	HKHKG
+Hungary	/	Budapest	/	Budapest, Hungary	/	HUBUD 
+India	/	Ahmedabad	/	Ahmedabad, India	/	INAMD
+India	/	Bangalore	/	Bangalore, India	/	INBLR
+India	/	Calcutta	/	Calcutta, India	/	INCCU
+India	/	Chennai	/	Chennai, India	/	INMAA
+India	/	Cochin	/	Cochin, India	/	INCOK
+India	/	Delhi	/	Delhi, India	/	INDEL
+India	/	Hyderabad	/	Hyderabad, India	/	INHYD
+India	/	Jattipur	/	Jattipur, India	/	INDWN
+India	/	Kanpur	/	Kanpur, India	/	INKPR
+India	/	Khodiyar	/	Khodiyar, India	/	INKHO
+India	/	Kolkata	/	Kolkata, India	/	INCCU
+India	/	Mumbai	/	Mumbai, India	/	INBOM
+India	/	Mundra	/	Mundra, India	/	INMUN
+India	/	New Delhi	/	New Delhi, India	/	INDEL 
+India	/	Nhava Sheva	/	Nhava Sheva, India	/	INNSA 
+India	/	Panki Kanpur	/	Panki Kanpur, India	/	INPNK
+India	/	Sanand	/	Sanand, India	/	INSAU
+India	/	Sonipat	/	Sonipat, India	/	INSON
+India	/	Tughlakabad	/	Tughlakabad, India	/	INTKD
+India	/	Visakhapatnam	/	Visakhapatnam, India	/	INVTZ
+Indonesia	/	Batam	/	Batam, Indonesia	/	IDBTM
+Indonesia	/	Jakarta	/	Jakarta, Indonesia	/	IDJKT 
+Indonesia	/	Makassar	/	Makassar, Indonesia	/	IDMAK
+Indonesia	/	Semarang	/	Semarang, Indonesia	/	IDSRG
+Indonesia	/	Surabaya	/	Surabaya, Indonesia	/	IDSUB
+Indonesia	/	Tanjung Priok	/	Tanjung Priok, Indonesia	/	IDTPP 
+Indonesia	/	Teluk Bayur	/	Teluk Bayur, Indonesia	/	IDTBR
+Iraq	/	Umm Qasr	/	Umm Qasr, Iraq	/	IQUQR
+Ireland	/	Cork	/	Cork, Ireland	/	IEORK 
+Ireland	/	Dublin	/	Dublin, Ireland	/	IEDUB
+Israel	/	Ashdod	/	Ashdod, Israel	/	ILASH
+Israel	/	Haifa	/	Haifa, Israel	/	ILHFA 
+Israel	/	Tel Aviv	/	Tel Aviv, Israel	/	ILTLV
+Italy	/	Ancona	/	Ancona, Italy	/	ITAOI
+Italy	/	Bologna	/	Bologna, Italy	/	ITBLQ
+Italy	/	Fiumicino	/	Fiumicino, Italy	/	ITFCO
+Italy	/	Genova/Genoa	/	Genoa, Italy	/	ITGOA
+Italy	/	La Spezia	/	La Spezia, Italy	/	ITSPE
+Italy	/	Milan	/	Milan, Italy	/	ITMIL
+Italy	/	Milano	/	Milano, Italy	/	ITMIL
+Italy	/	Monselice	/	Monselice, Italy	/	ITMOF
+Italy	/	Palermo	/	Palermo, Italy	/	ITPMO
+Italy	/	Roma	/	Roma, Italy	/	ITCVV
+Italy	/	Sulmona	/	Sulmona, Italy	/	ITSUL
+Italy	/	Taranto Port	/	Taranto Port, Italy	/	ITTAR
+Italy	/	Trieste	/	Trieste, Italy	/	ITTRS
+Italy	/	Venice (Venezia)	/	Venice, Italy	/	ITVCE
+Japan	/	Hiroshima	/	Hiroshima, Japan	/	JPHIJ
+Japan	/	Kobe	/	Kobe, Japan	/	JPUKB
+Japan	/	Nagoya	/	Nagoya, Japan	/	JPNGO 
+Japan	/	Narita	/	Narita, Japan	/	NRT
+Japan	/	Niigata	/	Niigata, Japan	/	JPKIJ
+Japan	/	Okinawa	/	Okinawa, Japan	/	JPNAH 
+Japan	/	Osaka	/	Osaka, Japan	/	JPOSA
+Japan	/	Toyko	/	Toyko, Japan	/	JPTYO 
+Japan	/	Yokohama	/	Yokohama, Japan	/	JPYOK
+Jordan	/	Aqaba	/	Aqaba, Jordan	/	JOAQJ
+Kazakhstan	/	Almaty	/	Almaty, Kazakhstan	/	KZALM
+Kenya	/	Embakasi	/	Embakasi, Kenya	/	KEEMB
+Kenya	/	Mombasa	/	Mombasa, Kenya	/	KEMBA
+Kenya	/	Nairobi	/	Nairobi, Kenya	/	KENBO
+Korea	/	Incheon	/	Incheon, Korea	/	KRINC
+Korea	/	Pusan	/	Pusan, Korea	/	KRPUS
+Korea	/	Seoul	/	Seoul, Korea	/	KRSEL
+Kuwait	/	Shuwaikh	/	Shuwaikh, Kuwait	/	KWSWK
+Kyrgyzstan	/	Bishkek	/	Bishkek, Kyrgyzstan	/	KGBIS
+Latvia	/	Riga	/	Riga, Latvia	/	LVRIX
+Lebanon	/	Beirut	/	Beirut, Lebanon	/	LBBEY
+Lebanon	/	Tripoli	/	Tripoli, Lebanon	/	LBKYE
+Liberia	/	Greenville	/	Greenville, Liberia	/	LRGRE 
+Libya	/	Misurata	/	Misurata, Libya	/	LYMRA
+Lithuania	/	Klaipedia	/	Klaipedia, Lithuania	/	LTKLJ
+Macau	/	Macau	/	Macau, Macau	/	MOMFM 
+Madagascar	/	Antananarivo	/	Antananarivo, Madagascar	/	MGTRN
+Madagascar	/	Tamatave	/	Tamatave, Madagascar	/	MGTOA
+Malawi	/	Blantyre	/	Blantyre, Malawi	/	MWBLZ
+Malaysia	/	Penang	/	Penang, Malaysia	/	MYPEN
+Malaysia	/	Port Klang	/	Port Klang, Malaysia	/	MYPKG
+Maldives	/	Male	/	Male, Maldives	/	MVMLE
+Malta	/	Marsaxlokk	/	Marsaxlokk, Malta	/	MTMAR
+Malta	/	Valletta	/	Valletta, Malta	/	MTMLA
+Mauritania	/	Nouakchott	/	Nouakchott, Mauritania	/	MRNKC
+Mauritius	/	Port Louis	/	Port Louis, Mauritius	/	MUPLU
+Mayotte	/	Longoni	/	Longoni, Mayotte	/	YTLON
+Mexico	/	Altamira	/	Altamira, Mexico	/	MXATM
+Mexico	/	Apaseo el Grande	/	Apaseo el Grande, Mexico	/	MXAPA
+Mexico	/	Jalisco	/	Jalisco, Mexico	/	MXCTA
+Mexico	/	Lazaro Cardenas	/	Lazaro Cardenas, Mexico	/	MXLZC
+Mexico	/	Manzanillo	/	Manzanillo, Mexico	/	MXZLO 
+Mexico	/	Veracruz	/	Veracruz, Mexico	/	MXVER
+Mongolia	/	Ulaanbaatar	/	Ulaanbaatar, Mongolia	/	MNULN
+Morocco	/	Casablanca	/	Casablanca, Morocco	/	MACAS
+Morocco	/	Tangier	/	Tangier, Morocco	/	MATNG
+Mozambique	/	Beira	/	Beira, Mozambique	/	MZBRA
+Mozambique	/	Maputo	/	Maputo, Mozambique	/	MZMAP
+Myanmar	/	Yangon	/	Yangon, Myanmar	/	MNRGN
+Namibia	/	Walvis Bay	/	Walvis Bay, Namibia	/	NAWVB
+Namibia	/	Windhoek	/	Windhoek, Namibia	/	NAWDH
+Netherlands	/	Amsterdam	/	Amsterdam, Netherlands	/	NLAMS
+Netherlands	/	Hasselt	/	Hasselt, Netherlands	/	NLHAS
+Netherlands	/	Rotterdam	/	Rotterdam, Netherlands	/	NLRTM
+Netherlands	/	Tilburg	/	Tilburg, Netherlands	/	NLTLB
+New Caledonia	/	Noumea	/	Noumea, New Caledonia	/	NCNOA
+New Zealand	/	Auckland	/	Auckland, New Zealand	/	NZAKL
+Nigeria	/	Apapa	/	Apapa, Nigeria	/	NGAPA
+Nigeria	/	Lagos	/	Lagos, Nigeria	/	NGLAG
+Nigeria	/	Tincan	/	Tincan, Nigeria	/	NGTIN
+Norway	/	Oslo	/	Oslo, Norway	/	NOOSL
+Norway	/	Tananger	/	Tananger, Norway	/	NOTAN
+Oman	/	Salalah	/	Salalah, Oman	/	OMSAL
+Oman	/	Sohar	/	Sohar, Oman	/	OMSOH
+Pakistan	/	Karachi	/	Karachi, Pakistan	/	PKKAR
+Panama	/	Colon Free Zone	/	Colon Free Zone, Panama	/	PACOL
+Paraguay	/	Asuncion	/	Asuncion, Paraguay	/	PYASU
+Peru	/	Callao	/	Callao, Peru	/	PECLL
+Peru	/	Chancay	/	Chancay, Peru	/	PECHA
+Philippines	/	Manila	/	Manila, Philippines	/	PHMAN
+Philippines	/	North Manila	/	North Manila, Philippines	/	PHMNH
+Poland	/	Gdansk	/	Gdansk, Poland	/	PLGDA
+Poland	/	Gdynia	/	Gdynia, Poland	/	PLGDY
+Poland	/	Poznan	/	Poznan, Poland	/	PLPOZ
+Poland	/	Warsaw	/	Warsaw, Poland	/	POWSW
+Portugal	/	Lisbon	/	Lisbon, Portugal	/	PTLIS
+Portugal	/	Sines	/	Sines, Portugal	/	PTSNS
+Puerto Rico	/	San Juan	/	San Juan, Puerto Rico	/	PRSJU
+Qatar	/	Doha	/	Doha, Qatar	/	QADOH
+Qatar	/	Hamad Port	/	Hamad Port, Qatar	/	QAHMD
+Reunion	/	Pointe Des Galets	/	Pointe Des Galets, Reunion	/	REGAL
+Romania	/	Braila	/	Braila, Romania	/	ROBRA
+Romania	/	Bucharest Henri Coandă	/	Bucharest Henri Coandă, Romania	/	OTP
+Romania	/	Constanta	/	Constanta, Romania	/	ROCTA
+Romania	/	Constanza	/	Constanza, Romania	/	ROCTA
+Romania	/	Maramureș County	/	Maramureș County, Romania	/	ROBAY
+Russia	/	Novorossiysk	/	Novorossiysk, Russia	/	RUNOV
+Rwanda	/	Kigali	/	Kigali, Rwanda	/	RWKGL
+Saint Barthelemy	/	Gustavia	/	Gustavia, Saint Barthelemy	/	BLGUS
+Saint Vincent And The Grenadines	/	Campden Park	/	Campden Park, Saint Vincent And The Grenadines	/	VCCRP
+Saudi Arabia	/	Dammam	/	Dammam, Saudi Arabia	/	SADAM
+Saudi Arabia	/	Jeddah	/	Jeddah, Saudi Arabia	/	SAJED
+Saudi Arabia	/	King Abdullah	/	King Abdullah, Saudi Arabia	/	SAKAC
+Saudi Arabia	/	Riyadh	/	Riyadh, Saudi Arabia	/	SARUH
+Senegal	/	Dakar	/	Dakar, Senegal	/	SNDAK
+Seychelles	/	Port Victoria	/	Port Victoria, Seychelles	/	SCPVI
+Sierra Leone	/	Freetown	/	Freetown, Sierra Leone	/	SLFRE
+Singapore	/	Singapore	/	Singapore, Singapore	/	SGSGP
+Slovakia	/	Bratislava	/	Bratislava, Slovakia	/	SKBTS
+Slovenia	/	Koper	/	Koper, Slovenia	/	SIKOP
+Solomon Islands	/	Honiara	/	Honiara, Solomon Islands	/	SBHIR
+South Africa	/	Cape Town	/	Cape Town, South Africa	/	ZACPT
+South Africa	/	Coega (Ngqura)	/	Coega, Ngqura, South Africa	/	ZAZBA
+South Africa	/	Durban	/	Durban, South Africa	/	ZADUR
+South Africa	/	Johannesburg	/	Johannesburg, South Africa	/	ZAJNB
+South Africa	/	Midrand	/	Midrand, South Africa	/	ZAMID
+South Africa	/	Port Elizebeth	/	Port Elizebeth, South Africa	/	ZAPLZ
+South Africa	/	Pretoria	/	Pretoria, South Africa	/	ZAPET
+South Africa	/	Saldanha Bay	/	Saldanha Bay, South Africa	/	ZASAB
+Spain	/	Algeciras	/	Algeciras, Spain	/	ESALG
+Spain	/	Barcelona	/	Barcelona, Spain	/	ESBAR
+Spain	/	Bilbao	/	Bilbao, Spain	/	ESBIL
+Spain	/	Caseda	/	Caseda, Spain	/	ESCSE
+Spain	/	Las Palmas	/	Las Palmas, Spain	/	ESLPG
+Spain	/	Lbiza	/	Lbiza, Spain	/	ESIBI
+Spain	/	Mahon	/	Mahon, Spain	/	ESMAH
+Spain	/	Malaga	/	Malaga, Spain	/	ESMAL
+Spain	/	Santa Cruz De Tenerife	/	Santa Cruz De Tenerife, Spain	/	ESTEN
+Spain	/	Valencia	/	Valencia, Spain	/	ESVLC
+Spain	/	Valenica	/	Valenica, Spain	/	ESVLC
+Suriname	/	Paramaribo	/	Paramaribo, Suriname	/	SRPBM
+Sweden	/	Borlange	/	Borlange, Sweden	/	-
+Sweden	/	Gothenburg	/	Gothenburg, Sweden	/	SEGOT
+Sweden	/	Helsingborg	/	Helsingborg, Sweden	/	SEHEL
+Sweden	/	Stockholm	/	Stockholm, Sweden	/	SESTO
+Sweden	/	Vastra Frolunda	/	Vastra Frolunda, Sweden	/	SEVFA
+Switzerland	/	Avenches	/	Avenches, Switzerland	/	CNAVI
+Switzerland	/	Basel	/	Basel, Switzerland	/	CHBSL
+Switzerland	/	Zurich	/	Zurich, Switzerland	/	CHZRH
+Taiwan	/	Kaohsiung	/	Kaohsiung, Taiwan	/	TWKAO
+Taiwan	/	Keelung	/	Keelung, Taiwan	/	TWKEE
+Taiwan	/	Taichung	/	Taichung, Taiwan	/	TWTCH
+Taiwan	/	Taipei	/	Taipei, Taiwan	/	TWTPE
+Tanzania	/	Dar Es Salaam	/	Dar Es Salaam, Tanzania	/	TZDAR
+Tanzania	/	Zanzibar	/	Zanzibar, Tanzania	/	TZZAI
+Thailand	/	Bangkok	/	Bangkok, Thailand	/	THBKK
+Thailand	/	Laem Chabang	/	Laem Chabang, Thailand	/	THLCB
+Togo	/	Lome	/	Lome, Togo	/	TGLFW
+Trinidad And Tobago	/	Port Of Spain	/	Port of Spain, Trinidad And Tobago	/	TTPOS
+Trinidad And Tobago	/	Scarborough	/	Scarborough, Trinidad And Tobago	/	TTSCA
+Tunisia	/	Rades	/	Rades, Tunisia	/	TNRAD
+Tunisia	/	Sousse	/	Sousse, Tunisia	/	TNSOS
+Tunisia	/	Tunis	/	Tunis, Tunisia	/	TNTUN
+Turkey	/	Adana	/	Adana, Turkey	/	TRADN
+Turkey	/	Afyon	/	Afyon, Turkey	/	TRAFY
+Turkey	/	Aliaga	/	Aliaga, Turkey	/	TRALI
+Turkey	/	Ambarli	/	Ambarli, Turkey	/	TRAMB
+Turkey	/	Bursa	/	Bursa, Turkey	/	TRBUR
+Turkey	/	Gebze	/	Gebze, Turkey	/	TRGEB
+Turkey	/	Gemlik	/	Gemlik, Turkey	/	TRGEM
+Turkey	/	Iskenderun	/	Iskenderun, Turkey	/	TRISK
+Turkey	/	Istanbul	/	Istanbul, Turkey	/	TRIST
+Turkey	/	Izmir	/	Izmir, Turkey	/	TRIZM
+Turkey	/	Izmit	/	Izmit, Turkey	/	TRIZT
+Turkey	/	Mersin	/	Mersin, Turkey	/	TRMER
+Turkey	/	Niğde	/	Niğde, Turkey	/	TRNIG
+UK	/	Barton	/	Barton, UK	/	GBBNM
+UK	/	Belfast	/	Belfast, UK	/	GBBEL
+UK	/	Birmingham	/	Birmingham, UK	/	GBBHM
+UK	/	Bolton	/	Bolton, UK	/	GBBLT
+UK	/	Bristol	/	Bristol, UK	/	GBBRS
+UK	/	Chesterfield	/	Chesterfield, UK	/	GBCES
+UK	/	Colchester	/	Colchester, UK	/	GBCOL
+UK	/	Exeter	/	Exeter, UK	/	GBEXE
+UK	/	Felixsotwe	/	Felixsotwe, UK	/	GBFXT
+UK	/	Gateshead	/	Gateshead, UK	/	GBGAT
+UK	/	Glasgow	/	Glasgow, UK	/	GBGLA
+UK	/	Grangemouth	/	Grangemouth, UK	/	GBGRG
+UK	/	Lancaster	/	Lancaster, UK	/	GBLAN
+UK	/	Liverpool	/	Liverpool, UK	/	GBLIV
+UK	/	London Gateway	/	London Gateway, UK	/	GBLGP
+UK	/	Oldbury	/	Oldbury, UK	/	GBOBY
+UK	/	Oldham	/	Oldham, UK	/	GBODH
+UK	/	Portbury	/	Portbury, UK	/	GBPBY
+UK	/	Portsmouth	/	Portsmouth, UK	/	GBPTH
+UK	/	Sheffield	/	Sheffield, UK	/	GBSHE
+UK	/	South Shields	/	South Shields, UK	/	GBSSH
+UK	/	Southampton	/	Southampton, UK	/	GBSOU
+UK	/	Teesport	/	Teesport, UK	/	GBTEE
+UK	/	Tewkesbury	/	Tewkesbury, UK	/	GBTHP
+UK	/	Tilbury	/	Tilbury, UK	/	GBTIL
+UK	/	Tyne & Wear	/	Tyne & Wear, UK	/	GBTYD
+United Arab Emirates	/	Abu Dhabi	/	Abu Dhabi, United Arab Emirates	/	AEABD
+United Arab Emirates	/	Ajman	/	Ajman, United Arab Emirates	/	AEAJM
+United Arab Emirates	/	Al Karama	/	Al Karama, United Arab Emirates	/	-
+United Arab Emirates	/	Al Hamriya	/	Al Hamriya, United Arab Emirates	/	AEHAM
+United Arab Emirates	/	Dubai	/	Dubai, United Arab Emirates	/	AEDUB
+United Arab Emirates	/	Jebel Ali	/	Jebel Ali, United Arab Emirates	/	AEJEA
+United Arab Emirates	/	Khalifa	/	Khalifa, United Arab Emirates	/	AEHLF
+United Arab Emirates	/	Shuaiba	/	Shuaiba, United Arab Emirates	/	KWSAA
+United Arab Emirates	/	Umm Al Quwain	/	Umm Al Quwain, United Arab Emirates	/	AEUAQ
+Uruguay	/	Montevideo	/	Montevideo, Uruguay	/	UYMON
+USA	/	Atlanta, GA	/	Atlanta, GA, USA	/	USATL
+USA	/	Baltimore, MD	/	Baltimore, MD, USA	/	USBAL
+USA	/	Buffalo, NY	/	Buffalo, NY, USA	/	USBUF
+USA	/	Charleston, SC	/	Charleston, SC, USA	/	USCHA
+USA	/	Chicago, IL	/	Chicago, IL, USA	/	USCHI
+USA	/	Cleveland, OH	/	Cleveland, OH, USA	/	USCLE
+USA	/	Clinton, OH	/	Clinton, OH, USA	/	USPCN
+USA	/	Elgin, IL	/	Elgin, IL, USA	/	USEGN
+USA	/	Houston, TX	/	Houston, TX, USA	/	USHOU
+USA	/	Jacksonville, FL	/	Jacksonville, FL, USA	/	USJAX
+USA	/	Kent, OH	/	Kent, OH, USA	/	USKJT
+USA	/	Long Beach, CA	/	Long Beach, CA, USA	/	USLGB
+USA	/	Los Angeles, CA	/	Los Angeles, CA, USA	/	USLAX 
+USA	/	Louisville, KY	/	Louisville, KY, USA	/	USLUI
+USA	/	Lufkin, TX	/	Lufkin, TX, USA	/	USLFK
+USA	/	Miami, FL	/	Miami, FL, USA	/	USMIA
+USA	/	Mobile, AL	/	Mobile, AL, USA	/	USMOB
+USA	/	New York, NY	/	New York, NY, USA	/	USNYC
+USA	/	Oakland, CA	/	Oakland, CA, USA	/	USOAK
+USA	/	Oliver Branch, MS	/	Oliver Branch, MS, USA	/	USOLV
+USA	/	San Diego, CA	/	San Diego, CA, USA	/	USSAN
+USA	/	Savannah, GA	/	Savannah, GA, USA	/	USSAV
+USA	/	St. Louis, MO	/	St. Louis, MO, USA	/	USSTL
+USA	/	Tracy, CA	/	Tracy, CA, USA	/	-
+Venezuela	/	La Guira	/	La Guira, Venezuela	/	VELAG
+Venezuela	/	Puerto Cabello	/	Puerto Cabello, Venezuela	/	VEPBL
+Vietnam	/	Cat Lai	/	Cat Lai, Vietnam	/	VNCLI
+Vietnam	/	Da Nang	/	Da Nang, Vietnam	/	VNDAD
+Vietnam	/	Haiphong	/	Haiphong, Vietnam	/	VNHPH
+Vietnam	/	Ho Chi Minh	/	Ho Chi Minh, Vietnam	/	VNHCM
+Zimbabwe	/	Harare	/	Harare, Zimbabwe	/	ZWHRE
+						
+						
+						
+						
+AIR port code						
+Country		port name		Display name		port code
+Angola	/	Dr. Antonio Agostinho Neto Angola International Airport	/	NBJ - Dr. Antonio Agostinho Neto Angola International Airport	/	NBJ
+Australia	/	Melbourne Airport	/	MEL - Melbourne Airport	/	MEL
+Australia	/	Sydney Airport, Australia	/	SYD - Sydney Airport, Australia	/	SYD
+Austria	/	Vienna International Airport	/	VIE - Vienna International Airport, Austria	/	VIE
+Azerbaijan	/	Heydar Aliyev International Airport	/	GYD - Heydar Aliyev International Airport	/	GYD
+Bahrain	/	Bahrain International Airport	/	BAH - Bahrain International Airport	/	BAH
+Bangladesh	/	Hazrat Shahjalal International Airport	/	DAC - Hazrat Shahjalal International Airport	/	DAC
+Belgium	/	Brussels Airport	/	BRU - Brussels Airport, Belgium	/	BRU
+Bolivia	/	El Alto International Airport	/	LPB - El Alto International Airport	/	LPB
+Brazil	/	Guarulhos Apt / Sao Paulo	/	GRU - Guarulhos Apt / Sao Paulo, Brazil	/	GRU
+Brazil	/	Manaus International Airport	/	MAO - Manaus International Airport	/	MAO
+Brazil	/	Viracopos International Airport	/	VCP - Viracopos International Airport, Brazil	/	VCP
+Bulgaria	/	Sofia International Airport	/	SOF  - Sofia International Airport, Bulgaria	/	SOF 
+Burkina Faso	/	Ouagadougou Thomas Sankara International Airport	/	OUA - Ouagadougou Thomas Sankara International Airport, Burkina Faso	/	OUA
+Cambodia	/	Sihanoukville International Airport	/	KOS - Sihanoukville International Airport, Cambodia	/	KOS
+Cameroon	/	Douala International Airport	/	DLA - Douala International Airport, Cameroon	/	DLA
+Canada	/	Calgary International Airport	/	YYC - Calgary International Airport, Canada	/	YYC
+Canada	/	Montréal-Pierre Elliott Trudeau International Airport	/	YUL - Montréal-Pierre Elliott Trudeau International Airport, Canada	/	YUL
+Canada	/	Toronto Pearson International Airport	/	YYZ - Toronto Pearson International Airport, Canada	/	YYZ
+Canada	/	Vancouver International Airport	/	YVR - Vancouver International Airport, Canada	/	YVR
+Chile	/	Arturo Merino Benitez International Airport	/	SCL - Arturo Merino Benitez International Airport, Chile	/	SCL
+China	/	Beijing Capital International Airport 	/	PEK - Beijing Capital International Airport , China	/	PEK
+China	/	Beijing Daxing International Airport	/	PKX - Beijing Daxing International Airport, China	/	PKX
+China	/	Changsha Huanghua International Airport	/	CSX - Changsha Huanghua International Airport, China	/	CSX
+China	/	Chengdu Shuangliu International Airport	/	CTU - Chengdu Shuangliu International Airport, China	/	CTU
+China	/	Chengdu Tianfu International Airport, China	/	TFU - Chengdu Tianfu International Airport, China	/	TFU
+China	/	Chongqing Jiangbei International Airport	/	CKG - Chongqing Jiangbei International Airport, China	/	CKG
+China	/	Dalian Zhoushuizi International Airport	/	DLC - Dalian Zhoushuizi International Airport, China	/	DLC
+China	/	Ezhou Huahu Airport, China	/	EHU - Ezhou Huahu Airport, China	/	EHU
+China	/	Fuzhou Changle International Airport, China	/	FOC - Fuzhou Changle International Airport, China	/	FOC
+China	/	Guangzhou Baiyun International Airport	/	CAN - Guangzhou Baiyun International Airport, China	/	CAN
+China	/	Guiyang Longdongbao International Airport	/	KWE - Guiyang Longdongbao International Airport, China	/	KWE
+China	/	Hangzhou International Airport	/	HGH - Hangzhou International Airport, China	/	HGH
+China	/	Harbin Taiping International Airport	/	HRB - Harbin Taiping International Airport, China	/	HRB
+China	/	Hohhot Baita International Airport	/	HET - Hohhot Baita International Airport, China	/	HET
+China	/	Hong Kong International Airport	/	HKG - Hong Kong International Airport, China	/	HKG
+China	/	Jinan Yaoqiang International Airport 	/	TNA - Jinan Yaoqiang International Airport , China	/	TNA
+China	/	Jining Qufu Airport	/	JNG - Jining Qufu Airport, China	/	JNG
+China	/	Linyi Qiyang Airport	/	LYI - Linyi Qiyang Airport, China	/	LYI
+China	/	Nanjing Lukou International Airport	/	NKG - Nanjing Lukou International Airport, China	/	NKG
+China	/	Ningbo Lishe International Airport	/	NGB - Ningbo Lishe International Airport, China	/	NGB
+China	/	Qingdao Jiaodong International Airport	/	TAO - Qingdao Jiaodong International Airport, China	/	TAO
+China	/	Shanghai Hongqiao International Airport	/	SHA - Shanghai Hongqiao International Airport, China	/	SHA
+China	/	Shanghai Pudong International Airport	/	PVG - Shanghai Pudong International Airport, China	/	PVG
+China	/	Shenzhen Bao'an International Airport	/	SZX - Shenzhen Bao'an International Airport, China	/	SZX
+China	/	Sunan Shuofang International Airport, Wuxi	/	WUX - Sunan Shuofang International Airport, Wuxi, China	/	WUX
+China	/	Tianjin Binhai International Airport	/	TSN - Tianjin Binhai International Airport, China	/	TSN
+China	/	Wenzhou Longwan International Airport, China	/	WNZ - Wenzhou Longwan International Airport, China	/	WNZ
+China	/	Wuhan Tianhe International Airport	/	WUH - Wuhan Tianhe International Airport, China	/	WUH
+China	/	Xiamen Gaoqi International Airport	/	XMN - Xiamen Gaoqi International Airport, China	/	XMN
+China	/	Xi'an Xianyang International Airport, China	/	XIY - Xi'an Xianyang International Airport, China	/	XIY
+China	/	Yantai Penglai International Airport, China	/	YNT - Yantai Penglai International Airport, China	/	YNT
+China	/	Zhangjiajie Hehua International Airport	/	DYG - Zhangjiajie Hehua International Airport, China	/	DYG
+China	/	Zhengzhou Xinzheng International Airport	/	CGO - Zhengzhou Xinzheng International Airport, China	/	CGO
+Congo	/	N’djili International Airport,Kinshasa	/	FIH - N’djili International Airport,Kinshasa, Congo	/	FIH
+Costa Rica	/	Arenal, Fortuna Airport	/	FON - Arenal, Fortuna Airport, Costa Rica	/	FON
+Costa Rica	/	Juan Santamaría International Airport	/	SJO - Juan Santamaría International Airport	/	SJO
+Côte D’Ivoire	/	Félix-Houphouët-Boigny International Airport, Côte D’Ivoire	/	ABJ - Félix-Houphouët-Boigny International Airport, Côte D’Ivoire	/	ABJ
+Croatia	/	Franjo Tuđman International Airport	/	ZAG - Franjo Tuđman International Airport	/	ZAG
+Cyprus	/	Larnaka International Airport	/	LCA - Larnaka International Airport, Cyprus	/	LCA
+Czechia	/	Václav Havel Airport Prague	/	PRG - Václav Havel Airport Prague	/	PRG
+Denmark	/	Aarhus Airport	/	AAR - Aarhus Airport, Denmark	/	AAR
+Denmark	/	Billund Airport	/	BLL - Billund Airport, Denmark	/	BLL
+Denmark	/	Copenhagen Airport	/	CPH - Copenhagen Airport	/	CPH
+Egypt	/	Cairo International Airport	/	CAI - Cairo International Airport, Egypt	/	CAI
+El Salvador	/	El Salvador International Airport	/	SAL - El Salvador International Airport, El Salvador	/	SAL
+Finland	/	Helsinki Airport	/	HEL - Helsinki Airport	/	HEL
+France	/	Bordeaux Airport 	/	BOD - Bordeaux Airport , France	/	BOD
+France	/	Caen – Carpiquet Airport	/	CFR - Caen – Carpiquet Airport, France	/	CFR
+France	/	Frankfurt Airport	/	FRA - Frankfurt Airport, France	/	FRA
+France	/	Heathrow Airport,London 	/	LHR - Heathrow Airport,London , France	/	LHR
+France	/	Lille Airport	/	LIL - Lille Airport, France	/	LIL
+France	/	Lyon Airport	/	LYS - Lyon Airport, France	/	LYS
+France	/	Manchester Airport	/	MAN - Manchester Airport, France	/	MAN
+France	/	Marseille Provence Airport	/	MRS - Marseille Provence Airport, France	/	MRS
+France	/	Martinique Aime Cesaire International Airport	/	FDF - Martinique Aime Cesaire International Airport, France	/	FDF
+France	/	Mulhouse Airport	/	MLH  - Mulhouse Airport, France	/	MLH 
+France	/	Nantes Atlantique Airport	/	NTE - Nantes Atlantique Airport, France	/	NTE
+France	/	Octeville Airport, Le havre, France	/	LEH - Octeville Airport, Le havre, France	/	LEH
+France	/	Paris Charles de Gaulle Airport	/	CDG - Paris Charles de Gaulle Airport, France	/	CDG
+France	/	Pointe A Pitre International Airport	/	PTP - Pointe A Pitre International Airport, France	/	PTP
+France	/	Strasbourg Airport	/	SXB - Strasbourg Airport, France	/	SXB
+France	/	Toulouse-Blagnac Airport	/	TLS - Toulouse-Blagnac Airport, France	/	TLS
+Gabon	/	Leon-Mba Libreville International Airport	/	LBV - Leon-Mba Libreville International Airport, Gabon	/	LBV
+Georgia	/	Tbilisi International Airport, Georgia	/	TBS - Tbilisi International Airport, Georgia	/	TBS
+Germany	/	Berlin Brandenburg Airport	/	BER - Berlin Brandenburg Airport, Germany	/	BER
+Germany	/	Duesseldorf Airport	/	DUS - Duesseldorf Airport, Germany	/	DUS
+Germany	/	Hamburg Airport	/	HAM - Hamburg Airport, Germany	/	HAM
+Germany	/	Hannover Airport	/	HAJ - Hannover Airport	/	HAJ
+Germany	/	Munich International Airport	/	MUC - Munich International Airport, Germany	/	MUC
+Germany	/	Nuremberg Airport	/	NUE - Nuremberg Airport, Germany	/	NUE
+Germany	/	Stuttgart Airport, China	/	STR - Stuttgart Airport, China	/	STR
+Ghana	/	Kotoka International Airport - Accra	/	ACC - Kotoka International Airport - Accra, Ghana	/	ACC
+Greece	/	Athens International Airport Eleftherios Venizelos	/	ATH - Athens International Airport Eleftherios Venizelos, Greece	/	ATH
+Guinea	/	Ahmed Sékou Touré International Airport	/	CKY - Ahmed Sékou Touré International Airport	/	CKY
+Honduras	/	San Pedro Sula Airport	/	SAP - San Pedro Sula Airport	/	SAP
+Hungary	/	Budapest Ferenc Liszt International Airport	/	BUD - Budapest Ferenc Liszt International Airport	/	BUD
+India	/	Chennai International Airport, India	/	MAA - Chennai International Airport, China	/	MAA
+India	/	Chhatrapati Shivaji Maharaj International Airport	/	BOM - Chhatrapati Shivaji Maharaj International Airport	/	BOM
+India	/	Indira Gandhi International Airport, New Delhi	/	DEL - Indira Gandhi International Airport, New Delhi, India	/	DEL
+India	/	Netaji Subhash Chandra Bose International Airport	/	CCU - Netaji Subhash Chandra Bose International Airport	/	CCU
+India	/	Rajiv Gandhi International Airport, Hyderabad	/	HYD - Rajiv Gandhi International Airport, Hyderabad, India	/	HYD
+Indonesia	/	Soekarno – Hatta International Airport,  Jakarta 	/	CGK - Soekarno – Hatta International Airport,  Jakarta , Indonesia	/	CGK
+Indonesia	/	Surabaya Juanda International Airport	/	SUB - Surabaya Juanda International Airport, Indonesia	/	SUB
+Israel	/	Ben Gurion Airport	/	TLV - Ben Gurion Airport	/	TLV
+Italy	/	Bologna Guglielmo Marconi Airport	/	BLQ - Bologna Guglielmo Marconi Airport, Italy	/	BLQ
+Italy	/	Leonardo da Vinci International Airport, Rome Fiumicino	/	FCO - Leonardo da Vinci International Airport, Rome Fiumicino, Italy	/	FCO
+Italy	/	Milano Malpensa Airport	/	MXP - Milano Malpensa Airport, Italy	/	MXP
+Italy	/	Venice Marco Polo Airport	/	VCE - Venice Marco Polo Airport, Italy	/	VCE
+Italy	/	Vincenzo Bellini Catania Airport	/	CTA - Vincenzo Bellini Catania Airport	/	CTA
+Japan	/	Haneda Airport	/	HND - Haneda Airport	/	HND
+Japan	/	Kansai International Airport	/	KIX - Kansai International Airport, Japan	/	KIX
+Jordan	/	Queen Alia International Airport, Jordan	/	AMM - Queen Alia International Airport, Jordan	/	AMM
+Kazakhstan	/	Almaty International Airport	/	ALA - Almaty International Airport, Kazakhstan	/	ALA
+Kenya	/	Jomo Kenyatta International Airport, Nairobi	/	NBO - Jomo Kenyatta International Airport, Nairobi, Kenya	/	NBO
+Kenya	/	Moi International Airport	/	MBA - Moi International Airport	/	MBA
+Korea	/	Seoul Incheon International Airport, 	/	ICN - Seoul Incheon International Airport, , Korea	/	ICN
+Kosovo	/	Prishtina International Airport, Kosovo	/	PRN - Prishtina International Airport, Kosovo, Kosovo	/	PRN
+Kuwait	/	Kuwait International Airport	/	KWI - Kuwait International Airport, Kuwait	/	KWI
+Latvia	/	Riga International Airport	/	RIX - Riga International Airport, Latvia	/	RIX
+Lebanon	/	Beirut–Rafic Hariri International Airport 	/	BEY - Beirut–Rafic Hariri International Airport , Lebanon	/	BEY
+Libya	/	Tripoli International airport	/	TIP - Tripoli International airport, Libya	/	TIP
+Macau	/	Macau International Airport	/	MFM - Macau International Airport, Macau	/	MFM
+Malawi	/	Kamuzu International Airport	/	LLW - Kamuzu International Airport	/	LLW
+Maldives	/	Velana International Airport	/	MLE - Velana International Airport	/	MLE
+Malta	/	Malta International Airport	/	MLA - Malta International Airport	/	MLA
+Mexico	/	Aeropuerto Internacional Benito Juarez, mexico city	/	MEX - Aeropuerto Internacional Benito Juarez, mexico city, Mexico	/	MEX
+Mexico	/	Felipe Angeles International Airport.	/	NLU - Felipe Angeles International Airport., Mexico	/	NLU
+Mexico	/	Guadalajara International Airport, Mexico	/	GDL - Guadalajara International Airport, Mexico	/	GDL
+Mongolia	/	Chinggis Khaan International Airport, Ulaanbaatar	/	UBN - Chinggis Khaan International Airport, Ulaanbaatar, Mongolia	/	UBN
+Morocco	/	Casablanca Mohammed V International Airport	/	CMN - Casablanca Mohammed V International Airport, Morocco	/	CMN
+Morocco	/	Tangier Ibn Battouta Airport 	/	TNG - Tangier Ibn Battouta Airport , Morocco	/	TNG
+Namibia	/	Hosea Kutako International Airport	/	WDH - Hosea Kutako International Airport	/	WDH
+Netherlands	/	Amsterdam Airport Schiphol	/	AMS - Amsterdam Airport Schiphol, Netherlands	/	AMS
+New Zealand	/	Auckland Airport	/	AKL - Auckland Airport, New Zealand	/	AKL
+New Zealand	/	Christchurch Airport	/	CHC - Christchurch Airport, New Zealand	/	CHC
+Nigeria	/	Murtala Muhammed International Airport, Lagos	/	LOS - Murtala Muhammed International Airport, Lagos, Nigeria	/	LOS
+Norway	/	Oslo Airport	/	OSL - Oslo Airport, Norway	/	OSL
+Pakistan	/	Allama Iqbal International Airport	/	LHE - Allama Iqbal International Airport, Pakistan	/	LHE
+Pakistan	/	Islamabad International Airport	/	ISB - Islamabad International Airport, Pakistan	/	ISB
+Pakistan	/	Jinnah International Airport, Karachi	/	KHI - Jinnah International Airport, Karachi, Pakistan	/	KHI
+Pakistan	/	Sialkot International Airport	/	SKT - Sialkot International Airport, Pakistan	/	SKT
+Panama	/	Panama Tocumen International Airport	/	PTY - Panama Tocumen International Airport, Panama	/	PTY
+Papua New Guinea	/	Momote Airport	/	MAS - Momote Airport, Papua New Guinea	/	MAS
+Papua New Guinea	/	Port Moresby International (Jacksons) Airport	/	POM - Port Moresby International (Jacksons) Airport, Papua New Guinea	/	POM
+Papua New Guinea	/	Tsile Tsile Airport	/	TSI - Tsile Tsile Airport, Papua New Guinea	/	TSI
+Peru	/	New Jorge Chávez International Airport, Lima	/	LIM - New Jorge Chávez International Airport, Lima, Peru	/	LIM
+Poland	/	Gdansk airport	/	GDN - Gdansk airport, Poland	/	GDN
+Poland	/	Warsaw Chopin Airport	/	WAW - Warsaw Chopin Airport, Poland	/	WAW
+Portugal	/	Lisbon Humberto Delgado Airport	/	LIS - Lisbon Humberto Delgado Airport, Portugal	/	LIS
+Portugal	/	Porto Airport	/	OPO - Porto Airport, Portugal	/	OPO
+Qatar	/	Hamad International Airport	/	DOH - Hamad International Airport, Qatar	/	DOH
+Reunion	/	Saint-Denis - Roland Garros Airport	/	RUN - Saint-Denis - Roland Garros Airport, Reunion	/	RUN
+Romania	/	Cluj International Airport	/	CLJ - Cluj International Airport	/	CLJ
+Russia	/	Sheremetyevo International Airport	/	SVO - Sheremetyevo International Airport	/	SVO
+Saudi Arabia	/	King Abdulaziz International Airport	/	JED - King Abdulaziz International Airport, Saudi Arabia	/	JED
+Saudi Arabia	/	King Fahd International Airport	/	DMM - King Fahd International Airport, Saudi Arabia	/	DMM
+Saudi Arabia	/	King Khalid International Airport	/	RUH - King Khalid International Airport, Saudi Arabia	/	RUH
+Senegal	/	Blaise Diagne International Airport	/	DSS - Blaise Diagne International Airport, Senegal	/	DSS
+Seychelles	/	Seychelles International Airport	/	SEZ - Seychelles International Airport, Seychelles	/	SEZ
+Singapore	/	Singapore Changi Airport	/	SIN - Singapore Changi Airport	/	SIN
+Slovenia	/	Ljubljana Airport	/	LJU - Ljubljana Airport, Slovenia	/	LJU
+Somalia	/	Aden Adde International Airport	/	MGQ - Aden Adde International Airport, Somalia	/	MGQ
+South Africa	/	Cape Town International Airport	/	CPT - Cape Town International Airport, South Africa	/	CPT
+South Africa	/	King Shaka International Airport	/	DUR - King Shaka International Airport, South Africa	/	DUR
+South Africa	/	OR Tambo International Airport	/	JNB - OR Tambo International Airport, South Africa	/	JNB
+South Sudan	/	Juba International Airport	/	JUB - Juba International Airport, South Sudan	/	JUB
+Spain	/	Adolfo Suarez Madrid-Barajas Airport, Madrid	/	MAD - Adolfo Suarez Madrid-Barajas Airport, Madrid, Spain	/	MAD
+Spain	/	Algiers International Airport, Spain	/	ALG - Algiers International Airport, Spain	/	ALG
+Spain	/	Barcelona Airport	/	BCN - Barcelona Airport, Spain	/	BCN
+Spain	/	Cordoba Airport 	/	ODB - Cordoba Airport , Spain	/	ODB
+Spain	/	Gran Canaria Airport, Las Palmas	/	LPA - Gran Canaria Airport, Las Palmas, Spain	/	LPA
+Sri Lanka	/	Colombo Bandaranaike International Airport	/	CMB - Colombo Bandaranaike International Airport, Sri Lanka	/	CMB
+Sweden	/	Malmo Airport	/	MMX - Malmo Airport, Sweden	/	MMX
+Sweden	/	Stockholm Arlanda Airport	/	ARN - Stockholm Arlanda Airport, Sweden	/	ARN
+Switzerland	/	Basel Airport	/	BSL - Basel Airport, Switzerland	/	BSL
+Switzerland	/	Geneva Airport	/	GVA - Geneva Airport, Switzerland	/	GVA
+Switzerland	/	Zurich Airport	/	ZRH - Zurich Airport, Switzerland	/	ZRH
+Taiwan	/	Taiwan Taoyuan International Airport	/	TPE - Taiwan Taoyuan International Airport, Taiwan	/	TPE
+Tanzania	/	Julius Nyerere International Airport, Dar es Salaam	/	DAR - Julius Nyerere International Airport, Dar es Salaam, Tanzania	/	DAR
+Thailand	/	Suvarnabhumi Airport, Bangkok	/	BKK - Suvarnabhumi Airport, Bangkok, Thailand	/	BKK
+Togo	/	Lome - Tokoin International Airport	/	LFW - Lome - Tokoin International Airport, Togo	/	LFW
+Trinidad and Tobago	/	Piarco International Airport	/	POS - Piarco International Airport, Trinidad and Tobago	/	POS
+Tunisia	/	Tunis - Carthage International Airport	/	TUN - Tunis - Carthage International Airport, Tunisia	/	TUN
+Turkey	/	Istanbul Airport	/	IST - Istanbul Airport, Turkey	/	IST
+Turkey	/	Izmir Adnan Menderes Airport, Turkey	/	ADB - Izmir Adnan Menderes Airport, Turkey	/	ADB
+Uganda	/	Entebbe International Airport	/	EBB - Entebbe International Airport, Uganda	/	EBB
+UK	/	Belfast International Airport	/	BFS - Belfast International Airport, UK	/	BFS
+UK	/	Birmingham Airport	/	BHX - Birmingham Airport, UK	/	BHX
+UK	/	Bristol Airport	/	BRS - Bristol Airport	/	BRS
+UK	/	Glasgow Airport	/	GLA - Glasgow Airport, UK	/	GLA
+UK	/	Liverpool John Lennon Airport	/	LPL - Liverpool John Lennon Airport, UK	/	LPL
+United Arab Emirates	/	Abu Dhabi (Zayed) International Airport	/	AUH - Abu Dhabi (Zayed) International Airport, United Arab Emirates	/	AUH
+United Arab Emirates	/	Al Maktoum International Airport, Jebel Ali	/	DWC - Al Maktoum International Airport, Jebel Ali, United Arab Emirates	/	DWC
+United Arab Emirates	/	Dubai International Airport	/	DXB - Dubai International Airport, United Arab Emirates	/	DXB
+United Arab Emirates	/	Dublin Airport 	/	DUB - Dublin Airport , United Arab Emirates	/	DUB
+USA	/	Baltimore/Washington International Thurgood Marshall Airport	/	BWI - Baltimore/Washington International Thurgood Marshall Airport, USA	/	BWI
+USA	/	Charlotte Douglas International Airport	/	CLT - Charlotte Douglas International Airport, USA	/	CLT
+USA	/	Chicago O'Hare International Airport	/	ORD - Chicago O'Hare International Airport	/	ORD
+USA	/	Cincinnati/Northern Kentucky International Airport	/	CVG - Cincinnati/Northern Kentucky International Airport	/	CVG
+USA	/	Cleveland Hopkins International Airport	/	CLE - Cleveland Hopkins International Airport	/	CLE
+USA	/	Columbia Metropolitan Airport	/	CAE - Columbia Metropolitan Airport, USA	/	CAE
+USA	/	Dallas Fort Worth International Airport	/	DFW - Dallas Fort Worth International Airport	/	DFW
+USA	/	Dulles International Airport	/	IAD - Dulles International Airport	/	IAD
+USA	/	Harry Reid International Airport	/	LAS - Harry Reid International Airport	/	LAS
+USA	/	Hartsfield - Jackson Atlanta International Airport	/	ATL - Hartsfield - Jackson Atlanta International Airport, USA	/	ATL
+USA	/	Jacksonville International Airport	/	JAX - Jacksonville International Airport	/	JAX
+USA	/	John F. Kennedy International Airport	/	JFK - John F. Kennedy International Airport	/	JFK
+USA	/	Kansas City International Airport	/	MCI - Kansas City International Airport	/	MCI
+USA	/	Los Angeles International Airport	/	LAX - Los Angeles International Airport	/	LAX
+USA	/	Louisville Muhammad Ali International Airport	/	SDF - Louisville Muhammad Ali International Airport	/	SDF
+USA	/	Memphis International Airport	/	MEM - Memphis International Airport	/	MEM
+USA	/	Miami International Airport	/	MIA - Miami International Airport	/	MIA
+USA	/	Minneapolis-Saint Paul International Airport	/	MSP - Minneapolis-Saint Paul International Airport	/	MSP
+USA	/	San Francisco International Airport	/	SFO - San Francisco International Airport	/	SFO
+USA	/	Seattle-Tacoma International Airport	/	SEA - Seattle-Tacoma International Airport	/	SEA
+USA	/	William P. Hobby Airport	/	HOU - William P. Hobby Airport	/	HOU
+Venezuela	/	Simon Bolívar International Airport, Caracas	/	CCS - Simon Bolívar International Airport, Caracas, Venezuela	/	CCS
+Vietnam	/	Noi Bai International Airport, Hanoi	/	HAN - Noi Bai International Airport, Hanoi, Vietnam	/	HAN
+Vietnam	/	Tan Son Nhat International Airport	/	SGN - Tan Son Nhat International Airport	/	SGN

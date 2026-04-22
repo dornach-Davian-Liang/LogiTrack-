@@ -548,20 +548,7 @@ export const OfferPriceTable: React.FC<OfferPriceTableProps> = ({
         );
       })}
 
-      {/* Oversize Cargo checkbox (once, outside group loop) */}
-      {isContainer && hasFRorOT && (
-        <div className="flex items-center justify-end mt-1">
-          <label className="flex items-center gap-1.5 text-xs cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={isOversizeCargo}
-              onChange={e => onOversizeCargoChange(e.target.checked)}
-              className="w-3.5 h-3.5 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
-            />
-            <span className="text-orange-700 font-medium">Contains Oversized Cargo</span>
-          </label>
-        </div>
-      )}
+      {/* Oversize Cargo auto-uncheck handled by useEffect above; checkbox moved to CargoContainerTable */}
     </div>
   );
 };

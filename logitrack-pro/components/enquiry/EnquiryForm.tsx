@@ -1239,6 +1239,8 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
                 rows={formData.containerRows || [{ qty20: 0, qty40: 0, qty40hq: 0, qty45: 0 }]}
                 onChange={(rows) => handleChange('containerRows', rows)}
                 containerTypes={containerTypesOpts}
+                isOversizeCargo={formData.isOversizeCargo || false}
+                onOversizeCargoChange={(val) => setFormData(prev => ({ ...prev, isOversizeCargo: val }))}
               />
             )}
           </div>

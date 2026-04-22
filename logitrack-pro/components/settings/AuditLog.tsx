@@ -367,13 +367,15 @@ export const AuditLog: React.FC = () => {
                       {log.userRole ? (
                         <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
                           log.userRole === 'ADMIN_USER' ? 'bg-purple-100 text-purple-800' :
+                          log.userRole === 'SALES_MANAGER' ? 'bg-emerald-100 text-emerald-800' :
                           log.userRole === 'OPERATING_USER' ? 'bg-blue-100 text-blue-800' :
                           'bg-gray-100 text-gray-800'
                         }`}>
                           {log.userRole === 'ADMIN_USER' && translations.auditLog.userRoles.admin}
+                          {log.userRole === 'SALES_MANAGER' && translations.auditLog.userRoles.salesManager}
                           {log.userRole === 'OPERATING_USER' && translations.auditLog.userRoles.pricingAdmin}
                           {log.userRole === 'NORMAL_USER' && translations.auditLog.userRoles.user}
-                          {!['ADMIN_USER', 'OPERATING_USER', 'NORMAL_USER'].includes(log.userRole) && log.userRole}
+                          {!['ADMIN_USER', 'SALES_MANAGER', 'OPERATING_USER', 'NORMAL_USER'].includes(log.userRole) && log.userRole}
                         </span>
                       ) : (
                         <span className="text-gray-400">-</span>

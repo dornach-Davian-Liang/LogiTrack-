@@ -12,7 +12,7 @@ type DisplayMessage = AiMessage & {
 
 const WELCOME_MESSAGE: DisplayMessage = {
   role: 'assistant',
-  content: `👋 您好！我是 **LogiTrack AI 数据助手**。
+  content: `👋 您好！我是 **ZAsia Pricing AI 数据助手**。
 
 我可以帮您分析询价业务数据，例如：
 - 本月询价量与上月对比

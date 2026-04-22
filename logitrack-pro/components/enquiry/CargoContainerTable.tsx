@@ -55,6 +55,8 @@ interface CargoContainerTableProps {
   onChange: (rows: EnquiryContainerRow[]) => void;
   containerTypes: ContainerTypeSelectOption[];
   disabled?: boolean;
+  isOversizeCargo?: boolean;
+  onOversizeCargoChange?: (value: boolean) => void;
 }
 
 // ── TEU Calculation ──────────────────────────────────────
@@ -81,6 +83,8 @@ export const CargoContainerTable: React.FC<CargoContainerTableProps> = ({
   onChange,
   containerTypes,
   disabled = false,
+  isOversizeCargo = false,
+  onOversizeCargoChange,
 }) => {
   // Single row — take first or create empty
   const row: EnquiryContainerRow = rows.length > 0 ? rows[0] : {
@@ -150,13 +154,19 @@ export const CargoContainerTable: React.FC<CargoContainerTableProps> = ({
   };
 
   const removeColumn = (code: string) => {
-    setExtraCols(extraCols.filter(c => c !== code));
+    const newExtraCols = extraCols.filter(c => c !== code);
+    setExtraCols(newExtraCols);
     // Clean up data
     const extras = { ...(row.extraContainers || {}) };
     delete extras[code];
     const updated = { ...row, extraContainers: extras };
     updated.lineTeu = calcTotalTeu(updated, Object.keys(extras), teuMap);
     onChange([updated]);
+    // Auto-uncheck oversize when no FR/OT remain
+    const FR_OT_CODES = ['20OT', '40OT', '20FR', '40FR'];
+    if (isOversizeCargo && onOversizeCargoChange && !newExtraCols.some(c => FR_OT_CODES.includes(c))) {
+      onOversizeCargoChange(false);
+    }
   };
 
   // Check if any container has qty > 0
@@ -341,6 +351,27 @@ export const CargoContainerTable: React.FC<CargoContainerTableProps> = ({
       {!hasAnyContainer && (
         <p className="text-xs text-amber-600">⚠ At least one container type must have Number &gt; 0.</p>
       )}
+
+      {/* Contains Oversized Cargo checkbox — only when FR/OT types are present */}
+      {(() => {
+        const FR_OT_CODES = ['20OT', '40OT', '20FR', '40FR'];
+        const hasFRorOT = extraCols.some(code => FR_OT_CODES.includes(code));
+        if (!hasFRorOT || !onOversizeCargoChange) return null;
+        return (
+          <div className="flex items-center mt-1">
+            <label className="flex items-center gap-1.5 text-xs cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={isOversizeCargo}
+                onChange={e => onOversizeCargoChange(e.target.checked)}
+                className="w-3.5 h-3.5 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+                disabled={disabled}
+              />
+              <span className="text-orange-700 font-medium">Contains Oversized Cargo</span>
+            </label>
+          </div>
+        );
+      })()}
     </div>
   );
 };

@@ -5,12 +5,14 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     const apiTarget = env.VITE_API_TARGET || 'http://localhost:8080';
+    const frontendPublicHost = '210.184.51.237';
     return {
       server: {
         port: 3000,
         host: true,
         strictPort: true,
         hmr: {
+          host: frontendPublicHost,
           port: 3000,
           protocol: 'ws'
         },

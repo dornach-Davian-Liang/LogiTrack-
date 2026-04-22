@@ -30,6 +30,9 @@
   - [M25: Carrier主数据管理 & 表单分区重排 (2026-03-31)](#m25-carrier-主数据管理--表单分区重排--carrier-数据库驱动-2026-03-31)
   - [M26: 货币管理 & 动态柜型 & 询价列表过滤 & 多项Bug修复 (2026-04-09)](#m26-货币管理--动态柜型-extracontainers--询价列表过滤--多项bug修复-2026-04-09)
   - [M27: 全尺寸20尺柜型Weight支持 & Dashboard优化 & Detail展示增强 (2026-04-10)](#m27-全尺寸20尺柜型weight支持--dashboard优化--detail展示增强-2026-04-10)
+  - [M28: RBAC权限重构 — 新增SALES\_MANAGER角色 & CN Pricing Operator权限缩小 (2026-04-13)](#m28-rbac权限重构--新增sales_manager角色--cn-pricing-operator权限缩小-2026-04-13)
+  - [M29: 全量数据迁移 — Chinese Pricing CSV 导入 (2026-04-16)](#m29-全量数据迁移--chinese-pricing-csv-导入-2026-04-16)
+  - [M30: 增量数据迁移 & 异常修复 — 新增 Office/PIC + 重试失败记录 (2026-04-16)](#m30-增量数据迁移--异常修复--新增-officepic--重试失败记录-2026-04-16)
 
 ---
 
@@ -63,6 +66,9 @@
 | M25 | 2026-03-31 | - | Carrier主数据CRUD管理页面 + Business Classification分区重排 + CARRIER数据库驱动 | 10 |
 | M26 | 2026-04-09 | - | 货币管理全栈 + 动态柜型extraContainers + 询价列表POL/POD/Office过滤 + Ref#竞态修复 + Price Lines数据保持修复 + Route Groups端口预加载修复 | 12 |
 | M27 | 2026-04-10 | - | 全系20尺柜型Weight输入支持（前端+后端+DB）+ Dashboard Recent Enquiries排序优化+KPI清除 + EnquiryDetail重量数据展示 | 6 |
+| M28 | 2026-04-13 | - | RBAC权限重构：新增SALES_MANAGER角色，OPERATING_USER限制为不可Reports | 4 |
+| M29 | 2026-04-16 | - | **全量数据迁移**: Chinese Pricing CSV 9,265行 → 9,253导入 + 11跳过 + 1重复 | 2 (setup_migration.py, migrate_v4.py) |
+| M30 | 2026-04-16 | - | **增量迁移 & 异常修复**: 新增3个Office + 4个PIC + 重试9条异常记录 (100% 成功) | 1 (fix_exceptions.py) |
 
 ---
 
@@ -3313,3 +3319,330 @@ Hibernate SQL 日志确认：
 #### TypeScript 编译
 
 - 本次变更引入的新错误：**0 个**
+
+---
+
+### M28: RBAC权限重构 — 新增 SALES\_MANAGER 角色 & CN Pricing Operator 权限缩小 (2026-04-13)
+
+**日期**: 2026-04-13  
+**影响文件**: 4 个
+
+#### 📝 变更说明
+
+**问题背景**: `OPERATING_USER`（CN Pricing Operator）原有权限过大，可应承询价管理、主数据管理、全部报表功能。用户要求将报表功能从该角色剔除，并新增一个中间层角色 `SALES_MANAGER` 承接原来的全量权限设计。
+
+**设计目标**：
+
+| 角色 | 询价管理 | 主数据 | 报表(Reports) | 系统设置 |
+|------|---------|--------|--------------|------|
+| `ADMIN_USER` | ✅ | ✅ | ✅ | ✅ |
+| `SALES_MANAGER` (新增) | ✅ | ✅ | ✅ | ❌ |
+| `OPERATING_USER` (权限缩小) | ✅ | ✅ | **❌ 不可见** | ❌ |
+| `NORMAL_USER` | ❌ | ❌ | ❌ | ❌ |
+
+---
+
+#### 1. 前端权限逻辑重构
+
+**文件**: `logitrack-pro/App.tsx`
+
+**角色判断变更**（原注释: `后端返回的角色代码: ADMIN_USER, OPERATING_USER, NORMAL_USER`）：
+```typescript
+// 修改前
+// 后端返回的角色代码: ADMIN_USER, OPERATING_USER, NORMAL_USER
+const isAdmin = roles.includes('ADMIN_USER') || roles.includes('ADMIN');
+const isOperatingUser = isAdmin || roles.includes('OPERATING_USER');  // 错误： isAdmin 隐含在内
+const isLoginUser = !isAdmin && !isOperatingUser;
+
+const canManageEnquiries = isAdmin || isOperatingUser;
+const canManageMasterData = isAdmin || isOperatingUser;
+const canViewReports = isAdmin || isOperatingUser;   // OPERATING_USER 之前可见 Reports
+const canViewSettings = isAdmin;
+
+// 修改后
+// 后端返回的角色代码: ADMIN_USER, SALES_MANAGER, OPERATING_USER, NORMAL_USER
+const isAdmin = roles.includes('ADMIN_USER') || roles.includes('ADMIN');
+const isSalesManager = roles.includes('SALES_MANAGER');     // 新增
+const isOperatingUser = roles.includes('OPERATING_USER');   // 不再隐含 isAdmin
+const isLoginUser = !isAdmin && !isSalesManager && !isOperatingUser;
+
+const canManageEnquiries = isAdmin || isSalesManager || isOperatingUser;
+const canManageMasterData = isAdmin || isSalesManager || isOperatingUser;
+const canViewReports = isAdmin || isSalesManager;   // OPERATING_USER 不可见 Reports
+const canViewSettings = isAdmin;
+```
+
+**影响范围**：
+- `OPERATING_USER` 登录后，左侧边栏不再显示 `Reports`（基础报表 / 增强报表 / 时期对比 / AI 数据助手）四个菜单
+- `OPERATING_USER` 访问 `allowedViews`：`dashboard`, `enquiry-list`, `enquiry-detail`, `enquiry-form`, 主数据相关视图
+- `SALES_MANAGER` 访问 `allowedViews`：全部（除 `settings`）
+
+---
+
+#### 2. 审计日志角色标签展示增强
+
+**文件**: `logitrack-pro/components/settings/AuditLog.tsx`
+
+- 角色标签颜色新增 `SALES_MANAGER` 极導绿色（`bg-emerald-100 text-emerald-800`）
+- `SALES_MANAGER` 角色显示标签 `translations.auditLog.userRoles.salesManager`
+- 角色区分匹配列表更新为 `['ADMIN_USER', 'SALES_MANAGER', 'OPERATING_USER', 'NORMAL_USER']`
+
+```tsx
+// 修改后的标签渲染逻辑
+log.userRole === 'ADMIN_USER' ? 'bg-purple-100 text-purple-800' :
+log.userRole === 'SALES_MANAGER' ? 'bg-emerald-100 text-emerald-800' :
+log.userRole === 'OPERATING_USER' ? 'bg-blue-100 text-blue-800' :
+'bg-gray-100 text-gray-800'
+```
+
+---
+
+#### 3. 多语言翻译更新
+
+**文件**: `logitrack-pro/i18n/translations.ts`
+
+- **类型定义（TranslationSchema）**：`userRoles` 新增 `salesManager: string` 字段
+- **中文翻译**：
+  ```typescript
+  userRoles: {
+    admin: 'Admin',
+    salesManager: 'Sales Manager',
+    pricingAdmin: 'CN Pricing Operator',  // 修正：原为 'Pricing Admin'
+    user: 'User',
+  }
+  ```
+- **英文翻译**：同上
+
+---
+
+#### 4. 数据库新增 SALES\_MANAGER 角色
+
+**迁移文件**: `database/migration_20260413_sales_manager_role.sql`
+
+```sql
+INSERT INTO role (role_code, role_name, description)
+VALUES ('SALES_MANAGER', 'Sales Manager',
+        'Sales Manager - enquiries + master data + reports, no settings')
+ON DUPLICATE KEY UPDATE role_name='Sales Manager',
+  description='Sales Manager - enquiries + master data + reports, no settings';
+```
+
+**执行结果**：`role` 表新增 id=4 记录，角色列表：
+
+| id | role_code | role_name |
+|----|-----------|----------|
+| 1 | ADMIN_USER | Administrator |
+| 2 | OPERATING_USER | Operating User |
+| 3 | NORMAL_USER | Normal User |
+| 4 | SALES_MANAGER | Sales Manager |
+
+---
+
+#### 使用说明
+
+- 现有 `OPERATING_USER`（CN Pricing Operator）用2多个某些用户，登录后自动不再显示 Reports 菜单
+- 需要报表权限的用户，在「系统设置 → 用户管理」中将其角色改为 `SALES_MANAGER`
+- 后端无需修改：角色判断完全在前端在线完成；后端 API 未设置接口层权限校验，不受影响
+
+---
+
+#### 修改文件清单
+
+| 文件 | 变更类型 | 说明 |
+|------|----------|说明|
+| `App.tsx` | **修改** | 新增 `isSalesManager` 判断；重构权限常量；`canViewReports` 排除 OPERATING_USER |
+| `AuditLog.tsx` | **修改** | SALES_MANAGER 角色标签显示支持 |
+| `translations.ts` | **修改** | 类型 + 中英文均新增 salesManager 翻译；pricingAdmin 标签文本修正 |
+| `migration_20260413_sales_manager_role.sql` | **新建** | DB INSERT SALES_MANAGER 角色 |
+
+#### TypeScript 编译
+
+- 本次变更引入的新错误：**0 个**
+
+---
+
+### M29: 全量数据迁移 — Chinese Pricing CSV 导入 (2026-04-16)
+
+**日期**: 2026-04-16  
+**类型**: 数据迁移 & 环境初始化  
+**负责**: 数据迁移小组
+
+#### 🎯 目标需求
+将 Chinese Pricing CSV 数据（9,265 行）迁移到 LogiTrack Pro V3 数据库，建立历史询价数据基础。完成包括主数据补录、港口匹配、状态映射、货运类型转换在内的全面数据清洗和转换。
+
+#### ✨ 主要功能
+
+1. **Phase 0: 迁移环境准备 (setup_migration.py)**
+   - 新增 756 个港口（SEA + AIR）
+   - 补录 14 个缺失 port_code 合成港口
+   - 新增 CMP (China Main Port) 主港作为汇聚港
+   - 补录缺失箱型：BBK、BULK
+   - 补录新 Office：ZIEGLER FRANCE (migration-only, is_active=0)、ZIEGLER XIAMEN、LEX ULUSLARARASI
+   - 创建 NA PIC (id=593) 作为未匹配销售代表的占位符
+
+2. **Phase 1-3: 主迁移 (migrate_v4.py)**
+   - **CSV 数据源**: 9,265 行数据
+   - **数据清洗**: 日期、数量、金额字段解析与转换
+   - **状态映射**: 依据报价状态 + 业务决策，自动映射到 5 种数据库状态（New/Quoted&Pending/Secured/Lost/Cancelled）
+   - **货运类型转换**: 
+     - AIR 类型保持
+     - RAIL 按数量单位决定转为 FCL (CNTR) 或 LCL (CBM/KG)
+   - **港口多层匹配**: 7 层策略（精确代码/名称/城市 → 去空格 → 去标点 → 去后缀 → 逗号分割 → mapping 文件 → display_name）
+   - **销售代表 & 办公室路由**: PIC mapping 文件优先，包含 office 覆盖指令，未匹配则用 NA
+   - **报价处理**: 创建 Offer + OfferPriceLine，price_text 存原始报价文字供人工审核
+   - **容器行处理**: 支持多行容器明细，自动修正 qty/unit 互换错误
+
+3. **数据完整性检查**
+   - FK 检查：销售代表与办公室无悬挂
+   - 端口关联率：POL 99%，POD 97%
+
+#### 📊 迁移结果
+| 指标 | 数值 |
+|------|------|
+| **CSV 总行数** | 9,265 |
+| **成功导入** | 9,253 (99.87%) |
+| **跳过-TBA/空 office** | 11 (可接受) |
+| **跳过-重复 ref#** | 1 |
+| **真实错误** | 0 |
+| **POL 匹配率** | 99% (9,331/9,343) |
+| **POD 匹配率** | 97% (9,218/9,518) |
+| **Offer 创建** | 8,974 |
+| **价格行** | 8,720 |
+| **容器行** | 2,742 |
+| **FK 完整性** | 0 悬挂 |
+
+#### 📊 数据分布
+| 维度 | 分布 |
+|------|------|
+| **状态** | Secured=4,150 (43%)、Lost=4,700 (49%)、Cancelled=213 (2%)、Quoted&Pending=167 (2%)、New=20 (0.2%) |
+| **货运类型** | AIR=4,502 (47%)、FCL=3,147 (33%)、LCL=1,601 (17%)、RAIL=3 (转换) |
+| **主数据** | 港口=780、办公室=234、销售代表=596、箱型=18、国家=143 |
+
+#### 📦 新增脚本
+| 脚本 | 功能 | 行数 |
+|------|------|------|
+| `database/setup_migration.py` | Phase 0 环境准备，幂等设计可重复运行 | 532 |
+| `database/migrate_v4.py` | Phase 1-3 主迁移、数据清洗、报告生成 | 1,280+ |
+
+#### ⚙️ 技术要点
+
+1. **港口匹配算法**: 
+   - 为解决中文港口名称非标准问题，设计 7 层递进匹配
+   - Mapping 文件对特殊港口提供显式映射
+   - 支持城市多个港口的冗余解析
+
+2. **状态自动映射**:
+   - Decision 1: Quoted + Yes → Secured；Quoted + Rejected → Lost；空值 + Pending → Quoted & Pending
+   - 支持用户覆盖，保存原始报价状态到 price_text
+
+3. **数据冗余处理**:
+   - TBA / "-" / 空 office 行安全跳过，不报错
+   - 重复 ref# (CN2501433-R) 存入 duplicate_refs.csv 供审核
+   - UOM 超长 (>20 字符) 自动截断，原值保存到 remark
+
+4. **容器明细处理**:
+   - CSV 单行包含多个容器时，按逗号/空格分割
+   - 自动识别并修正 qty/unit 互换（如 "20GP x 4" vs "4 x 20GP"）
+   - Container Line 与 Enquiry 的 1-N 关系
+
+#### 📋 迁移执行步骤
+```bash
+# 1. 环境准备（幂等）
+cd database
+py setup_migration.py
+
+# 2. 全量迁移
+py migrate_v4.py
+
+# 3. 验证
+# - migration_errors.csv 为空（或仅 TBA office 记录）
+# - migration_warnings.csv 列出警告（非致命）
+# - 数据库中 enquiry 行数为 9,253
+```
+
+---
+
+### M30: 增量数据迁移 & 异常修复 — 新增 Office/PIC + 重试失败记录 (2026-04-16)
+
+**日期**: 2026-04-16  
+**类型**: 增量迁移 & 异常恢复  
+**负责**: 数据迁移小组
+
+#### 🎯 目标需求
+处理 Chinese Pricing CSV 中 CN2602217 及以后的新增数据（480 行），解决之前增量迁移中因缺少 3 个 Office 导致的 9 条异常记录，补录主数据并重试迁移。
+
+#### ✨ 主要功能
+
+1. **新增主数据**
+   - **3 个 Office**:
+     - PARTEX AEROMARINE LOGISTICS PVT LTD (id=236, sales_country=OT)
+     - DYNAMEX FREIGHT LTD (id=237, sales_country=OT)
+     - HAWK FREIGHT SERVICES (id=238, sales_country=OT)
+
+   - **4 个 PIC (新增 + 更新)**:
+     - BIKASH BHATTACHARJEE (id=598) → PARTEX AEROMARINE LOGISTICS PVT LTD
+     - GULSHAN (id=599) → PARTEX AEROMARINE LOGISTICS PVT LTD
+     - MICHAEL MWANGI (id=600) → DYNAMEX FREIGHT LTD
+     - CRYSTAL LABORTE (id=214) → 更新关联 office: ON TIME → HAWK FREIGHT SERVICES
+
+2. **异常恢复 (fix_exceptions.py)**
+   - 从 migration_exceptions 表查询 PENDING 记录
+   - 重新加载数据库缓存和 mapping 文件
+   - 逐条调用 MigratorV4._process_row() 重新处理
+   - 成功则标记 RESOLVED，失败则标记 FAILED + 保存错误信息
+
+#### 📊 迁移结果
+| 指标 | 数值 |
+|------|------|
+| **新增 CSV 行数 (CN2602217+)** | 480 |
+| **已存在于 DB** | 412 (前次增量导入) |
+| **异常记录** | 9 |
+| **异常成功处理** | 9 (100%) |
+| **异常失败处理** | 0 (0%) |
+| **RESOLVED** | 9 |
+| **FAILED** | 0 |
+| **总 enquiry 数** | 9,674 |
+| **FK 完整性** | PIC 悬挂 0，Office 悬挂 0 |
+
+#### 📝 9 条异常恢复记录
+| ref_number | 原因 | 重试结果 |
+|-----------|------|----------|
+| CN2603258-S | Office "DYNAMEX FREIGHT LTD" not found | ✅ RESOLVED |
+| CN2603278-A | Office "HAWK FREIGHT SERVICES" not found | ✅ RESOLVED |
+| CN2603322-S1 | Office "PARTEX AEROMARINE LOGISTICS PVT LTD" not found | ✅ RESOLVED |
+| CN2603322-S2 | Office "PARTEX AEROMARINE LOGISTICS PVT LTD" not found | ✅ RESOLVED |
+| CN2603323-AS1 | Office "PARTEX AEROMARINE LOGISTICS PVT LTD" not found | ✅ RESOLVED |
+| CN2603323-AS2 | Office "PARTEX AEROMARINE LOGISTICS PVT LTD" not found | ✅ RESOLVED |
+| CN2604009-S | Office "DYNAMEX FREIGHT LTD" not found | ✅ RESOLVED |
+| CN2604021-A | Office "HAWK FREIGHT SERVICES" not found | ✅ RESOLVED |
+| CN2604035-S | Office "PARTEX AEROMARINE LOGISTICS PVT LTD" not found | ✅ RESOLVED |
+
+#### 📦 新增脚本
+| 脚本 | 功能 |
+|------|------|
+| `database/fix_exceptions.py` | 补录主数据后重试 migration_exceptions 表中的 PENDING 记录，幂等设计 |
+
+#### ⚙️ 技术要点
+
+1. **幂等设计**:
+   - fix_exceptions.py 可重复运行
+   - 检查 office/pic 是否已存在，避免重复插入
+   - 若 ref# 已在 enquiry 表中，直接标记 RESOLVED
+
+2. **Office 字段约束**:
+   - dict_sales_office 要求 name_norm (UNIQUE 归一化) 和 code (UNIQUE)
+   - 自动生成 code = 各单词首字母组合，防冲突
+   - sales_country_code 为 FK，无效国家改为 OT (OTHERS)
+
+3. **异常恢复流程**:
+   - Step 1: 添加 Office（检查已存在）
+   - Step 2: 添加 PIC（检查已存在，自动关联 office）
+   - Step 3: 重试 PENDING 异常（每条单独处理，捕获异常）
+
+#### 📋 执行步骤
+```bash
+cd database
+py fix_exceptions.py
+```
+
+---

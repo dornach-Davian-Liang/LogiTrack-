@@ -35,7 +35,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           <div className="mx-auto bg-white w-16 h-16 rounded-full flex items-center justify-center mb-4 shadow-lg">
             <Ship className="w-8 h-8 text-indigo-600" />
           </div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">LogiTrack Pro</h1>
+          <h1 className="text-3xl font-bold text-white tracking-tight">ZAsia Pricing</h1>
           <p className="text-indigo-100 mt-2">Logistics Enquiry Management System</p>
         </div>
         
