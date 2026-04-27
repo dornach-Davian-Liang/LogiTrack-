@@ -33,6 +33,8 @@
   - [M28: RBAC权限重构 — 新增SALES\_MANAGER角色 & CN Pricing Operator权限缩小 (2026-04-13)](#m28-rbac权限重构--新增sales_manager角色--cn-pricing-operator权限缩小-2026-04-13)
   - [M29: 全量数据迁移 — Chinese Pricing CSV 导入 (2026-04-16)](#m29-全量数据迁移--chinese-pricing-csv-导入-2026-04-16)
   - [M30: 增量数据迁移 & 异常修复 — 新增 Office/PIC + 重试失败记录 (2026-04-16)](#m30-增量数据迁移--异常修复--新增-officepic--重试失败记录-2026-04-16)
+  - [M31: 增量迁移 CN2604038+ & 状态同步 & 补录 Office/PIC & 重试 3 条异常 (2026-04-24)](#m31-增量迁移-cn2604038--状态同步--补录-officepic--重试-3-条异常-2026-04-24)
+  - [M32: Enquiry 管理增强与关键缺陷修复（筛选/导出/权限/币种）(2026-04-23 ~ 2026-04-27)](#m32-enquiry-管理增强与关键缺陷修复筛选导出权限币种2026-04-23--2026-04-27)
 
 ---
 
@@ -67,8 +69,10 @@
 | M26 | 2026-04-09 | - | 货币管理全栈 + 动态柜型extraContainers + 询价列表POL/POD/Office过滤 + Ref#竞态修复 + Price Lines数据保持修复 + Route Groups端口预加载修复 | 12 |
 | M27 | 2026-04-10 | - | 全系20尺柜型Weight输入支持（前端+后端+DB）+ Dashboard Recent Enquiries排序优化+KPI清除 + EnquiryDetail重量数据展示 | 6 |
 | M28 | 2026-04-13 | - | RBAC权限重构：新增SALES_MANAGER角色，OPERATING_USER限制为不可Reports | 4 |
-| M29 | 2026-04-16 | - | **全量数据迁移**: Chinese Pricing CSV 9,265行 → 9,253导入 + 11跳过 + 1重复 | 2 (setup_migration.py, migrate_v4.py) |
-| M30 | 2026-04-16 | - | **增量迁移 & 异常修复**: 新增3个Office + 4个PIC + 重试9条异常记录 (100% 成功) | 1 (fix_exceptions.py) |
+| M29 | 2026-04-16 | - | 全量数据迁移：Chinese Pricing CSV → MySQL，9,253/9,265 行成功 | 5 |
+| M30 | 2026-04-16 | - | 增量迁移 + 异常修复：3 个 Office + 4 个 PIC，9 条异常全部 RESOLVED | 2 |
+| M31 | 2026-04-24 | - | 增量迁移 CN2604038+(224行) + 状态同步 297 条 + 补录 3 Office/8 PIC + 重试 3 异常 | 2 |
+| M32 | 2026-04-23 ~ 04-27 | - | Enquiry 管理增强：Created Date 筛选 + CN Office 多选 + XLSX 全字段导出 + Sender Email + 报表弹窗字段修复 + 权限修正 + 非 FCL 币种选择显示 | 17 |
 
 ---
 
@@ -3644,5 +3648,250 @@ py migrate_v4.py
 cd database
 py fix_exceptions.py
 ```
+
+---
+
+### M31: 增量迁移 CN2604038+ & 状态同步 & 补录 Office/PIC & 重试 3 条异常 (2026-04-24)
+
+**日期**: 2026-04-24  
+**类型**: 增量迁移 & 主数据补录 & 异常恢复  
+**负责**: 数据迁移小组
+
+#### 🎯 目标需求
+1. 将 CSV 中 `CN2604038` 及以后的 227 条新询价记录增量导入数据库
+2. 对 2026 年以来的历史记录做一次全量状态同步（以 CSV 为准）
+3. 补录截图提供的 3 个缺失 Office 及关联 PIC，解决 3 条 PENDING 异常
+
+#### ✨ 主要工作
+
+##### 1. 新脚本 `database/migrate_incremental.py`
+三阶段增量迁移脚本，幂等设计，可重复运行：
+
+| 阶段 | 动作 | 说明 |
+|------|------|------|
+| Phase 1 | 清除 demo 数据 | 删除 `enquiry.id > 18968` 的记录（本次无） |
+| Phase 2 | 增量导入 | 仅导入 CSV 中 `ref >= 'CN2604038'` 且 DB 中不存在的行 |
+| Phase 3 | 状态同步 | 对 `enquiry_created_date >= 2026-01-01` 的记录重新同步状态字段 |
+
+技术细节：
+- 通过 `importlib.util` 加载 `migrate_v4.py` 中的 `MigratorV4` 类，复用已验证的迁移逻辑
+- Phase 2 每行调用 `migrator._process_row()`，失败写入 `migration_exceptions` 表
+- Phase 3 根据 CSV 中 `QUOTATION STATUS` + `BOOKING CONFIRMED` 字段重新计算系统状态并更新
+
+##### 2. Phase 2 结果（增量导入）
+| 指标 | 数值 |
+|------|------|
+| CSV 新行范围 | CN2604038 ~ CN2604249 |
+| 匹配行数 | 227 |
+| 成功导入 | 224 |
+| 失败写入 migration_exceptions | 3 |
+| 失败原因 | 3 个 Office 在主数据中不存在 |
+
+##### 3. Phase 3 结果（状态同步）
+| 指标 | 数值 |
+|------|------|
+| DB 待对比记录（2026 年） | 1,742 |
+| 状态实际变更 | 297 |
+| Quoted & Pending → Lost | 250 |
+| New → Lost | 19 |
+| Quoted & Pending → Secured | 18 |
+| New → Cancelled | 9 |
+| Secured → Lost | 1 |
+
+##### 4. 新脚本 `database/fix_m31.py`
+补录截图中全部 Office 和 PIC 主数据，然后重试 3 条 PENDING 异常：
+
+**新增 Office（3 个）**:
+| Office | country_code | id |
+|--------|-------------|-----|
+| ATLAS LOGISTICS PVT LTD | AG | 239 |
+| SOUTH ASIA SHIPPING & LOGISTICS (PVT.) LIMITED | AG | 240 |
+| HECNY FRANCE | AG | 241 |
+
+**已存在 Office（4 个，无需新增）**:
+- ZIEGLER GERMANY (id=212, DE)
+- ZIEGLER FELIXSTOWE (id=224, GB)
+- PT FIDO (id=140, AG)
+- PT SILKARGO INDONESIA (id=141, AG)
+
+**新增 PIC（8 个）**:
+| PIC | Office | id |
+|-----|--------|----|
+| PREMCHANDRA GUPTA | ATLAS LOGISTICS PVT LTD | 601 |
+| THOMAS SCHRODER | ZIEGLER GERMANY | 602 |
+| ASHLEY HARRIS | ZIEGLER FELIXSTOWE | 603 |
+| MEHAK RAZAAQ | SOUTH ASIA SHIPPING & LOGISTICS (PVT.) LIMITED | 604 |
+| SYLVAIN CHIRAT | HECNY FRANCE | 605 |
+| BERND STEZYCKI | ZIEGLER GERMANY | 606 |
+| MAULANA SAPTAJI | PT FIDO | 607 |
+| ARIN PUTRI ADIWARDANI | PT SILKARGO INDONESIA | 608 |
+
+**3 条异常全部恢复**:
+| ref_number | 原因 | 结果 |
+|-----------|------|------|
+| CN2604039-A | Office "ATLAS LOGISTICS PVT LTD" not found | ✅ RESOLVED |
+| CN2604154-S | Office "HECNY FRANCE" not found | ✅ RESOLVED |
+| CN2604249-A | Office "SOUTH ASIA SHIPPING & LOGISTICS (PVT.) LIMITED" not found | ✅ RESOLVED |
+
+#### 📊 最终数据库状态
+
+| 指标 | 数值 |
+|------|------|
+| **总 enquiry 数** | **9,892** |
+| Lost | 5,111 |
+| Secured | 4,428 |
+| Cancelled | 236 |
+| Quoted & Pending | 106 |
+| New | 11 |
+| **Pending exceptions** | **0** |
+| FK PIC 悬挂 | 0 |
+| FK Office 悬挂 | 0 |
+
+#### 📦 新增/修改文件
+
+| 文件 | 类型 | 说明 |
+|------|------|------|
+| `database/migrate_incremental.py` | 新增 | 三阶段增量迁移脚本（Phase 1/2/3） |
+| `database/fix_m31.py` | 新增 | 补录 Office/PIC 主数据 + 重试 PENDING 异常 |
+
+#### ⚙️ 技术要点
+
+1. **MigratorV4 复用**：`migrate_incremental.py` 和 `fix_m31.py` 均通过 `importlib.util` 动态加载 `migrate_v4.py`，共享已验证的行处理逻辑，避免代码重复
+2. **幂等设计**：两个脚本均可重复运行，已存在的数据自动跳过
+3. **Office 主数据约束**：`dict_sales_office.name_norm` (UNIQUE) 取 `name.upper().strip()`；`code` 由名称各单词首字母拼接，冲突时自动添加序号
+4. **country_code 映射**：AGENTS → `AG`，GERMANY → `DE`，UK → `GB`（均为 `dict_sales_country` 有效 code）
+
+#### 📋 执行步骤
+```bash
+cd database
+py migrate_incremental.py   # Phase 1-3 增量迁移 + 状态同步
+py fix_m31.py               # 补录 Office/PIC + 重试 3 条异常
+```
+
+---
+
+### M32: Enquiry 管理增强与关键缺陷修复（筛选/导出/权限/币种）(2026-04-23 ~ 2026-04-27)
+
+**日期**: 2026-04-23 ~ 2026-04-27  
+**类型**: 需求实现 + 缺陷修复 + 可用性增强  
+**负责**: 前后端协同开发
+
+#### 🎯 需求范围（去重整理）
+本里程碑聚合 4 月下旬同一批 Enquiry 管理相关改动，已合并重复问题记录，仅保留最终生效方案：
+
+1. Enquiry Management 新增 **Enquiry Created Date** 区间筛选
+2. Enquiry Management 的 **Assigned CN Office** 从单选改为多选
+3. Enquiry Management 按当前筛选条件导出 **XLSX**，并补齐导出字段
+4. 权限调整：Manager / CN Pricing Operator 可管理询价并查看报表；仅 Admin 可管理主数据与设置
+5. 报表弹窗（CN Office 详情）补齐 `refNumber`、`salesPicName`、`polName`、`podName`
+6. Enquiry 新增 `senderEmail`（Sales Information 区域，非必填）并在详情展示
+7. 站点 favicon 更新（ZAsia 品牌）
+8. 修复报价币种交互：非 FCL/BUYER-CONSOL 类型也可选择并展示 Frg/Local 币种
+
+#### ✨ 主要功能与修复
+
+##### A. Enquiry 列表筛选能力增强
+- 新增 `createdDateFrom/createdDateTo` 前后端参数贯通
+- 后端按 `enquiryCreatedDate(LocalDateTime)` 做闭区间过滤（`to + 1 day` 上限）
+- CN Office 支持逗号分隔多值，后端转 `IN (...)` 查询
+- 前端筛选区升级：
+  - Office 多选下拉（复选框）
+  - Created Date 双日期选择器
+  - Active tags 可逐项清除
+
+##### B. XLSX 导出（按筛选条件）
+- 新增 `xlsx` 依赖与导出按钮
+- 导出逻辑按当前筛选条件重新拉取数据（高 pageSize）后生成工作簿
+- 导出字段扩充为业务可读版本，包含：
+  - Reference/Product/Cargo/Status
+  - Sales Country/PIC/Office/Assigned CN Office
+  - Sender Email/Core-NonCore/POL/POD/POD Country
+  - Commodity/Volume/Quantity/UOM/Oversize/EXW/Cargo Ready Date/Remark/Offer Type
+  - Received Date/Created Date/Offers Count/Latest Offer Date
+
+##### C. 报表弹窗字段缺失修复
+- `StatisticsService.getOfficeEnquiries()` 返回键名统一为前端需要的 `refNumber`
+- 补充返回 `productAbbr`、`salesPicName`、`polName`、`podName`
+
+##### D. Sender Email 全链路
+- 实体新增 `sender_email` 映射字段
+- 提供数据库迁移 SQL：`migration_add_sender_email.sql`
+- 前端表单新增 Sender Email 输入（非必填）
+- 详情页在有值时展示 Sender Email 卡片
+
+##### E. 权限模型修正
+- `canManageMasterData = isAdmin`
+- `canViewReports = isAdmin || isSalesManager || isOperatingUser`
+- 保持 NORMAL_USER 为询价只读路径
+
+##### F. 报价币种交互修复（最终版）
+- `OfferPriceTable` 中货币选择器从“仅 FCL/BUYER-CONSOL 可见”调整为“所有 offer type 可见”
+- `EnquiryDetail` 中币种展示逻辑统一为所有 offer type 均显示 `Frg.` 与 `Local`（默认 USD）
+- 与 LCL/AIR 的 Price Details 编辑行为对齐，避免“可保存不可见”
+
+#### 🐛 重点缺陷闭环
+
+1. **报表弹窗无 ref/salesPic/pol/pod**  
+  根因：返回键名不一致 + 缺少关联字段装配。已修复并补齐。
+
+2. **Created Date 筛选不生效（总页数不变）**  
+  根因：后端筛选参数链路缺失。已补全 Controller → Service → Specification 并验证生效。
+
+3. **XLSX 导出字段不完整**  
+  根因：列表接口原始字段有限。通过服务层批量 enrich 派生字段并扩展导出列修复。
+
+4. **非 FCL 报价无币种选择器**  
+  根因：前端组件用 `isContainer` 条件限制了币种 UI。已移除限制并同步详情展示。
+
+#### 📦 影响文件（17个）
+
+**前端**
+- `logitrack-pro/components/enquiry/EnquiryList.tsx`
+- `logitrack-pro/components/enquiry/EnquiryForm.tsx`
+- `logitrack-pro/components/enquiry/EnquiryDetail.tsx`
+- `logitrack-pro/components/enquiry/OfferPriceTable.tsx`
+- `logitrack-pro/App.tsx`
+- `logitrack-pro/services/api.ts`
+- `logitrack-pro/types.ts`
+- `logitrack-pro/index.html`
+- `logitrack-pro/public/favicon.svg`
+- `logitrack-pro/package.json`
+- `logitrack-pro/package-lock.json`
+
+**后端**
+- `backend/src/main/java/com/logitrack/backend/controller/EnquiryController.java`
+- `backend/src/main/java/com/logitrack/backend/specification/EnquirySpecification.java`
+- `backend/src/main/java/com/logitrack/backend/service/EnquiryService.java`
+- `backend/src/main/java/com/logitrack/backend/service/StatisticsService.java`
+- `backend/src/main/java/com/logitrack/backend/entity/Enquiry.java`
+
+**数据库**
+- `database/migration_add_sender_email.sql`
+
+#### ⚙️ 实现要点
+
+1. **派生字段批量填充**（避免 N+1）
+  - 在 `Enquiry` 增加 `@Transient`：`salesPicName/salesOfficeName/polName/podName`
+  - 在 `EnquiryService` 增加 `enrichWithDerivedFields(List<Enquiry>)`
+  - 使用批量 `findAllById` 聚合映射后回填
+
+2. **创建时间筛选语义**
+  - `createdDateFrom`: `>= from.atStartOfDay()`
+  - `createdDateTo`: `< to.plusDays(1).atStartOfDay()`
+  - 保证按自然日筛选，不受时分秒影响
+
+3. **Office 多选传参与解析**
+  - 前端数组 join 为逗号分隔字符串
+  - 后端 split+trim 后走 `IN` 条件
+
+4. **币种显示统一策略**
+  - 编辑态和详情态均展示两种币种
+  - 未设置时默认回落 `USD`
+
+#### ✅ 验证结论（记录）
+- 前端 TypeScript 校验无新增错误（关键文件已检查）
+- 后端编译通过（`mvn compile`）
+- 后端筛选 API 验证：`createdDateFrom/To` 生效，结果集与页数按筛选明显收缩
+- 报表弹窗字段与详情币种显示按需求恢复
 
 ---

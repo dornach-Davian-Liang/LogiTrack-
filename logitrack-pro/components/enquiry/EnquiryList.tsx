@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, Filter, Eye, Edit, Copy, Trash2, Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, TrendingUp, X } from 'lucide-react';
+import { Search, Filter, Eye, Edit, Copy, Trash2, Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, TrendingUp, X, Download, Calendar } from 'lucide-react';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import * as XLSX from 'xlsx';
 import { Enquiry, EnquiryListItem, EnquiryStatus, SelectOption, PortSelectOption } from '../../types';
 import { enquiryApi, masterDataApi } from '../../services/api';
 
@@ -20,11 +23,16 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<EnquiryStatus | ''>('');
   const [cargoTypeFilter, setCargoTypeFilter] = useState('');
-  const [officeFilter, setOfficeFilter] = useState('');
+  const [officeFilter, setOfficeFilter] = useState<string[]>([]);
   const [polFilter, setPolFilter] = useState<number | null>(null);
   const [podFilter, setPodFilter] = useState<number | null>(null);
   const [polLabel, setPolLabel] = useState('');
   const [podLabel, setPodLabel] = useState('');
+  const [createdDateFrom, setCreatedDateFrom] = useState<Date | null>(null);
+  const [createdDateTo, setCreatedDateTo] = useState<Date | null>(null);
+
+  // Export state
+  const [isExporting, setIsExporting] = useState(false);
 
   // Office options
   const [officeOptions, setOfficeOptions] = useState<SelectOption[]>([]);
@@ -36,8 +44,10 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
   const [podSearchResults, setPodSearchResults] = useState<PortSelectOption[]>([]);
   const [showPolDropdown, setShowPolDropdown] = useState(false);
   const [showPodDropdown, setShowPodDropdown] = useState(false);
+  const [showOfficeDropdown, setShowOfficeDropdown] = useState(false);
   const polRef = useRef<HTMLDivElement>(null);
   const podRef = useRef<HTMLDivElement>(null);
+  const officeRef = useRef<HTMLDivElement>(null);
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -54,6 +64,7 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
     const handleClick = (e: MouseEvent) => {
       if (polRef.current && !polRef.current.contains(e.target as Node)) setShowPolDropdown(false);
       if (podRef.current && !podRef.current.contains(e.target as Node)) setShowPodDropdown(false);
+      if (officeRef.current && !officeRef.current.contains(e.target as Node)) setShowOfficeDropdown(false);
     };
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
@@ -87,7 +98,7 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
 
   useEffect(() => {
     fetchEnquiries();
-  }, [currentPage, pageSize, searchTerm, statusFilter, cargoTypeFilter, officeFilter, polFilter, podFilter]);
+  }, [currentPage, pageSize, searchTerm, statusFilter, cargoTypeFilter, officeFilter, polFilter, podFilter, createdDateFrom, createdDateTo]);
 
   const fetchEnquiries = async () => {
     setIsLoading(true);
@@ -99,9 +110,11 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
         search: searchTerm || undefined,
         status: statusFilter || undefined,
         cargoType: cargoTypeFilter || undefined,
-        assignedCnOffice: officeFilter || undefined,
+        assignedCnOffice: officeFilter.length > 0 ? officeFilter.join(',') : undefined,
         polPortId: polFilter || undefined,
         podPortId: podFilter || undefined,
+        createdDateFrom: createdDateFrom ? createdDateFrom.toISOString().split('T')[0] : undefined,
+        createdDateTo: createdDateTo ? createdDateTo.toISOString().split('T')[0] : undefined,
       });
       console.log('[EnquiryList] API response:', {
         totalElements: response.totalElements,
@@ -219,6 +232,67 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
     }
   };
 
+  const handleExportXlsx = async () => {
+    setIsExporting(true);
+    try {
+      // Fetch all pages with current filters (up to 10000 records)
+      const response = await enquiryApi.list({
+        page: 0,
+        pageSize: 10000,
+        search: searchTerm || undefined,
+        status: statusFilter || undefined,
+        cargoType: cargoTypeFilter || undefined,
+        assignedCnOffice: officeFilter.length > 0 ? officeFilter.join(',') : undefined,
+        polPortId: polFilter || undefined,
+        podPortId: podFilter || undefined,
+        createdDateFrom: createdDateFrom ? createdDateFrom.toISOString().split('T')[0] : undefined,
+        createdDateTo: createdDateTo ? createdDateTo.toISOString().split('T')[0] : undefined,
+      });
+
+      const rows = response.content.map((e: any) => ({
+        'Reference Number':    e.refNumber || '',
+        'Product Type':        e.productCode || e.productAbbr || '',
+        'Cargo Type':          e.cargoTypeCode || '',
+        'Status':              e.status || '',
+        'Sales Country':       e.salesCountryCode || '',
+        'Sales PIC':           e.salesPicName || '',
+        'Sales Office':        e.salesOfficeName || '',
+        'Assigned CN Office':  e.assignedCnOffice || '',
+        'Sender Email':        e.senderEmail || '',
+        'Core/Non-Core':       e.coreNonCore || '',
+        'POL':                 e.polName || '',
+        'POD':                 e.podName || '',
+        'POD Country':         e.podCountry || '',
+        'Commodity':           e.commodity || '',
+        'Cargo Type(Detail)':  e.cargoTypeCode || '',
+        'Volume (CBM)':        e.volumeCbm ?? '',
+        'Quantity':            e.quantity ?? '',
+        'UOM':                 e.uom || '',
+        'Is Oversize':         e.isOversizeCargo ? 'Yes' : 'No',
+        'EXW Location':        e.exwLocation || '',
+        'Cargo Ready Date':    e.cargoReadyDate || '',
+        'Remark':              e.remark || '',
+        'Offer Type':          e.offerType || '',
+        'Received Date':       e.enquiryReceivedDate || '',
+        'Created Date':        e.enquiryCreatedDate ? String(e.enquiryCreatedDate).substring(0, 10) : '',
+        'Offers Count':        e.offersCount ?? '',
+        'Latest Offer Date':   e.latestOfferDate || '',
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Enquiries');
+
+      const today = new Date().toISOString().split('T')[0];
+      XLSX.writeFile(wb, `Enquiries_Export_${today}.xlsx`);
+    } catch (err) {
+      alert('Failed to export data');
+      console.error('[handleExportXlsx] error:', err);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const getStatusColor = (status: EnquiryStatus) => {
     switch (status) {
       case 'New': return 'bg-blue-100 text-blue-800';
@@ -235,15 +309,25 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
       {/* Header */}
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-900">Enquiry Management</h1>
-        {canCreate && (
+        <div className="flex gap-2">
           <button
-            onClick={onNewEnquiry}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            onClick={handleExportXlsx}
+            disabled={isExporting}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
           >
-            <Plus className="w-4 h-4 mr-2" />
-            New Enquiry
+            <Download className="w-4 h-4 mr-2" />
+            {isExporting ? 'Exporting...' : 'Export XLSX'}
           </button>
-        )}
+          {canCreate && (
+            <button
+              onClick={onNewEnquiry}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              New Enquiry
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Filters */}
@@ -297,19 +381,44 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
           </select>
         </div>
 
-        {/* Row 2: Office, POL, POD filters */}
+        {/* Row 2: Office (multi-select), POL, POD filters */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
-          {/* Office Filter */}
-          <select
-            value={officeFilter}
-            onChange={(e) => { setOfficeFilter(e.target.value); setCurrentPage(1); }}
-            className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-          >
-            <option value="">All Offices</option>
-            {officeOptions.map(o => (
-              <option key={String(o.value)} value={String(o.value)}>{o.label}</option>
-            ))}
-          </select>
+          {/* Office Multi-Select Filter */}
+          <div ref={officeRef} className="relative">
+            <button
+              type="button"
+              onClick={() => setShowOfficeDropdown(!showOfficeDropdown)}
+              className={`w-full text-left rounded-md border shadow-sm px-3 py-2 text-sm focus:border-indigo-500 focus:ring-indigo-500 ${officeFilter.length > 0 ? 'bg-indigo-50 border-indigo-300' : 'border-gray-300'}`}
+            >
+              {officeFilter.length === 0 ? 'All Offices' : `${officeFilter.length} office(s) selected`}
+            </button>
+            {showOfficeDropdown && (
+              <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                {officeOptions.map(o => (
+                  <label
+                    key={String(o.value)}
+                    className="flex items-center px-3 py-2 text-sm hover:bg-indigo-50 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={officeFilter.includes(String(o.value))}
+                      onChange={(ev) => {
+                        const val = String(o.value);
+                        if (ev.target.checked) {
+                          setOfficeFilter([...officeFilter, val]);
+                        } else {
+                          setOfficeFilter(officeFilter.filter(v => v !== val));
+                        }
+                        setCurrentPage(1);
+                      }}
+                      className="mr-2 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    {o.label}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* POL Search Filter */}
           <div ref={polRef} className="relative">
@@ -406,15 +515,42 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
           </div>
         </div>
 
+        {/* Row 3: Created Date Range Filter */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
+            <DatePicker
+              selected={createdDateFrom}
+              onChange={(date: Date | null) => { setCreatedDateFrom(date); setCurrentPage(1); }}
+              placeholderText="Created From"
+              dateFormat="yyyy/MM/dd"
+              isClearable
+              className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-gray-400 text-sm flex-shrink-0">—</span>
+            <DatePicker
+              selected={createdDateTo}
+              onChange={(date: Date | null) => { setCreatedDateTo(date); setCurrentPage(1); }}
+              placeholderText="Created To"
+              dateFormat="yyyy/MM/dd"
+              isClearable
+              minDate={createdDateFrom || undefined}
+              className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+            />
+          </div>
+        </div>
+
         {/* Active filter tags */}
-        {(officeFilter || polFilter || podFilter) && (
+        {(officeFilter.length > 0 || polFilter || podFilter || createdDateFrom || createdDateTo) && (
           <div className="flex flex-wrap gap-2 mt-3">
-            {officeFilter && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-teal-100 text-teal-800">
-                Office: {officeOptions.find(o => String(o.value) === officeFilter)?.label || officeFilter}
-                <button onClick={() => { setOfficeFilter(''); setCurrentPage(1); }} className="hover:text-red-500"><X className="w-3 h-3" /></button>
+            {officeFilter.map(office => (
+              <span key={office} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-teal-100 text-teal-800">
+                Office: {officeOptions.find(o => String(o.value) === office)?.label || office}
+                <button onClick={() => { setOfficeFilter(officeFilter.filter(v => v !== office)); setCurrentPage(1); }} className="hover:text-red-500"><X className="w-3 h-3" /></button>
               </span>
-            )}
+            ))}
             {polFilter && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-800">
                 POL: {polLabel}
@@ -425,6 +561,12 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-purple-100 text-purple-800">
                 POD: {podLabel}
                 <button onClick={() => { setPodFilter(null); setPodLabel(''); setCurrentPage(1); }} className="hover:text-red-500"><X className="w-3 h-3" /></button>
+              </span>
+            )}
+            {(createdDateFrom || createdDateTo) && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-orange-100 text-orange-800">
+                Created: {createdDateFrom ? createdDateFrom.toISOString().split('T')[0] : '...'} ~ {createdDateTo ? createdDateTo.toISOString().split('T')[0] : '...'}
+                <button onClick={() => { setCreatedDateFrom(null); setCreatedDateTo(null); setCurrentPage(1); }} className="hover:text-red-500"><X className="w-3 h-3" /></button>
               </span>
             )}
           </div>

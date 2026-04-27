@@ -9,7 +9,9 @@ import jakarta.persistence.criteria.Root;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -28,7 +30,9 @@ public class EnquirySpecification {
             String dateFrom,
             String dateTo,
             Integer polPortId,
-            Integer podPortId) {
+            Integer podPortId,
+            String createdDateFrom,
+            String createdDateTo) {
 
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -68,9 +72,15 @@ public class EnquirySpecification {
                 predicates.add(cb.equal(root.get("salesCountryCode"), salesCountryCode));
             }
 
-            // CN Office filter
+            // CN Office filter — supports comma-separated multiple values
             if (assignedCnOffice != null && !assignedCnOffice.isBlank()) {
-                predicates.add(cb.equal(root.get("assignedCnOffice"), assignedCnOffice));
+                if (assignedCnOffice.contains(",")) {
+                    List<String> offices = Arrays.stream(assignedCnOffice.split(","))
+                            .map(String::trim).filter(s -> !s.isEmpty()).toList();
+                    predicates.add(root.get("assignedCnOffice").in(offices));
+                } else {
+                    predicates.add(cb.equal(root.get("assignedCnOffice"), assignedCnOffice));
+                }
             }
 
             // Core/Non-Core filter — handle both formats
@@ -89,6 +99,16 @@ public class EnquirySpecification {
             }
             if (dateTo != null && !dateTo.isBlank()) {
                 predicates.add(cb.lessThanOrEqualTo(root.get("enquiryReceivedDate"), LocalDate.parse(dateTo)));
+            }
+
+            // Date range filter (enquiryCreatedDate — LocalDateTime)
+            if (createdDateFrom != null && !createdDateFrom.isBlank()) {
+                LocalDateTime from = LocalDate.parse(createdDateFrom).atStartOfDay();
+                predicates.add(cb.greaterThanOrEqualTo(root.get("enquiryCreatedDate"), from));
+            }
+            if (createdDateTo != null && !createdDateTo.isBlank()) {
+                LocalDateTime to = LocalDate.parse(createdDateTo).plusDays(1).atStartOfDay();
+                predicates.add(cb.lessThan(root.get("enquiryCreatedDate"), to));
             }
 
             // POL port filter — subquery: EXISTS (SELECT 1 FROM enquiry_pol WHERE enquiry_id = e.id AND port_id = ?)

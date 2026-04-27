@@ -15,11 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -36,6 +32,9 @@ public class EnquiryService {
     private final EnquiryRouteGroupRepository routeGroupRepository;
     private final EnquiryRouteGroupPolRepository routeGroupPolRepository;
     private final EnquiryRouteGroupPodRepository routeGroupPodRepository;
+    private final SalesPicRepository salesPicRepository;
+    private final SalesOfficeRepository salesOfficeRepository;
+    private final PortRepository portRepository;
     
     // ═══════════════════════════════════
     // 查询方法
@@ -50,6 +49,7 @@ public class EnquiryService {
     public Page<Enquiry> getEnquiries(Pageable pageable) {
         Page<Enquiry> page = enquiryRepository.findAll(pageable);
         page.getContent().forEach(this::loadTransientData);
+        enrichWithDerivedFields(page.getContent());
         return page;
     }
     
@@ -68,13 +68,16 @@ public class EnquiryService {
             String assignedCnOffice, String coreNonCore,
             String dateFrom, String dateTo,
             Integer polPortId, Integer podPortId,
+            String createdDateFrom, String createdDateTo,
             Pageable pageable) {
         Specification<Enquiry> spec = EnquirySpecification.withFilters(
                 keyword, status, productCode, cargoTypeCode,
                 salesCountryCode, assignedCnOffice, coreNonCore,
-                dateFrom, dateTo, polPortId, podPortId);
+                dateFrom, dateTo, polPortId, podPortId,
+                createdDateFrom, createdDateTo);
         Page<Enquiry> page = enquiryRepository.findAll(spec, pageable);
         page.getContent().forEach(this::loadTransientData);
+        enrichWithDerivedFields(page.getContent());
         return page;
     }
 
@@ -529,6 +532,52 @@ public class EnquiryService {
                     .stream().map(EnquiryRouteGroupPod::getPortId).collect(Collectors.toList()));
         });
         enquiry.setRouteGroups(groups);
+    }
+
+    /**
+     * 批量填充派生显示字段（salesPicName, salesOfficeName, firstPolName, firstPodName）
+     * 使用批量查询避免 N+1 问题
+     */
+    private void enrichWithDerivedFields(List<Enquiry> enquiries) {
+        if (enquiries == null || enquiries.isEmpty()) return;
+
+        // 1. 批量查询 SalesPic 名称
+        Set<Integer> picIds = new HashSet<>();
+        Set<Integer> officeIds = new HashSet<>();
+        Set<Integer> allPortIds = new HashSet<>();
+
+        for (Enquiry e : enquiries) {
+            if (e.getSalesPicId() != null) picIds.add(e.getSalesPicId());
+            if (e.getSalesOfficeId() != null) officeIds.add(e.getSalesOfficeId());
+            if (e.getPolIds() != null) allPortIds.addAll(e.getPolIds());
+            if (e.getPodIds() != null) allPortIds.addAll(e.getPodIds());
+        }
+
+        Map<Integer, String> picNameMap = picIds.isEmpty() ? Collections.emptyMap() :
+                salesPicRepository.findAllById(picIds).stream()
+                        .collect(Collectors.toMap(SalesPic::getId, SalesPic::getName));
+
+        Map<Integer, String> officeNameMap = officeIds.isEmpty() ? Collections.emptyMap() :
+                salesOfficeRepository.findAllById(officeIds).stream()
+                        .collect(Collectors.toMap(SalesOffice::getId, SalesOffice::getName));
+
+        Map<Integer, String> portNameMap = allPortIds.isEmpty() ? Collections.emptyMap() :
+                portRepository.findAllById(allPortIds).stream()
+                        .collect(Collectors.toMap(Port::getId,
+                                p -> p.getPortCode() + " - " + p.getPortName()));
+
+        for (Enquiry e : enquiries) {
+            if (e.getSalesPicId() != null)
+                e.setSalesPicName(picNameMap.get(e.getSalesPicId()));
+            if (e.getSalesOfficeId() != null)
+                e.setSalesOfficeName(officeNameMap.get(e.getSalesOfficeId()));
+            List<Integer> pols = e.getPolIds();
+            if (pols != null && !pols.isEmpty())
+                e.setPolName(portNameMap.get(pols.get(0)));
+            List<Integer> pods = e.getPodIds();
+            if (pods != null && !pods.isEmpty())
+                e.setPodName(portNameMap.get(pods.get(0)));
+        }
     }
     
     /**

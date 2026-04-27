@@ -119,14 +119,14 @@ const App: React.FC = () => {
   const isOperatingUser = roles.includes('OPERATING_USER');
   const isLoginUser = !isAdmin && !isSalesManager && !isOperatingUser;
   
-  // 权限层级: ADMIN > SALES_MANAGER > OPERATING_USER > NORMAL_USER
+  // 权限层级: ADMIN > SALES_MANAGER = OPERATING_USER > NORMAL_USER
   // ADMIN: 全部功能
-  // SALES_MANAGER: 询价管理 + 主数据 + 报表（等同原OPERATING_USER权限）
-  // OPERATING_USER (CN Pricing Operator): 询价管理 + 主数据（不含报表）
-  // NORMAL_USER: 仅查看
+  // SALES_MANAGER (Manager): 询价管理(完整) + 报表
+  // OPERATING_USER (CN Pricing Operator): 询价管理(完整) + 报表
+  // NORMAL_USER: 询价仅查看
   const canManageEnquiries = isAdmin || isSalesManager || isOperatingUser;
-  const canManageMasterData = isAdmin || isSalesManager || isOperatingUser;
-  const canViewReports = isAdmin || isSalesManager;  // ✅ OPERATING_USER不可见Reports
+  const canManageMasterData = isAdmin;  // ✅ 仅Admin可管理主数据
+  const canViewReports = isAdmin || isSalesManager || isOperatingUser;  // ✅ Manager+Operator可见Reports
   const canViewSettings = isAdmin;  // ✅ 仅Admin可见设置
   const displayName = currentUser?.username ?? 'User';
   const displayRole = roles[0] ?? 'LOGIN_USER';

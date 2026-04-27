@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""Check which offices and PICs from the screenshot already exist"""
 import pymysql, csv, re
 from collections import Counter
 

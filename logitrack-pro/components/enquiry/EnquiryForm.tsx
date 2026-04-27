@@ -1139,6 +1139,17 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
                   ))}
                 </select>
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Sender Email</label>
+                <input
+                  type="email"
+                  value={formData.senderEmail || ''}
+                  onChange={(e) => handleChange('senderEmail', e.target.value)}
+                  placeholder="e.g. sender@example.com"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                />
+              </div>
             </div>
           </div>
         </AccordionItem>

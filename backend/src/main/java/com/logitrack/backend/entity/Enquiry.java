@@ -75,6 +75,9 @@ public class Enquiry {
     @Column(name = "assigned_cn_office", length = 100)
     private String assignedCnOffice;
     
+    @Column(name = "sender_email", length = 200)
+    private String senderEmail;
+    
     // 货物信息
     @Column(name = "commodity", columnDefinition = "TEXT")
     private String commodity;
@@ -172,6 +175,19 @@ public class Enquiry {
     
     @Transient
     private List<EnquiryRouteGroup> routeGroups = new ArrayList<>();
+
+    // 派生展示字段（由服务层批量填充）
+    @Transient
+    private String salesPicName;
+
+    @Transient
+    private String salesOfficeName;
+
+    @Transient
+    private String polName;
+
+    @Transient
+    private String podName;
     
     @PrePersist
     protected void onCreate() {

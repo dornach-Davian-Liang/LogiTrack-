@@ -339,6 +339,12 @@ export const EnquiryDetail: React.FC<EnquiryDetailProps> = ({ enquiryId, onBack,
                   <dt className="text-xs font-semibold text-teal-600 uppercase tracking-wider mb-2">Assigned CN Office</dt>
                   <dd className="text-lg font-bold text-gray-900">{enquiry.assignedCnOffice || '-'}</dd>
                 </div>
+                {enquiry.senderEmail && (
+                  <div className="bg-gradient-to-br from-sky-50 to-cyan-50 p-5 rounded-xl border border-sky-100 hover:shadow-md transition-shadow duration-200">
+                    <dt className="text-xs font-semibold text-sky-600 uppercase tracking-wider mb-2">Sender Email</dt>
+                    <dd className="text-lg font-bold text-gray-900">{enquiry.senderEmail}</dd>
+                  </div>
+                )}
                 <div className="bg-gradient-to-br from-rose-50 to-red-50 p-5 rounded-xl border border-rose-100 hover:shadow-md transition-shadow duration-200">
                   <dt className="text-xs font-semibold text-rose-600 uppercase tracking-wider mb-2">Core Flag</dt>
                   <dd className="text-lg font-bold text-gray-900">{enquiry.coreNonCore || '-'}</dd>
@@ -660,36 +666,18 @@ export const EnquiryDetail: React.FC<EnquiryDetailProps> = ({ enquiryId, onBack,
                             <FileText className="w-4 h-4 text-gray-400" />
                             <span>{offer.priceLines?.length || 0} price line(s)</span>
                           </div>
-                          {/* Currency Display */}
-                          {isFCL && (
-                            <div className="flex items-center gap-3">
-                              <div className="flex items-center gap-1.5">
-                                <DollarSign className="w-3.5 h-3.5 text-gray-400" />
-                                <span className="text-gray-500">Frg.:</span>
-                                <span className="font-semibold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded text-xs">{offer.containerCurrency || 'USD'}</span>
-                              </div>
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-gray-500">Local:</span>
-                                <span className="font-semibold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded text-xs">{offer.localChargeCurrency || 'USD'}</span>
-                              </div>
+                          {/* Currency Display — all offer types */}
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1.5">
+                              <DollarSign className="w-3.5 h-3.5 text-gray-400" />
+                              <span className="text-gray-500">Frg.:</span>
+                              <span className="font-semibold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded text-xs">{offer.containerCurrency || 'USD'}</span>
                             </div>
-                          )}
-                          {!isFCL && (offer.containerCurrency || offer.localChargeCurrency) && (
-                            <div className="flex items-center gap-3">
-                              {offer.containerCurrency && (
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-gray-500">Currency:</span>
-                                  <span className="font-semibold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded text-xs">{offer.containerCurrency}</span>
-                                </div>
-                              )}
-                              {offer.localChargeCurrency && (
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-gray-500">Local:</span>
-                                  <span className="font-semibold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded text-xs">{offer.localChargeCurrency}</span>
-                                </div>
-                              )}
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-gray-500">Local:</span>
+                              <span className="font-semibold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded text-xs">{offer.localChargeCurrency || 'USD'}</span>
                             </div>
-                          )}
+                          </div>
                         </div>
                         {offer.remark && (
                           <div className="mt-2 text-sm text-gray-600 italic">

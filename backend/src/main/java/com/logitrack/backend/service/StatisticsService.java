@@ -2,7 +2,15 @@ package com.logitrack.backend.service;
 
 import com.logitrack.backend.dto.*;
 import com.logitrack.backend.entity.Enquiry;
+import com.logitrack.backend.entity.EnquiryPol;
+import com.logitrack.backend.entity.EnquiryPod;
+import com.logitrack.backend.entity.Port;
+import com.logitrack.backend.entity.SalesPic;
 import com.logitrack.backend.repository.EnquiryRepository;
+import com.logitrack.backend.repository.EnquiryPolRepository;
+import com.logitrack.backend.repository.EnquiryPodRepository;
+import com.logitrack.backend.repository.PortRepository;
+import com.logitrack.backend.repository.SalesPicRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -22,6 +30,10 @@ import java.util.stream.Collectors;
 public class StatisticsService {
     
     private final EnquiryRepository enquiryRepository;
+    private final EnquiryPolRepository enquiryPolRepository;
+    private final EnquiryPodRepository enquiryPodRepository;
+    private final PortRepository portRepository;
+    private final SalesPicRepository salesPicRepository;
     private static final DateTimeFormatter MONTH_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM");
     
     /**
@@ -515,17 +527,39 @@ public class StatisticsService {
         return enquiries.stream().map(e -> {
             Map<String, Object> item = new HashMap<>();
             item.put("id", e.getId());
-            item.put("referenceNumber", e.getRefNumber());
+            item.put("refNumber", e.getRefNumber());
             item.put("enquiryReceivedDate",
                     e.getEnquiryReceivedDate() != null ? e.getEnquiryReceivedDate().toString() : null);
             item.put("enquiryCreatedDate",
                     e.getEnquiryCreatedDate() != null ? e.getEnquiryCreatedDate().toString() : null);
             item.put("status", e.getStatus() != null ? e.getStatus().toJsonValue() : null);
             item.put("productCode", e.getProductCode());
+            item.put("productAbbr", e.getProductAbbr());
             item.put("salesCountryCode", e.getSalesCountryCode());
             item.put("cargoTypeCode", e.getCargoTypeCode());
             item.put("commodity", e.getCommodity());
             item.put("assignedCnOffice", e.getAssignedCnOffice());
+
+            // Sales PIC name
+            if (e.getSalesPicId() != null) {
+                salesPicRepository.findById(e.getSalesPicId())
+                    .ifPresent(pic -> item.put("salesPicName", pic.getName()));
+            }
+
+            // POL name (first POL port)
+            List<EnquiryPol> pols = enquiryPolRepository.findByEnquiryId(e.getId());
+            if (!pols.isEmpty()) {
+                portRepository.findById(pols.get(0).getPortId())
+                    .ifPresent(port -> item.put("polName", port.getPortCode() + " - " + port.getPortName()));
+            }
+
+            // POD name (first POD port)
+            List<EnquiryPod> pods = enquiryPodRepository.findByEnquiryId(e.getId());
+            if (!pods.isEmpty()) {
+                portRepository.findById(pods.get(0).getPortId())
+                    .ifPresent(port -> item.put("podName", port.getPortCode() + " - " + port.getPortName()));
+            }
+
             return item;
         }).collect(Collectors.toList());
     }

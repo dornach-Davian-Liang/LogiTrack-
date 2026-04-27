@@ -47,6 +47,8 @@ public class EnquiryController {
             @RequestParam(required = false) String coreNonCore,
             @RequestParam(required = false) String dateFrom,
             @RequestParam(required = false) String dateTo,
+            @RequestParam(required = false) String createdDateFrom,
+            @RequestParam(required = false) String createdDateTo,
             @RequestParam(required = false) Integer polPortId,
             @RequestParam(required = false) Integer podPortId,
             @RequestParam(defaultValue = "id") String sortBy,
@@ -69,6 +71,7 @@ public class EnquiryController {
                 status != null || productCode != null || cargoTypeCode != null ||
                 salesCountryCode != null || assignedCnOffice != null ||
                 coreNonCore != null || dateFrom != null || dateTo != null ||
+                createdDateFrom != null || createdDateTo != null ||
                 polPortId != null || podPortId != null;
         
         Page<Enquiry> enquiryPage;
@@ -77,7 +80,8 @@ public class EnquiryController {
                     keyword != null ? keyword.trim() : null,
                     status, productCode, cargoTypeCode,
                     salesCountryCode, assignedCnOffice, coreNonCore,
-                    dateFrom, dateTo, polPortId, podPortId, pageable);
+                    dateFrom, dateTo, polPortId, podPortId,
+                    createdDateFrom, createdDateTo, pageable);
         } else {
             enquiryPage = enquiryService.getEnquiries(pageable);
         }

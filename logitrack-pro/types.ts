@@ -323,6 +323,7 @@ export interface Enquiry {
   salesOfficeName?: string;
   salesOfficeCode?: string;
   assignedCnOffice?: string;
+  senderEmail?: string;
 
   cargoTypeCode: string;
   offerType?: OfferType;
@@ -374,6 +375,7 @@ export interface EnquiryListItem {
   cargoTypeCode: string;
   commodity?: string;
   assignedCnOffice?: string;
+  senderEmail?: string;
   coreNonCore?: CoreNonCore;
   polName?: string;
   podName?: string;
@@ -419,6 +421,7 @@ export interface EnquiryFormData {
   salesPicId?: number;
   salesOfficeId?: number;
   assignedCnOffice?: string;
+  senderEmail?: string;
 
   cargoTypeCode: string;
   offerType?: OfferType;
@@ -472,6 +475,8 @@ export interface EnquirySearchParams {
   podPortId?: number;
   dateFrom?: string;
   dateTo?: string;
+  createdDateFrom?: string;
+  createdDateTo?: string;
   page?: number;
   size?: number;
   sortBy?: string;

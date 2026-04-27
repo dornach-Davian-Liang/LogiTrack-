@@ -302,31 +302,29 @@ export const OfferPriceTable: React.FC<OfferPriceTableProps> = ({
             <span className="text-[10px] text-gray-400">(enter price, number &amp; weight inline)</span>
           )}
         </div>
-        {/* Currency selectors (FCL/BUYER-CONSOL only) */}
-        {isContainer && (
-          <div className="flex items-center gap-3">
-            <label className="flex items-center gap-1 text-xs text-gray-600">
-              <span className="font-medium">Frg. Currency:</span>
-              <select
-                value={offer.containerCurrency || 'USD'}
-                onChange={e => onUpdateOffer && onUpdateOffer(offerIndex, 'containerCurrency', e.target.value)}
-                className="text-xs rounded border-gray-300 py-0.5 px-1 focus:border-indigo-500 focus:ring-indigo-500"
-              >
-                {currencyOptions.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </label>
-            <label className="flex items-center gap-1 text-xs text-gray-600">
-              <span className="font-medium">Local Charge:</span>
-              <select
-                value={offer.localChargeCurrency || 'USD'}
-                onChange={e => onUpdateOffer && onUpdateOffer(offerIndex, 'localChargeCurrency', e.target.value)}
-                className="text-xs rounded border-gray-300 py-0.5 px-1 focus:border-indigo-500 focus:ring-indigo-500"
-              >
-                {currencyOptions.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </label>
-          </div>
-        )}
+        {/* Currency selectors — all offer types */}
+        <div className="flex items-center gap-3">
+          <label className="flex items-center gap-1 text-xs text-gray-600">
+            <span className="font-medium">Frg. Currency:</span>
+            <select
+              value={offer.containerCurrency || 'USD'}
+              onChange={e => onUpdateOffer && onUpdateOffer(offerIndex, 'containerCurrency', e.target.value)}
+              className="text-xs rounded border-gray-300 py-0.5 px-1 focus:border-indigo-500 focus:ring-indigo-500"
+            >
+              {currencyOptions.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </label>
+          <label className="flex items-center gap-1 text-xs text-gray-600">
+            <span className="font-medium">Local Charge:</span>
+            <select
+              value={offer.localChargeCurrency || 'USD'}
+              onChange={e => onUpdateOffer && onUpdateOffer(offerIndex, 'localChargeCurrency', e.target.value)}
+              className="text-xs rounded border-gray-300 py-0.5 px-1 focus:border-indigo-500 focus:ring-indigo-500"
+            >
+              {currencyOptions.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </label>
+        </div>
       </div>
 
       {groups.map((group, gIdx) => {

@@ -393,6 +393,8 @@ export const enquiryApi = {
     if (params?.podPortId) sp.set('podPortId', String(params.podPortId));
     if (params?.dateFrom) sp.set('dateFrom', params.dateFrom);
     if (params?.dateTo) sp.set('dateTo', params.dateTo);
+    if (params?.createdDateFrom) sp.set('createdDateFrom', params.createdDateFrom);
+    if (params?.createdDateTo) sp.set('createdDateTo', params.createdDateTo);
     if (params?.sortBy) sp.set('sortBy', params.sortBy);
     if (params?.sortDir) sp.set('sortDir', params.sortDir);
     const qs = sp.toString();
@@ -477,6 +479,8 @@ export const enquiryApi = {
     podPortId?: number;
     startDate?: string;
     endDate?: string;
+    createdDateFrom?: string;
+    createdDateTo?: string;
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
   }): Promise<PagedResponse<EnquiryListItem>> => {
@@ -493,6 +497,8 @@ export const enquiryApi = {
       podPortId: params?.podPortId || undefined,
       dateFrom: params?.startDate || undefined,
       dateTo: params?.endDate || undefined,
+      createdDateFrom: params?.createdDateFrom || undefined,
+      createdDateTo: params?.createdDateTo || undefined,
       sortBy: params?.sortBy || undefined,
       sortDir: params?.sortOrder,
     };
