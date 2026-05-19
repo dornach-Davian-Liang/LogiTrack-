@@ -121,29 +121,40 @@ public class AiAnalysisFunctions {
         if (months > 24) months = 24;
 
         YearMonth current = YearMonth.now();
-        List<Map<String, Object>> trend = new ArrayList<>();
 
+        // 一次查询整个日期范围，在内存中按月分组，避免每月一次 getDashboardStatsWithFilter 调用（N+1）
+        LocalDate startDate = current.minusMonths(months - 1).atDay(1);
+        LocalDate endDate = current.atEndOfMonth();
+        List<com.logitrack.backend.entity.Enquiry> allEnquiries =
+                enquiryRepository.findByEnquiryReceivedDateBetween(startDate, endDate);
+
+        Map<java.time.YearMonth, List<com.logitrack.backend.entity.Enquiry>> byMonth = allEnquiries.stream()
+                .filter(e -> e.getEnquiryReceivedDate() != null)
+                .collect(java.util.stream.Collectors.groupingBy(
+                        e -> java.time.YearMonth.from(e.getEnquiryReceivedDate())));
+
+        List<Map<String, Object>> trend = new ArrayList<>();
         for (int i = months - 1; i >= 0; i--) {
             YearMonth ym = current.minusMonths(i);
             String monthStr = ym.format(MONTH_FMT);
+            List<com.logitrack.backend.entity.Enquiry> monthEnquiries =
+                    byMonth.getOrDefault(ym, Collections.emptyList());
 
-            DashboardFilterDTO filter = new DashboardFilterDTO();
-            filter.setStartDate(ym.atDay(1));
-            filter.setEndDate(ym.atEndOfMonth());
-            DashboardStatsDTO stats = statisticsService.getDashboardStatsWithFilter(filter);
-            DashboardOverviewDTO ov = stats.getOverview();
+            long total = monthEnquiries.size();
+            long quoted = monthEnquiries.stream()
+                    .filter(e -> e.getStatus() == com.logitrack.backend.entity.Enquiry.EnquiryStatus.Quoted_Pending)
+                    .count();
+            long confirmed = monthEnquiries.stream()
+                    .filter(e -> e.getStatus() == com.logitrack.backend.entity.Enquiry.EnquiryStatus.Secured)
+                    .count();
 
             Map<String, Object> point = new LinkedHashMap<>();
             point.put("month", monthStr);
-            point.put("totalEnquiries", ov.getTotalEnquiries());
-            point.put("quoted", ov.getQuoted());
-            point.put("confirmed", ov.getConfirmed());
-            if (ov.getTotalEnquiries() > 0) {
-                point.put("conversionRate",
-                        String.format("%.1f", (double) ov.getConfirmed() / ov.getTotalEnquiries() * 100));
-            } else {
-                point.put("conversionRate", "0.0");
-            }
+            point.put("totalEnquiries", total);
+            point.put("quoted", quoted);
+            point.put("confirmed", confirmed);
+            point.put("conversionRate", total > 0
+                    ? String.format("%.1f", (double) confirmed / total * 100) : "0.0");
             trend.add(point);
         }
 

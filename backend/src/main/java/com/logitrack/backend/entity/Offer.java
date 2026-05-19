@@ -61,6 +61,7 @@ public class Offer {
     
     // 价格明细行
     @OneToMany(mappedBy = "offer", cascade = CascadeType.ALL, orphanRemoval = true)
+    @org.hibernate.annotations.BatchSize(size = 50)
     private List<OfferPriceLine> priceLines = new ArrayList<>();
     
     @PrePersist

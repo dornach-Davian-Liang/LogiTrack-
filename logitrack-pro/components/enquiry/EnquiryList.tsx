@@ -30,6 +30,7 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
   const [podLabel, setPodLabel] = useState('');
   const [createdDateFrom, setCreatedDateFrom] = useState<Date | null>(null);
   const [createdDateTo, setCreatedDateTo] = useState<Date | null>(null);
+  const [autoFillOnly, setAutoFillOnly] = useState(false);
 
   // Export state
   const [isExporting, setIsExporting] = useState(false);
@@ -98,7 +99,7 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
 
   useEffect(() => {
     fetchEnquiries();
-  }, [currentPage, pageSize, searchTerm, statusFilter, cargoTypeFilter, officeFilter, polFilter, podFilter, createdDateFrom, createdDateTo]);
+  }, [currentPage, pageSize, searchTerm, statusFilter, cargoTypeFilter, officeFilter, polFilter, podFilter, createdDateFrom, createdDateTo, autoFillOnly]);
 
   const fetchEnquiries = async () => {
     setIsLoading(true);
@@ -115,6 +116,7 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
         podPortId: podFilter || undefined,
         createdDateFrom: createdDateFrom ? createdDateFrom.toISOString().split('T')[0] : undefined,
         createdDateTo: createdDateTo ? createdDateTo.toISOString().split('T')[0] : undefined,
+        createdBy: autoFillOnly ? 'email-ai-bot' : undefined,
       });
       console.log('[EnquiryList] API response:', {
         totalElements: response.totalElements,
@@ -317,6 +319,17 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
           >
             <Download className="w-4 h-4 mr-2" />
             {isExporting ? 'Exporting...' : 'Export XLSX'}
+          </button>
+          <button
+            onClick={() => { setAutoFillOnly(!autoFillOnly); setCurrentPage(1); }}
+            className={`inline-flex items-center px-4 py-2 border text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${
+              autoFillOnly
+                ? 'border-indigo-500 bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+            }`}
+            title="Show only AI auto-filled enquiries"
+          >
+            🤖 AI 自动{autoFillOnly ? ' ✕' : ''}
           </button>
           {canCreate && (
             <button
@@ -614,7 +627,13 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
                     Status
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Date
+                    Assigned CN Office
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Created Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Created By
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
@@ -639,7 +658,18 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {enquiry.enquiryReceivedDate}
+                      {enquiry.assignedCnOffice || '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {String(enquiry.enquiryCreatedDate || '').substring(0, 10)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {enquiry.createdBy === 'email-ai-bot'
+                        ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700" title="Auto-filled by email-ai-automation">🤖 AI 自动</span>
+                        : enquiry.createdBy
+                          ? <span className="text-gray-600">👤 {enquiry.createdBy}</span>
+                          : <span className="text-gray-400">-</span>
+                      }
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end gap-2">

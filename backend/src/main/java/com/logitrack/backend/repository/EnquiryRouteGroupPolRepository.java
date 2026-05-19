@@ -11,6 +11,11 @@ import java.util.List;
 public interface EnquiryRouteGroupPolRepository extends JpaRepository<EnquiryRouteGroupPol, Long> {
     
     List<EnquiryRouteGroupPol> findByRouteGroupId(Long routeGroupId);
+
+    /**
+     * 批量查询多个路由组ID的起运港（避免 N+1）
+     */
+    List<EnquiryRouteGroupPol> findByRouteGroupIdIn(java.util.Collection<Long> routeGroupIds);
     
     void deleteByRouteGroupId(Long routeGroupId);
 }

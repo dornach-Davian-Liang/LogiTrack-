@@ -32,7 +32,8 @@ public class EnquirySpecification {
             Integer polPortId,
             Integer podPortId,
             String createdDateFrom,
-            String createdDateTo) {
+            String createdDateTo,
+            String createdBy) {
 
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -133,6 +134,11 @@ public class EnquirySpecification {
                     cb.equal(podRoot.get("portId"), podPortId)
                 );
                 predicates.add(cb.exists(podSub));
+            }
+
+            // createdBy filter — for auto-fill source identification
+            if (createdBy != null && !createdBy.isBlank()) {
+                predicates.add(cb.equal(root.get("createdBy"), createdBy.trim()));
             }
 
             return cb.and(predicates.toArray(new Predicate[0]));

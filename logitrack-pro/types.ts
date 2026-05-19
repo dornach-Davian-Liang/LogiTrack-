@@ -353,6 +353,8 @@ export interface Enquiry {
 
   containerRows?: EnquiryContainerRow[];
 
+  createdBy?: string;
+  updatedBy?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -382,6 +384,7 @@ export interface EnquiryListItem {
   podCountry?: string;
   offersCount?: number;
   latestOfferDate?: string;
+  createdBy?: string;
 }
 
 // ==========================================
@@ -477,6 +480,7 @@ export interface EnquirySearchParams {
   dateTo?: string;
   createdDateFrom?: string;
   createdDateTo?: string;
+  createdBy?: string;
   page?: number;
   size?: number;
   sortBy?: string;
@@ -535,6 +539,11 @@ export interface EnquiryRecord {
 
 export interface DashboardOverview {
   totalEnquiries: number;
+  newEnquiries?: number;
+  quotedPending?: number;
+  secured?: number;
+  lost?: number;
+  cancelled?: number;
   quoted: number;
   pending: number;
   confirmed: number;

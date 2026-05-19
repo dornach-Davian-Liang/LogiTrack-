@@ -29,6 +29,8 @@ public class EnquiryService {
     private final EnquiryRepository enquiryRepository;
     private final ProductRepository productRepository;
     private final EnquiryPortService enquiryPortService;
+    private final EnquiryPolRepository enquiryPolRepository;
+    private final EnquiryPodRepository enquiryPodRepository;
     private final EnquiryRouteGroupRepository routeGroupRepository;
     private final EnquiryRouteGroupPolRepository routeGroupPolRepository;
     private final EnquiryRouteGroupPodRepository routeGroupPodRepository;
@@ -42,20 +44,20 @@ public class EnquiryService {
     
     public List<Enquiry> getAllEnquiries() {
         List<Enquiry> enquiries = enquiryRepository.findAll();
-        enquiries.forEach(this::loadTransientData);
+        batchLoadTransientData(enquiries);
         return enquiries;
     }
     
     public Page<Enquiry> getEnquiries(Pageable pageable) {
         Page<Enquiry> page = enquiryRepository.findAll(pageable);
-        page.getContent().forEach(this::loadTransientData);
+        batchLoadTransientData(page.getContent());
         enrichWithDerivedFields(page.getContent());
         return page;
     }
     
     public Page<Enquiry> searchEnquiries(String keyword, Pageable pageable) {
         Page<Enquiry> page = enquiryRepository.searchEnquiries(keyword, pageable);
-        page.getContent().forEach(this::loadTransientData);
+        batchLoadTransientData(page.getContent());
         return page;
     }
 
@@ -69,14 +71,15 @@ public class EnquiryService {
             String dateFrom, String dateTo,
             Integer polPortId, Integer podPortId,
             String createdDateFrom, String createdDateTo,
+            String createdBy,
             Pageable pageable) {
         Specification<Enquiry> spec = EnquirySpecification.withFilters(
                 keyword, status, productCode, cargoTypeCode,
                 salesCountryCode, assignedCnOffice, coreNonCore,
                 dateFrom, dateTo, polPortId, podPortId,
-                createdDateFrom, createdDateTo);
+                createdDateFrom, createdDateTo, createdBy);
         Page<Enquiry> page = enquiryRepository.findAll(spec, pageable);
-        page.getContent().forEach(this::loadTransientData);
+        batchLoadTransientData(page.getContent());
         enrichWithDerivedFields(page.getContent());
         return page;
     }
@@ -321,6 +324,7 @@ public class EnquiryService {
                 if (enquiry.getCancelledReasonText() != null) existing.setCancelledReasonText(enquiry.getCancelledReasonText());
                 if (enquiry.getLostReason() != null) existing.setLostReason(enquiry.getLostReason());
                 if (enquiry.getLostReasonText() != null) existing.setLostReasonText(enquiry.getLostReasonText());
+                if (enquiry.getUpdatedBy() != null) existing.setUpdatedBy(enquiry.getUpdatedBy());
                 
                 // ── 更新港口关联 ──
                 if (enquiry.getPolIds() != null) {
@@ -516,7 +520,7 @@ public class EnquiryService {
     // ═══════════════════════════════════
     
     /**
-     * 加载 Transient 数据（polIds, podIds, routeGroups）
+     * 加载 Transient 数据（polIds, podIds, routeGroups）- 用于单条记录
      */
     private void loadTransientData(Enquiry enquiry) {
         if (enquiry.getId() == null) return;
@@ -532,6 +536,62 @@ public class EnquiryService {
                     .stream().map(EnquiryRouteGroupPod::getPortId).collect(Collectors.toList()));
         });
         enquiry.setRouteGroups(groups);
+    }
+
+    /**
+     * 批量加载 Transient 数据（polIds, podIds, routeGroups）- 避免 N+1 问题
+     */
+    private void batchLoadTransientData(List<Enquiry> enquiries) {
+        if (enquiries == null || enquiries.isEmpty()) return;
+        List<Long> ids = enquiries.stream()
+                .filter(e -> e.getId() != null)
+                .map(Enquiry::getId)
+                .collect(Collectors.toList());
+        if (ids.isEmpty()) return;
+
+        // 批量查询 POL
+        Map<Long, List<Integer>> polMap = enquiryPolRepository
+                .findByEnquiryIdIn(ids).stream()
+                .collect(Collectors.groupingBy(
+                        EnquiryPol::getEnquiryId,
+                        Collectors.mapping(EnquiryPol::getPortId, Collectors.toList())));
+
+        // 批量查询 POD
+        Map<Long, List<Integer>> podMap = enquiryPodRepository
+                .findByEnquiryIdIn(ids).stream()
+                .collect(Collectors.groupingBy(
+                        EnquiryPod::getEnquiryId,
+                        Collectors.mapping(EnquiryPod::getPortId, Collectors.toList())));
+
+        // 批量查询 RouteGroups
+        List<EnquiryRouteGroup> allGroups = routeGroupRepository.findByEnquiryIdInOrderByGroupIndex(ids);
+        Map<Long, List<EnquiryRouteGroup>> groupMap = allGroups.stream()
+                .collect(Collectors.groupingBy(EnquiryRouteGroup::getEnquiryId));
+
+        // 批量查询 RouteGroup POL / POD
+        if (!allGroups.isEmpty()) {
+            List<Long> groupIds = allGroups.stream().map(EnquiryRouteGroup::getId).collect(Collectors.toList());
+            Map<Long, List<Integer>> rgPolMap = routeGroupPolRepository.findByRouteGroupIdIn(groupIds).stream()
+                    .collect(Collectors.groupingBy(
+                            EnquiryRouteGroupPol::getRouteGroupId,
+                            Collectors.mapping(EnquiryRouteGroupPol::getPortId, Collectors.toList())));
+            Map<Long, List<Integer>> rgPodMap = routeGroupPodRepository.findByRouteGroupIdIn(groupIds).stream()
+                    .collect(Collectors.groupingBy(
+                            EnquiryRouteGroupPod::getRouteGroupId,
+                            Collectors.mapping(EnquiryRouteGroupPod::getPortId, Collectors.toList())));
+            allGroups.forEach(g -> {
+                g.setPolIds(rgPolMap.getOrDefault(g.getId(), Collections.emptyList()));
+                g.setPodIds(rgPodMap.getOrDefault(g.getId(), Collections.emptyList()));
+            });
+        }
+
+        // 赋值到各询价
+        for (Enquiry e : enquiries) {
+            if (e.getId() == null) continue;
+            e.setPolIds(polMap.getOrDefault(e.getId(), Collections.emptyList()));
+            e.setPodIds(podMap.getOrDefault(e.getId(), Collections.emptyList()));
+            e.setRouteGroups(groupMap.getOrDefault(e.getId(), Collections.emptyList()));
+        }
     }
 
     /**

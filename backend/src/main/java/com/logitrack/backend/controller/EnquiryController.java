@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import org.springframework.dao.DataIntegrityViolationException;
+import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
@@ -51,6 +52,7 @@ public class EnquiryController {
             @RequestParam(required = false) String createdDateTo,
             @RequestParam(required = false) Integer polPortId,
             @RequestParam(required = false) Integer podPortId,
+            @RequestParam(required = false) String createdBy,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(required = false) String sortOrder,
             @RequestParam(required = false) String sortDir) {
@@ -72,7 +74,8 @@ public class EnquiryController {
                 salesCountryCode != null || assignedCnOffice != null ||
                 coreNonCore != null || dateFrom != null || dateTo != null ||
                 createdDateFrom != null || createdDateTo != null ||
-                polPortId != null || podPortId != null;
+                polPortId != null || podPortId != null ||
+                createdBy != null;
         
         Page<Enquiry> enquiryPage;
         if (hasFilters) {
@@ -81,7 +84,8 @@ public class EnquiryController {
                     status, productCode, cargoTypeCode,
                     salesCountryCode, assignedCnOffice, coreNonCore,
                     dateFrom, dateTo, polPortId, podPortId,
-                    createdDateFrom, createdDateTo, pageable);
+                    createdDateFrom, createdDateTo,
+                    createdBy, pageable);
         } else {
             enquiryPage = enquiryService.getEnquiries(pageable);
         }
@@ -139,8 +143,12 @@ public class EnquiryController {
      */
     @PostMapping
     @Audit(action = "CREATE", resourceType = "ENQUIRY")
-    public ResponseEntity<?> createEnquiry(@RequestBody Enquiry enquiry) {
+    public ResponseEntity<?> createEnquiry(@RequestBody Enquiry enquiry, HttpServletRequest request) {
         log.info("POST /api/enquiries");
+        String username = request.getHeader("X-Username");
+        if (username == null || username.isBlank()) username = "system";
+        enquiry.setCreatedBy(username);
+        enquiry.setUpdatedBy(username);
         try {
             Enquiry created = enquiryService.createEnquiry(enquiry);
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
@@ -167,8 +175,12 @@ public class EnquiryController {
     @PutMapping("/{id}")
     public ResponseEntity<?> updateEnquiry(
             @PathVariable Long id, 
-            @RequestBody Enquiry enquiry) {
+            @RequestBody Enquiry enquiry,
+            HttpServletRequest request) {
         log.info("PUT /api/enquiries/{}", id);
+        String username = request.getHeader("X-Username");
+        if (username == null || username.isBlank()) username = "system";
+        enquiry.setUpdatedBy(username);
         try {
             Enquiry updated = enquiryService.updateEnquiry(id, enquiry);
             return ResponseEntity.ok(updated);

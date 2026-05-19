@@ -16,6 +16,11 @@ public interface EnquiryPolRepository extends JpaRepository<EnquiryPol, Long> {
      * 根据询价ID查找所有起运港
      */
     List<EnquiryPol> findByEnquiryId(Long enquiryId);
+
+    /**
+     * 批量查询多个询价ID的起运港（避免 N+1）
+     */
+    List<EnquiryPol> findByEnquiryIdIn(java.util.Collection<Long> enquiryIds);
     
     @Modifying
     @Query("DELETE FROM EnquiryPol ep WHERE ep.enquiryId = :enquiryId")

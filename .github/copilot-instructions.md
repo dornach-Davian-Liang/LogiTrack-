@@ -1,6 +1,44 @@
 # LogiTrack Pro — Copilot Instructions
 
 > 本文件为 GitHub Copilot 提供项目上下文，帮助生成更精准的代码建议。
+> **本工作区包含两个关联项目**，请始终结合两个项目的上下文理解需求。
+
+---
+
+## 0. 双项目工作区说明
+
+本工作区通过 `logitrack-workspace.code-workspace` 同时管理两个关联项目：
+
+| 项目 | 根目录 | 语言/框架 | 端口 |
+|------|--------|-----------|------|
+| **LogiTrack Pro** | `C:\logitrack\LogiTrack--update-status-report-20260126023903\` | Java/Spring Boot + React/TypeScript | :8080 (API), :3000 (前端) |
+| **Email AI Automation** | `C:\Users\Administrator\Desktop\email-ai-automation\` | Python 3.14 + FastAPI | :5100 (监控API) |
+
+### 项目间集成关系
+
+```
+Email AI Automation (Python)
+  │  MS Graph API → 拉取邮件
+  │  AI 分析（DeepSeek LLM）→ 路由决策
+  │  → POST /api/enquiries  →  LogiTrack Pro (Spring Boot :8080)
+  │  → 写入 MySQL logitrack DB（共享）
+  │  → FastAPI :5100 监控 API ← React 前端轮询
+  │
+  └── Spring Boot ProcessManagerService
+        负责启动/停止 Python 进程（subprocess）
+```
+
+### 关键关联文件速查
+
+| 关联点 | LogiTrack 侧 | Email AI 侧 |
+|--------|-------------|-------------|
+| 进程管理 | `backend/.../service/ProcessManagerService.java` | `main.py` (被启动的目标) |
+| 监控 API 对接 | `backend/.../controller/ProcessManagerController.java` | `services/monitor_api.py` |
+| 建单 API | `backend/.../controller/EnquiryController.java` | `services/logitrack_client.py` |
+| 监控前端 | `logitrack-pro/components/settings/monitoring/` | — |
+| 监控 API 服务层 | `logitrack-pro/services/monitorApi.ts` | — |
+| 共享数据库 | MySQL `logitrack` (localhost:3306) | `services/monitor_db.py` |
+| 里程碑文档 | `email-ai-automation_milestone.md` | `docs/PROJECT_STATUS_REPORT.md` |
 
 ---
 
@@ -283,3 +321,147 @@ npm run dev
 | AI 分析函数           | `backend/src/.../ai/AiAnalysisFunctions.java`         |
 | 审计切面              | `backend/src/.../config/AuditLogAspect.java`          |
 | API 文档              | `docs/04-api/`                                        |
+
+---
+
+## 10. Email AI Automation — 关联项目核心上下文
+
+> 路径: `C:\Users\Administrator\Desktop\email-ai-automation\`  
+> 在 Multi-Root Workspace 中名称为 **"Email AI Automation (Python)"**
+
+### 10.1 技术栈
+
+| 技术 | 版本/说明 |
+|------|-----------|
+| Python | 3.14（通过 `py` launcher 运行） |
+| FastAPI | 监控 API，端口 5100，daemon 子线程启动 |
+| httpx | HTTP 客户端（调用 Graph API / LLM / LogiTrack） |
+| PyMySQL | 写入 MySQL 处理日志 |
+| DeepSeek-chat | 主力 LLM，约 11s/封，用于路由决策 |
+
+### 10.2 目录结构
+
+```
+email-ai-automation/
+├── main.py                      # 主轮询入口（fetch→parse→AI→route→build→forward）
+├── config/settings.py           # 所有环境变量（.env 读取）
+├── services/
+│   ├── graph_client.py          # MS Graph API（拉邮件/附件/转发/回复）
+│   ├── email_parser.py          # HTML→纯文本 + VLM 集成
+│   ├── ai_analyzer.py           # DeepSeek LLM + 22个 Few-shot Cases
+│   ├── router.py                # PIC 路由引擎（10+层优先级规则）
+│   ├── skip_checker.py          # 建号拦截（DG/混合/无货量）
+│   ├── logitrack_client.py      # POST /api/enquiries 自动建单
+│   ├── logitrack_mapper.py      # AI 输出 → LogiTrack payload 映射
+│   ├── monitor_api.py           # FastAPI 监控服务（/pyapi/* 端点）
+│   ├── monitor_db.py            # 写入 MySQL email_processing_log
+│   ├── test_tracker.py          # 去重缓存（tested_emails.json）
+│   └── vision_analyzer.py       # VLM 图片提取
+└── data/
+    ├── pic_routing.json          # PIC 路由配置（branch→国家→收件人）
+    ├── tested_emails.json        # 已处理邮件去重记录
+    └── logitrack_mapping.json    # LogiTrack 字段映射配置
+```
+
+### 10.3 运行模式
+
+| 模式 | 启动参数 | 行为 |
+|------|----------|------|
+| DRY_RUN | （无参数） | 只分析，不转发，不建单，不标记已读 |
+| TEST_FORWARD | `--test-forward` | 转发到测试邮箱，建单（测试库），不标记已读 |
+| LIVE | `--forward` + `LIVE_CONFIRMED=true` env | 真实转发（Reply All）+ 标记已读 + 建单（生产库）|
+
+**Spring Boot 通过 `ProcessManagerService.java` 启动 Python 进程**，注入相应参数和环境变量。
+
+### 10.4 关键 API 端点（FastAPI :5100）
+
+| 端点 | 功能 |
+|------|------|
+| `GET /pyapi/status` | 实时进程状态（模式/运行时间/统计） |
+| `POST /pyapi/control/mode` | 切换运行模式（DRY_RUN/TEST_FORWARD/LIVE）|
+| `POST /pyapi/replay` | 单封邮件重放 |
+| `GET /pyapi/dedup/search` | 搜索去重缓存 |
+| `DELETE /pyapi/dedup/{id}` | 删除去重记录（立即生效，main.py 每轮调用 `tracker.reload()`）|
+| `GET /pyapi/routing` | 获取 pic_routing.json 摘要 |
+| `PUT /pyapi/routing` | 更新路由配置（白名单字段保护）|
+| `POST /pyapi/training/cases` | 创建 AI 训练案例（路由纠错）|
+| `POST /pyapi/training/inject` | 注入训练案例到 Few-shot |
+| `POST /pyapi/training/regression` | 回归测试验证 |
+
+### 10.5 邮件处理流程（main.py）
+
+```
+Step 1: Graph API 拉取未读邮件
+Step 1.5: 提取 cid: 内联图片（VLM 管线）
+Step 2: 解析邮件（HTML→文本，噪音清理）
+Step 3: 去重检查（tracker.is_tested()）
+Step 4: 构建 AI 输入（含 VLM 图片文本）
+Step 5: DeepSeek LLM 分析（返回 26+ 字段）
+Step 5.5: VLM 货量回填（内联图片 no_specific_cargo 修正）
+Step 6: 非询价邮件跳过
+Step 7: SkipChecker（DG/混合/无货量 → 不建单）
+Step 8: 路由匹配（router.get_forward_instruction()）
+Step 9: LogiTrack 自动建单（失败不阻断转发）
+Step 10: 执行转发（TEST_FORWARD→forward_email, LIVE→reply_all_email）
+Step 11: 标记已读（仅 LIVE）
+Step 12: 写入 tested_emails.json
+```
+
+### 10.6 转发邮件格式
+
+```
+主题（有 REF）: FW: <CN2604217-S> 40HQ Shenzhen to Riyadh
+主题（无 REF）: 原主题不变
+
+正文:
+Dear {发件人姓名},
+
+Thanks for your inquiry, will provide the best rate to you soonly.
+（或有 REF 时: Thanks for the opportunity. Adding the reference {REF}...）
+
+[This is an automated reply from China Pricing AI]
+
+── 原邮件引用（HTML 格式）──
+```
+
+### 10.7 PIC 路由优先级（router.py）
+
+```
+Priority 0: 混合运输（SEA+AIR）→ Curtis + Yvonne
+Priority 1: 进口中国（POD = China/HK）→ 按 POD 城市推断 branch
+Priority 2: 非中国起运（POL≠China/HK）→ SEA→Curtis; AIR→Susana
+Priority 3: Tender/Bid（HIGH risk）→ 通用路由矩阵
+Priority 5: 无具体货量 → SEA→Curtis+Yvonne+SZhang
+Priority 6: 非 Ziegler 发件人 + SHA/NGB + Core → Vivian Li
+Priority 7: Ziegler 发件人 → 按 sender_office 国家路由
+Priority 8-10: 正常路由 → 按 POD 国家匹配
+```
+
+### 10.8 多起运地合并逻辑
+
+当 `multiple_origins=True` 时，`_merge_instructions_by_mode()` 将同运输方式的多条指令合并为一封邮件（TO/CC 去重合并，branch 拼接如 `TSN+TAO`）。
+
+### 10.9 数据库表（共享 logitrack 库）
+
+| 表名 | 用途 |
+|------|------|
+| `email_processing_log` | 每封邮件处理记录（AI 分析 + 路由指令 + 建单结果）|
+| `email_monitor_status` | 服务运行状态快照（定时写入）|
+
+### 10.10 启动命令
+
+```powershell
+cd C:\Users\Administrator\Desktop\email-ai-automation
+
+# DRY-RUN（默认）
+py main.py
+
+# TEST-FORWARD（转发到测试邮箱）
+py main.py --test-forward
+
+# LIVE（真实转发，需二次确认）
+$env:LIVE_CONFIRMED="true"; py main.py --forward
+
+# 单次执行
+py main.py --once
+```

@@ -41,6 +41,11 @@ export interface Translations {
   // Statistics
   statistics: {
     totalEnquiries: string;
+    newEnquiries: string;
+    quotedPending: string;
+    secured: string;
+    lost: string;
+    cancelled: string;
     quoted: string;
     confirmed: string;
     pending: string;
@@ -376,6 +381,11 @@ export const zhTranslations: Translations = {
   // Statistics
   statistics: {
     totalEnquiries: '总询问数',
+    newEnquiries: '新建',
+    quotedPending: '已报价待确认',
+    secured: '已确认',
+    lost: '已失去',
+    cancelled: '已取消',
     quoted: '已报价',
     confirmed: '已确认',
     pending: '待处理',
@@ -709,6 +719,11 @@ export const enTranslations: Translations = {
   // Statistics
   statistics: {
     totalEnquiries: 'Total Enquiries',
+    newEnquiries: 'New',
+    quotedPending: 'Quoted & Pending',
+    secured: 'Secured',
+    lost: 'Lost',
+    cancelled: 'Cancelled',
     quoted: 'Quoted',
     confirmed: 'Confirmed',
     pending: 'Pending',

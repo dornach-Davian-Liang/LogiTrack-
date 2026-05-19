@@ -160,10 +160,12 @@ public class Enquiry {
     
     // 关联关系
     @OneToMany(mappedBy = "enquiry", cascade = CascadeType.ALL, orphanRemoval = true)
+    @org.hibernate.annotations.BatchSize(size = 50)
     private List<Offer> offers = new ArrayList<>();
     
     // Container rows (FCL/BUYER-CONSOL)
     @OneToMany(mappedBy = "enquiry", cascade = CascadeType.ALL, orphanRemoval = true)
+    @org.hibernate.annotations.BatchSize(size = 50)
     private List<EnquiryContainerLine> containerRows = new ArrayList<>();
     
     // Transient 字段（不映射到数据库）

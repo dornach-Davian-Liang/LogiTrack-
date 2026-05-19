@@ -11,6 +11,11 @@ import java.util.List;
 public interface EnquiryRouteGroupRepository extends JpaRepository<EnquiryRouteGroup, Long> {
     
     List<EnquiryRouteGroup> findByEnquiryIdOrderByGroupIndex(Long enquiryId);
+
+    /**
+     * 批量查询多个询价ID的路由组（避免 N+1）
+     */
+    List<EnquiryRouteGroup> findByEnquiryIdInOrderByGroupIndex(java.util.Collection<Long> enquiryIds);
     
     void deleteByEnquiryId(Long enquiryId);
 }

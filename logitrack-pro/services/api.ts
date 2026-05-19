@@ -395,6 +395,7 @@ export const enquiryApi = {
     if (params?.dateTo) sp.set('dateTo', params.dateTo);
     if (params?.createdDateFrom) sp.set('createdDateFrom', params.createdDateFrom);
     if (params?.createdDateTo) sp.set('createdDateTo', params.createdDateTo);
+    if (params?.createdBy) sp.set('createdBy', params.createdBy);
     if (params?.sortBy) sp.set('sortBy', params.sortBy);
     if (params?.sortDir) sp.set('sortDir', params.sortDir);
     const qs = sp.toString();
@@ -481,6 +482,7 @@ export const enquiryApi = {
     endDate?: string;
     createdDateFrom?: string;
     createdDateTo?: string;
+    createdBy?: string;
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
   }): Promise<PagedResponse<EnquiryListItem>> => {
@@ -499,6 +501,7 @@ export const enquiryApi = {
       dateTo: params?.endDate || undefined,
       createdDateFrom: params?.createdDateFrom || undefined,
       createdDateTo: params?.createdDateTo || undefined,
+      createdBy: params?.createdBy || undefined,
       sortBy: params?.sortBy || undefined,
       sortDir: params?.sortOrder,
     };

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Settings as SettingsIcon, ClipboardList, Users } from 'lucide-react';
+import { Settings as SettingsIcon, ClipboardList, Users, Activity } from 'lucide-react';
 import AuditLog from './AuditLog';
 import UserManagement from './UserManagement';
+import MonitoringDashboard from './monitoring/MonitoringDashboard';
 
-type SettingsTab = 'audit-log' | 'user-management';
+type SettingsTab = 'audit-log' | 'user-management' | 'email-monitor';
 
 export const SettingsLayout: React.FC = () => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('audit-log');
@@ -20,6 +21,12 @@ export const SettingsLayout: React.FC = () => {
       label: '📋 操作日志',
       icon: ClipboardList,
       description: '系统操作审计日志'
+    },
+    {
+      id: 'email-monitor' as const,
+      label: '📊 邮件监控',
+      icon: Activity,
+      description: '邮件 AI 自动化处理监控面板'
     }
   ];
 
@@ -58,6 +65,7 @@ export const SettingsLayout: React.FC = () => {
       <div className="bg-white rounded-lg p-6">
         {activeTab === 'user-management' && <UserManagement />}
         {activeTab === 'audit-log' && <AuditLog />}
+        {activeTab === 'email-monitor' && <MonitoringDashboard />}
       </div>
     </div>
   );

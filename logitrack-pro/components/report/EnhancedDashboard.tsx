@@ -168,7 +168,7 @@ export const EnhancedDashboard: React.FC<EnhancedDashboardProps> = ({
       />
 
       {/* Overview Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <StatCard
           title={translations.statistics.totalEnquiries}
           value={overview.totalEnquiries}
@@ -178,27 +178,39 @@ export const EnhancedDashboard: React.FC<EnhancedDashboardProps> = ({
           color="blue"
         />
         <StatCard
-          title={translations.statistics.quoted}
-          value={overview.quoted}
-          change={overview.quotedChange}
-          comparison={`${language === 'zh' ? '报价率' : 'Quote Rate'} ${overview.totalEnquiries > 0 ? ((overview.quoted / overview.totalEnquiries) * 100).toFixed(1) : 0}%`}
+          title={translations.statistics.newEnquiries}
+          value={overview.newEnquiries ?? overview.pending}
+          comparison={`${language === 'zh' ? '占比' : 'Rate'} ${overview.totalEnquiries > 0 ? (((overview.newEnquiries ?? overview.pending) / overview.totalEnquiries) * 100).toFixed(1) : 0}%`}
+          icon={<FileText className="h-6 w-6" />}
+          color="blue"
+        />
+        <StatCard
+          title={translations.statistics.quotedPending}
+          value={overview.quotedPending ?? overview.quoted}
+          comparison={`${language === 'zh' ? '占比' : 'Rate'} ${overview.totalEnquiries > 0 ? (((overview.quotedPending ?? overview.quoted) / overview.totalEnquiries) * 100).toFixed(1) : 0}%`}
           icon={<CheckCircle className="h-6 w-6" />}
           color="green"
         />
         <StatCard
-          title={translations.statistics.pending}
-          value={overview.pending}
-          comparison={`${language === 'zh' ? '占比' : 'Percentage'} ${overview.totalEnquiries > 0 ? ((overview.pending / overview.totalEnquiries) * 100).toFixed(1) : 0}%`}
-          icon={<Clock className="h-6 w-6" />}
-          color="yellow"
-        />
-        <StatCard
-          title={translations.statistics.confirmed}
-          value={overview.confirmed}
-          change={overview.confirmedChange}
-          comparison={`${language === 'zh' ? '转化率' : 'Conversion Rate'} ${overview.quoted > 0 ? ((overview.confirmed / overview.quoted) * 100).toFixed(1) : 0}%`}
+          title={translations.statistics.secured}
+          value={overview.secured ?? overview.confirmed}
+          comparison={`${language === 'zh' ? '占比' : 'Rate'} ${overview.totalEnquiries > 0 ? (((overview.secured ?? overview.confirmed) / overview.totalEnquiries) * 100).toFixed(1) : 0}%`}
           icon={<CheckCircle className="h-6 w-6" />}
           color="purple"
+        />
+        <StatCard
+          title={translations.statistics.lost}
+          value={overview.lost ?? 0}
+          comparison={`${language === 'zh' ? '占比' : 'Rate'} ${overview.totalEnquiries > 0 ? (((overview.lost ?? 0) / overview.totalEnquiries) * 100).toFixed(1) : 0}%`}
+          icon={<XCircle className="h-6 w-6" />}
+          color="red"
+        />
+        <StatCard
+          title={translations.statistics.cancelled}
+          value={overview.cancelled ?? 0}
+          comparison={`${language === 'zh' ? '占比' : 'Rate'} ${overview.totalEnquiries > 0 ? (((overview.cancelled ?? 0) / overview.totalEnquiries) * 100).toFixed(1) : 0}%`}
+          icon={<XCircle className="h-6 w-6" />}
+          color="orange"
         />
       </div>
 

@@ -1,0 +1,36 @@
+{
+  "folders": [
+    {
+      "name": "LogiTrack Pro (Spring Boot + React)",
+      "path": "."
+    },
+    {
+      "name": "Email AI Automation (Python)",
+      "path": "C:\\Users\\Administrator\\Desktop\\email-ai-automation"
+    }
+  ],
+  "settings": {
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/target": true,
+      "**/__pycache__": true,
+      "**/temp_attachments": true,
+      "**/.git": true
+    },
+    "files.exclude": {
+      "**/__pycache__": true,
+      "**/temp_attachments": true
+    },
+    "editor.formatOnSave": false
+  },
+  "extensions": {
+    "recommendations": [
+      "github.copilot",
+      "github.copilot-chat",
+      "vscjava.vscode-java-pack",
+      "ms-python.python",
+      "dbaeumer.vscode-eslint",
+      "esbenp.prettier-vscode"
+    ]
+  }
+}

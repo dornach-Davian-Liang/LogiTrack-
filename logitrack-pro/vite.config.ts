@@ -11,6 +11,7 @@ export default defineConfig(({ mode }) => {
         port: 3000,
         host: true,
         strictPort: true,
+        allowedHosts: true,          // 允许所有 Host 头（含外部代理转发的 210.184.51.237）
         hmr: {
           host: frontendPublicHost,
           port: 3000,
@@ -20,6 +21,30 @@ export default defineConfig(({ mode }) => {
           '/api': {
             // Backend default: 8080 (override with VITE_API_TARGET)
             target: apiTarget,
+            changeOrigin: true,
+            secure: false,
+          },
+          '/pyapi': {
+            // Python FastAPI monitor API (email-ai-automation)
+            target: 'http://localhost:5100',
+            changeOrigin: true,
+            secure: false,
+          }
+        }
+      },
+      preview: {
+        port: 3000,
+        host: true,
+        strictPort: true,
+        allowedHosts: true,          // 允许所有 Host 头（含外部代理转发的 210.184.51.237）
+        proxy: {
+          '/api': {
+            target: apiTarget,
+            changeOrigin: true,
+            secure: false,
+          },
+          '/pyapi': {
+            target: 'http://localhost:5100',
             changeOrigin: true,
             secure: false,
           }

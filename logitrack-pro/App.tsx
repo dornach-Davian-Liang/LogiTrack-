@@ -160,6 +160,12 @@ const App: React.FC = () => {
   }, [allowedViews, currentView]);
 
   const handleSaveEnquiry = async (enquiry: Enquiry) => {
+    // 防御性检查：确保用户已登录（避免 created_by='system'）
+    if (!currentUser?.username) {
+      alert('Your session has expired. Please log in again.');
+      handleLogout();
+      return;
+    }
     try {
         if (enquiry.id) {
             // ✅ 编辑模式：确保所有必填字段有值，防止NOT NULL约束错误
@@ -320,7 +326,7 @@ const App: React.FC = () => {
       case 'master-currencies':
         return <CurrencyList />;
       case 'report-dashboard':
-        return <Dashboard />;
+        return renderDashboard();
       case 'report-enhanced':
         console.log('[App] Rendering EnhancedDashboard with modalState:', enhancedDashboardModalState);
         return (
@@ -368,7 +374,7 @@ const App: React.FC = () => {
   const renderDashboard = () => (
     <div className="space-y-6 pb-10">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Recent Enquiries</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
         {canManageEnquiries && (
           <button 
             onClick={handleNewEnquiry}
@@ -408,13 +414,19 @@ const App: React.FC = () => {
                   Reference
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Customer
+                  Product Type
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Cargo Type
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date
+                  Created Date
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Created By
                 </th>
               </tr>
             </thead>
@@ -429,7 +441,10 @@ const App: React.FC = () => {
                     {enquiry.refNumber}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {enquiry.commodity}
+                    {enquiry.productAbbr || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {enquiry.cargoTypeCode || '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 text-xs font-semibold rounded ${
@@ -444,7 +459,10 @@ const App: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {enquiry.enquiryReceivedDate}
+                    {String(enquiry.enquiryCreatedDate || '').substring(0, 10)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {enquiry.createdBy || '-'}
                   </td>
                 </tr>
               ))}
@@ -461,6 +479,8 @@ const App: React.FC = () => {
           View All Enquiries →
         </button>
       </div>
+
+      <Dashboard />
     </div>
   );
 
@@ -557,32 +577,25 @@ const App: React.FC = () => {
                         <p className="px-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Reports</p>
                     </div>
                     <button 
-                      onClick={() => setCurrentView('report-dashboard')}
-                      className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full transition-colors ${currentView === 'report-dashboard' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
-                    >
-                        <BarChart3 className="mr-3 flex-shrink-0 h-5 w-5" />
-                        基础报表
-                    </button>
-                    <button 
                       onClick={() => setCurrentView('report-enhanced')}
                       className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full transition-colors ${currentView === 'report-enhanced' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
                     >
                         <Filter className="mr-3 flex-shrink-0 h-5 w-5" />
-                        增强报表
+                        Enhanced Report
                     </button>
                     <button 
                       onClick={() => setCurrentView('report-comparison')}
                       className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full transition-colors ${currentView === 'report-comparison' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
                     >
                         <TrendingUp className="mr-3 flex-shrink-0 h-5 w-5" />
-                        时期对比
+                        Period Comparison
                     </button>
                     <button 
                       onClick={() => setCurrentView('ai-chat')}
                       className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full transition-colors ${currentView === 'ai-chat' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
                     >
                         <Sparkles className="mr-3 flex-shrink-0 h-5 w-5" />
-                        AI 数据助手
+                        AI Analytics
                     </button>
                   </>
                 )}

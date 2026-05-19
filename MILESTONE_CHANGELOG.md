@@ -35,6 +35,15 @@
   - [M30: 增量数据迁移 & 异常修复 — 新增 Office/PIC + 重试失败记录 (2026-04-16)](#m30-增量数据迁移--异常修复--新增-officepic--重试失败记录-2026-04-16)
   - [M31: 增量迁移 CN2604038+ & 状态同步 & 补录 Office/PIC & 重试 3 条异常 (2026-04-24)](#m31-增量迁移-cn2604038--状态同步--补录-officepic--重试-3-条异常-2026-04-24)
   - [M32: Enquiry 管理增强与关键缺陷修复（筛选/导出/权限/币种）(2026-04-23 ~ 2026-04-27)](#m32-enquiry-管理增强与关键缺陷修复筛选导出权限币种2026-04-23--2026-04-27)
+  - [M33: Web 监控面板 Phase 1 — 基础设施 + Dashboard (2026-05-08)](#m33-web-监控面板-phase-1--基础设施--dashboard-2026-05-08)
+  - [M35: Web 监控面板 Phase 3 — 调试控制面板 (2026-05-08)](#m35-web-监控面板-phase-3--调试控制面板-2026-05-08)
+  - [M36: Web 监控面板 Phase 4 — 配置查看器 (2026-05-08)](#m36-web-监控面板-phase-4--配置查看器-2026-05-08)
+  - [M37: Email AI UAT 路由 Bug 修复 + §12 AI 字段增强 + DRY-RUN 建单模式 (2026-05-11)](#m37-email-ai-uat-路由-bug-修复--12-ai-字段增强--dry-run-建单模式-2026-05-11)
+  - [M38: Web 监控面板 Phase 5 — 服务管理 + 监控面板全面增强 + 路由配置编辑器 (2026-05-11)](#m38-web-监控面板-phase-5--服务管理--监控面板全面增强--路由配置编辑器-2026-05-11)
+  - [M39: TEST_FORWARD UAT Bug 修复 + 邮件转发格式升级 (2026-05-13)](#m39-test_forward-uat-bug-修复--邮件转发格式升级-2026-05-13)
+  - [M41: 已建号 FOLLOW_UP 边界修正 + Few-shot 训练状态同步 (2026-05-19)](#m41-已建号-follow_up-边界修正--few-shot-训练状态同步-2026-05-19)
+  - [M42: AI 训练前端接入 + 远程访问验证脚本 (2026-05-19)](#m42-ai-训练前端接入--远程访问验证脚本-2026-05-19)
+  - [M43: 监控补强 + 路由扩展性 + sender_name 解析增强 (2026-05-19)](#m43-监控补强--路由扩展性--sender_name-解析增强-2026-05-19)
 
 ---
 
@@ -73,6 +82,16 @@
 | M30 | 2026-04-16 | - | 增量迁移 + 异常修复：3 个 Office + 4 个 PIC，9 条异常全部 RESOLVED | 2 |
 | M31 | 2026-04-24 | - | 增量迁移 CN2604038+(224行) + 状态同步 297 条 + 补录 3 Office/8 PIC + 重试 3 异常 | 2 |
 | M32 | 2026-04-23 ~ 04-27 | - | Enquiry 管理增强：Created Date 筛选 + CN Office 多选 + XLSX 全字段导出 + Sender Email + 报表弹窗字段修复 + 权限修正 + 非 FCL 币种选择显示 | 17 |
+| M33 | 2026-05-08 | - | Web 监控面板 Phase 1：MySQL 数据管线 + Python FastAPI 进程状态 API + Spring Boot 监控控制器 + 前端实时 Dashboard | 22 |
+| M35 | 2026-05-08 | - | Web 监控面板 Phase 3：调试控制面板（模式切换 / 单封重放 / 日志级别 / SkipChecker & Router 测试）| 8 |
+| M36 | 2026-05-08 | - | Web 监控面板 Phase 4：配置查看器（只读 API 状态 + 连接测试 + 跳过规则展示）| 4 |
+| M37 | 2026-05-11 | - | Email AI UAT Bug 修复（GIF/VLM / CALLAO NON-CORE / AIR no_cargo）+ §12 AI 字段增强（6 新字段 + routing_reason）+ LOGITRACK_DRY_RUN 建单打印模式 | 7 |
+| M38 | 2026-05-11 | - | Web 监控面板 Phase 5：服务管理 Tab（Spring Boot ProcessManager + ServiceControl UI）+ AiAnalysisCard/RoutingCard/LogDetailPanel/ReplayPanel 全面增强 + ConfigViewer 路由配置编辑器 | 14 |
+| M39 | 2026-05-13 | - | TEST_FORWARD UAT Bug 修复（B23-B27）+ 邮件转发双模板（有/无 REF）+ HTML Body 升级 + 多分支路由合并 + 去重缓存热更新 + 邮件正文清突化 | 6 |
+| M40 | 2026-05-15 | - | 附件随转发（B29）+ 杭州/浙江城市映射修正（B28/B30）+ 对话链去重改 message_id（B31）+ 多票货 B3 拆单架构（B32） | 5 |
+| M41 | 2026-05-19 | - | Sea-Completed 真实案例复盘：已建号主题强制 FOLLOW_UP（B33）+ 同代理新箱型仍建新号 + Few-shot 外部化/训练 API 状态同步 | 4 |
+| M42 | 2026-05-19 | - | LogiTrack 监控面板 AI 训练前端接入（Tab/模拟器/回归/纠错向导）+ 远程访问验证脚本与 502 排障结论沉淀 | 7 |
+| M43 | 2026-05-19 | - | 监控面板 Ref/BCC 补强（B35/B36）+ 同对话链新询价建号边界修正（B34）+ 省份级 branch 回退与陕西分界（B37）+ sender_name 多来源解析器（B38） | 8 |
 
 ---
 
@@ -3895,3 +3914,1272 @@ py fix_m31.py               # 补录 Office/PIC + 重试 3 条异常
 - 报表弹窗字段与详情币种显示按需求恢复
 
 ---
+
+### M33: Web 监控面板 Phase 1 — 基础设施 + Dashboard (2026-05-08)
+
+**日期**: 2026-05-08  
+**计划书**: `email-ai-automation/docs/PLAN_WEB_MONITOR_DASHBOARD.md` Phase 1
+
+#### 🎯 目标需求
+为 email-ai-automation Python 服务搭建完整 Web 监控面板的基础数据管线与实时 Dashboard，支持在 LogiTrack 系统设置 → 邮件监控 Tab 中查看服务运行状态。
+
+#### ✨ 主要功能
+
+1. **MySQL 数据管线**
+   - 新增 `email_processing_log` 表：每封邮件处理完写一行记录（34个字段，含 AI 分析结果、路由指令、LogiTrack 建单状态、性能耗时）
+   - 新增 `email_monitor_status` 表：每轮轮询结束写状态快照（运行模式、累计统计、服务健康指示）
+   - 迁移脚本：`database/migration_monitor.sql`
+
+2. **Python 数据写入 (`services/monitor_db.py`)**
+   - `write_processing_log()` — 异步安全写入邮件处理日志，失败只打警告不阻断主流程
+   - `write_status_snapshot()` — 写入服务运行状态快照
+   - 连接配置通过 `LOGITRACK_DB_*` 环境变量注入
+
+3. **Python `main.py` 集成**
+   - 在每封邮件处理的所有退出路径（早期跳过/非询价/成功/失败）写入处理日志
+   - 统计字段：`_TOTAL_PROCESSED/_SKIPPED/_ERRORS/_FORWARDED/_LOGITRACK` 全局累计
+   - `ai_latency_ms` 精准测量 AI 分析耗时
+
+4. **Python FastAPI 监控 API (`services/monitor_api.py`)**
+   - `GET /pyapi/status` — 实时进程状态（模式/统计/健康/上次轮询）
+   - `GET /pyapi/status/health` — 各服务健康标签
+   - `GET /pyapi/status/folders` — 轮询文件夹列表（占位）
+   - `GET /pyapi/debug/system-info` — 系统概要
+   - 绑定 `127.0.0.1:5100`，daemon 子线程启动，不影响主轮询
+
+5. **Spring Boot 监控模块**
+   - `EmailProcessingLog.java` / `EmailMonitorStatus.java` — JPA 实体
+   - `EmailProcessingLogRepository` — 支持分页多条件查询 + 今日统计聚合
+   - `EmailMonitorStatusRepository` — 最新状态快照查询
+   - `MonitorService` — 业务逻辑：统计聚合 + 日志分页 + DTO 映射
+   - `MonitorController` — REST 控制器：`/api/monitor/stats`、`/api/monitor/logs`、`/api/monitor/logs/recent`
+   - `MonitorStatsDTO` / `ProcessingLogDTO` — 数据传输对象
+
+6. **Vite 代理配置**
+   - 新增 `/pyapi → http://localhost:5100` 代理，前端无跨域访问 Python FastAPI
+
+7. **前端监控 Dashboard**
+   - `services/monitorApi.ts` — 双源 API 服务（Spring Boot 历史 + Python FastAPI 实时）
+   - `components/settings/monitoring/MonitoringDashboard.tsx` — 四 Tab 主容器（Phase 2-4 Tab 留占位）
+   - `components/settings/monitoring/tabs/StatusOverview.tsx` — 实时状态 Dashboard
+     - 6 张今日统计卡片（总处理/已处理/跳过/失败/已转发/已建单）
+     - 运行状态面板（模式徽标/轮询间隔/上次轮询相对时间/持续运行时长/连续失败）
+     - 服务健康指示器（Graph/LLM/VLM/LogiTrack 四路健康灯）
+     - 本次启动累计统计（Python API 在线时显示）
+     - 30 秒自动轮询刷新
+   - `SettingsLayout.tsx` — 新增 "📊 邮件监控" Tab
+
+#### 📦 影响文件 (22个)
+
+**数据库**
+- `database/migration_monitor.sql` (新增，建表脚本)
+- `database/run_monitor_migration.py` (新增，执行脚本)
+
+**Python (email-ai-automation)**
+- `services/monitor_db.py` (新增，150行)
+- `services/monitor_api.py` (新增，160行)
+- `main.py` (更新，集成日志写入 + FastAPI 子线程 + 累计统计变量)
+- `requirements.txt` (更新，添加 `pymysql`，`uvicorn[standard]`)
+
+**Spring Boot 后端**
+- `entity/EmailProcessingLog.java` (新增，110行)
+- `entity/EmailMonitorStatus.java` (新增，85行)
+- `repository/EmailProcessingLogRepository.java` (新增)
+- `repository/EmailMonitorStatusRepository.java` (新增)
+- `service/MonitorService.java` (新增，100行)
+- `controller/MonitorController.java` (新增，90行)
+- `dto/MonitorStatsDTO.java` (新增)
+- `dto/ProcessingLogDTO.java` (新增)
+
+**前端 (logitrack-pro)**
+- `services/monitorApi.ts` (新增，170行)
+- `components/settings/monitoring/MonitoringDashboard.tsx` (新增，65行)
+- `components/settings/monitoring/tabs/StatusOverview.tsx` (新增，200行)
+- `components/settings/SettingsLayout.tsx` (更新，新增 "📊 邮件监控" Tab)
+- `vite.config.ts` (更新，新增 `/pyapi` 代理)
+
+#### ✅ Phase 1 验收状态
+- [x] MySQL 两张表建立成功，Python `monitor_db` 写入验证通过（log id: 2, status id: 2）
+- [x] Python `monitor_api` 可导入，FastAPI 子线程启动逻辑就绪
+- [x] Spring Boot 编译通过，`/api/monitor/stats` 返回 `todayTotal=2 runMode=DRY_RUN` ✅
+- [x] 前端新增 `SettingsLayout` "邮件监控" Tab，TypeScript 监控模块无新增类型错误
+- [x] 30 秒自动刷新 + Python API 不可用时降级展示历史数据
+
+#### 📊 统计信息
+- **新增代码**: ~1,200 行
+- **新增 MySQL 表**: 2 个
+- **新增 API 端点**: 6 个（Spring Boot 3 + Python FastAPI 4）
+- **前端组件**: 3 个新增
+
+---
+
+### M35: Web 监控面板 Phase 3 — 调试控制面板 (2026-05-08)
+
+**日期**: 2026-05-08  
+**计划书**: `email-ai-automation/docs/PLAN_WEB_MONITOR_DASHBOARD.md` Phase 3
+
+#### 🎯 目标需求
+运行模式三态切换（DRY_RUN/TEST_FORWARD/LIVE）、邮件重放、日志级别控制、SkipChecker/Router 调试工具。
+
+#### ✨ 主要功能
+
+1. **Python 三态运行模式**
+   - `config/settings.py`：新增 `test_forward_mailbox` 字段（`TEST_FORWARD_MAILBOX` 环境变量）
+   - `main.py`：全局变量 `RUN_MODE`（DRY_RUN/TEST_FORWARD/LIVE）、`TEST_FORWARD` 布尔标志
+   - `main.py`：新增 `--test-forward` 命令行参数
+   - 转发逻辑：TEST_FORWARD 模式重定向到测试邮箱、添加 `[TEST-FORWARD]` 前缀
+   - `main.py`：运行模式状态由 `RUN_MODE` 全局变量统一维护
+
+2. **Python FastAPI 控制端点**（`monitor_api.py` 全面升级）
+   - `POST /pyapi/control/mode` — 切换运行模式，动态修改 `main.py` 全局变量
+   - `POST /pyapi/control/log-level` — 实时切换 Python 日志级别（DEBUG/INFO/WARNING/ERROR）
+   - `POST /pyapi/control/poll-now` — 在后台线程立即触发一次轮询
+   - `POST /pyapi/replay` — 从 `tested_emails.json` 重放邮件（重算 SkipChecker + Router，不真实转发）
+   - `POST /pyapi/debug/skip-check` — SkipChecker 测试（subject + body → skip/reason/keyword）
+   - `POST /pyapi/debug/router-test` — Router 路由测试（AI 分析 JSON → 转发指令列表）
+   - `GET /pyapi/debug/system-info` — 系统概要（完善版：skip_checker 规则数/已测邮件数/模型配置）
+   - Pydantic 请求体模型：`ModeRequest`、`LogLevelRequest`、`ReplayRequest`、`SkipCheckRequest`、`RouterTestRequest`
+
+3. **前端 `ModeSwitch.tsx`**
+   - 三按钮切换：DRY_RUN（绿）/ TEST_FORWARD（黄）/ LIVE（红）
+   - 当前模式高亮显示
+   - TEST_FORWARD 邮箱输入框
+   - LIVE 切换二次确认弹窗（AlertTriangle 图标 + "确认切换到 LIVE" 按钮）
+   - Python API 不在线时显示警告并禁用切换
+
+4. **前端 `ReplayPanel.tsx`**
+   - 输入 conversationId → 调用 `/pyapi/replay` → 展示 SkipChecker + 路由结果 + AI 分析摘要
+   - Enter 键快速触发
+   - 404 友好错误提示（"未找到，请检查是否曾经处理过"）
+   - 结果清除按钮
+
+5. **前端 `DebugTools.tsx`**（三合一组件）
+   - **SkipChecker 测试**：subject/body 输入 → 结果卡片（绿色可建/红色跳过 + 命中关键词）
+   - **Router 测试**：JSON 编辑器 → 转发指令列表（TO/CC/Branch/Risk 格式化展示）
+   - **系统概要**：自动加载 Python API，展示模型配置/轮询文件夹/skip规则数/已测邮件数
+
+6. **前端 `DebugControl.tsx`**（调试控制主面板）
+   - 三子 Tab：🎛 运行控制 / 🔁 邮件重放 / 🔧 调试工具
+   - 运行控制：ModeSwitch + 日志级别四按钮（DEBUG/INFO/WARNING/ERROR 颜色编码）+ 立即轮询按钮
+   - 启动时从 `/pyapi/status` 读取当前模式并同步显示
+
+7. **`MonitoringDashboard.tsx` 更新**
+   - 移除 `DebugControlPlaceholder` 占位组件
+   - 引入真实 `DebugControl` 组件
+
+8. **`monitorApi.ts` 控制 API 补充**
+   - `switchMode(mode, testMailbox?)` / `setLogLevel(level)` / `pollNow()`
+   - `replay(conversationId)` / `testSkipChecker(subject, body)` / `testRouter(analysis)`
+
+#### 📦 影响文件 (11个)
+
+**Python (email-ai-automation)**
+- `config/settings.py` (更新，新增 `test_forward_mailbox`)
+- `main.py` (更新，三态模式变量 + `--test-forward` 参数 + TEST_FORWARD 转发逻辑)
+- `services/monitor_api.py` (重写，从 160行 扩展至 ~320行，新增 8 个控制/调试端点)
+
+**前端 (logitrack-pro)**
+- `services/monitorApi.ts` (更新，补充 6 个 monitorPyApi 控制方法)
+- `components/settings/monitoring/debug/ModeSwitch.tsx` (新增，~120行)
+- `components/settings/monitoring/debug/ReplayPanel.tsx` (新增，~120行)
+- `components/settings/monitoring/debug/DebugTools.tsx` (新增，~180行)
+- `components/settings/monitoring/tabs/DebugControl.tsx` (新增，~135行)
+- `components/settings/monitoring/MonitoringDashboard.tsx` (更新，引入 DebugControl)
+
+#### ✅ Phase 3 验收状态
+- [x] Python `monitor_api.py` 新增端点语法验证通过 ✅
+- [x] `settings.test_forward_mailbox` 字段存在 ✅
+- [x] `main.py` 全局 `RUN_MODE=DRY_RUN`, `TEST_FORWARD=False` 初始化正确 ✅
+- [x] TypeScript 监控组件无新增类型错误 ✅
+- [x] LIVE 切换二次确认弹窗实现
+- [x] SkipChecker/Router 调试工具完整
+- [x] 邮件重放从 tested_emails.json 缓存读取
+
+#### 📊 统计信息
+- **新增代码**: ~875 行
+- **新增前端组件**: 4 个
+- **新增 Python FastAPI 端点**: 8 个
+- **Python 端点合计**: 12 个（Phase 1 基础 4 + Phase 3 新增 8）
+
+--- Web 监控面板 Phase 2 — 处理日志列表 + 详情展开 (2026-05-08)
+
+**日期**: 2026-05-08  
+**计划书**: `email-ai-automation/docs/PLAN_WEB_MONITOR_DASHBOARD.md` Phase 2
+
+#### 🎯 目标需求
+可搜索、可筛选的处理日志列表，支持点击展开完整邮件处理链路详情（AI 分析 + 路由指令 + LogiTrack 建单状态）。
+
+#### ✨ 主要功能
+
+1. **Spring Boot DTO 补充字段**
+   - `ProcessingLogDTO` 新增 `pol`、`pod`、`confidence` 三个字段
+   - `MonitorService.toDTO()` 同步映射新字段
+   - API `/api/monitor/logs` 返回字段已验证
+
+2. **前端 `ProcessingLogs.tsx`**（日志列表主组件）
+   - 可折叠筛选栏：时间范围（DatePicker）、文件夹（Sea/Air/Rail/Inbox）、处理结果（PROCESSED/SKIPPED/ERROR/FORWARDED）、邮件类型、发件人模糊匹配、主题关键词
+   - 8 列表格：时间（绝对+相对）、文件夹（彩色标签）、发件人、主题（截断）、邮件类型徽标、处理结果徽标、建单状态、展开按钮
+   - 内联行展开 `LogDetailPanel`（点击行切换展开/收起）
+   - 分页控制（最多显示 7 页按钮，上/下翻页，首/尾页跳转）
+   - 30s 手动刷新按钮 + 总条数显示
+
+3. **前端 `AiAnalysisCard.tsx`**（AI 分析卡片）
+   - 邮件类型徽标 + 置信度
+   - 9 个字段网格：运输方式、Branch、风险等级（颜色编码）、起运城市、目的地、POL、POD、AI 耗时、总耗时
+   - 风险等级颜色：LOW=绿、MEDIUM=黄、HIGH=红
+
+4. **前端 `RoutingCard.tsx`**（路由指令卡片）
+   - 转发状态徽标（DRY_RUN/NOT_FORWARDED/TEST_FORWARDED/FORWARDED/FAILED 五态）
+   - TO/CC 收件人列表（JSON 解析后逗号展示）
+   - 跳过原因（skip_reason）展示
+
+5. **前端 `LogDetailPanel.tsx`**（展开详情面板）
+   - 邮件头部（主题、发件人、处理时间、运行模式、文件夹）
+   - `AiAnalysisCard`（当有 AI 分析结果时显示）
+   - `RoutingCard`
+   - LogiTrack 建单卡（ID/Ref/错误信息）
+   - 支持内联模式（行内展开）和独立卡片模式
+
+6. **`MonitoringDashboard.tsx` 更新**
+   - 移除 `ProcessingLogsPlaceholder` 占位组件
+   - 引入 `ProcessingLogs` 真实组件
+
+7. **`monitorApi.ts` 类型补充**
+   - `ProcessingLogDTO` 接口新增 `pol: string | null`、`pod: string | null`、`confidence: number | null`
+
+#### 📦 影响文件 (8个)
+
+**Spring Boot 后端**
+- `dto/ProcessingLogDTO.java` (更新，新增 pol/pod/confidence)
+- `service/MonitorService.java` (更新，toDTO() 映射新字段)
+
+**前端 (logitrack-pro)**
+- `services/monitorApi.ts` (更新，ProcessingLogDTO 接口新增3字段)
+- `components/settings/monitoring/tabs/ProcessingLogs.tsx` (新增，~270行)
+- `components/settings/monitoring/detail/AiAnalysisCard.tsx` (新增，~65行)
+- `components/settings/monitoring/detail/RoutingCard.tsx` (新增，~60行)
+- `components/settings/monitoring/detail/LogDetailPanel.tsx` (新增，~80行)
+- `components/settings/monitoring/MonitoringDashboard.tsx` (更新，引入 ProcessingLogs)
+
+#### ✅ Phase 2 验收状态
+- [x] Spring Boot `/api/monitor/logs?size=3` 返回含 pol/pod/confidence 字段 ✅
+- [x] 多条件筛选 API 验证：`folderName=Sea&processResult=PROCESSED` 返回 totalElements=2 ✅
+- [x] 前端 TypeScript 类型检查：监控模块无新增错误 ✅
+- [x] 后端编译通过（`mvn compile`，`mvn package -DskipTests`）✅
+- [x] 日志列表分页展示（默认 20 条/页，支持翻页）
+- [x] 筛选栏多维度筛选 + Enter 键快速搜索
+- [x] 点击行内联展开详情（AI 分析 + 路由 + LogiTrack 三卡片）
+
+#### 📊 统计信息
+- **新增代码**: ~480 行
+- **新增前端组件**: 4 个
+- **新增 DTO 字段**: 3 个
+- **后端 jar 已重新打包**
+
+---
+
+---
+
+### M36: Web 监控面板 Phase 4 — 配置查看器 (2026-05-08)
+
+**计划书**: `email-ai-automation/docs/PLAN_WEB_MONITOR_DASHBOARD.md` Phase 4  
+**目标**: 在监控面板新增"⚙️ 配置查看"Tab，只读展示所有运行配置、连接状态测试及跳过/路由规则。
+
+#### 🔧 修改文件
+
+| 文件 | 变更 |
+|------|------|
+| `email-ai-automation/services/monitor_api.py` | 新增 3 个端点：GET /pyapi/config、GET /pyapi/config/rules、POST /pyapi/config/test-connection |
+| `logitrack-pro/services/monitorApi.ts` | 新增 getConfig、getRules、testConnection 三个 API 方法 |
+| `logitrack-pro/components/settings/monitoring/tabs/ConfigViewer.tsx` | 新建，包含 D1+D2+D3 三个功能区 |
+| `logitrack-pro/components/settings/monitoring/MonitoringDashboard.tsx` | 引入真实 ConfigViewer，替换占位组件 |
+
+#### 🎯 新增功能详情
+
+##### D1 — API 连接状态（GET /pyapi/config）
+- 展示 5 个服务的连接配置（Graph / LLM / VLM / VLM_Fallback / LogiTrack）
+- API Key 自动脱敏（显示后 4 位），Tenant/Client ID 显示后 8 位
+- 每个服务卡片带"🔗 测试连接"按钮 → POST /pyapi/config/test-connection
+  - graph: 尝试 OAuth2 Token 获取
+  - llm/vlm/vlm_fallback: HTTP GET base_url 可达性检测
+  - logitrack: GET /api/monitor/stats 可达性
+  - 返回: { ok, latency_ms, detail }，绿/红色内联结果显示
+
+##### D2 — 运行参数（GET /pyapi/config → runtime 字段）
+- 只读表格展示：POLL_INTERVAL / LOGITRACK_ENABLED / TEMP_ATTACHMENTS_DIR / TEST_FORWARD_MAILBOX
+- 布尔值用 ✅/❌ 徽标显示
+
+##### D3 — 跳过规则 & 路由配置（GET /pyapi/config/rules）
+- skip_lists.json 按分类折叠展示，关键词 Badge 化
+- PIC 路由摘要：Branch 列表 + Core Countries 数量及前10预览
+- tested_emails 统计（总数 + 最近5条记录表格）
+- 所有节使用 CollapsibleSection 可折叠组件
+
+#### 📊 统计信息
+- **新增代码**: ~320 行
+- **新增前端组件**: 1 个（ConfigViewer.tsx）
+- **新增 Python API 端点**: 3 个
+- **Python 语法验证**: ✅ 通过
+- **TypeScript 编译**: ✅ 无新增监控相关错误
+
+---
+
+### M37: Email AI UAT 路由 Bug 修复 + §12 AI 字段增强 + DRY-RUN 建单模式 (2026-05-11)
+
+**日期**: 2026-05-11  
+**系统**: `email-ai-automation` (Python)  
+**关联文档**: `email-ai-automation/docs/PROJECT_STATUS_REPORT.md`, `docs/PLAN_AUTO_FILL_ENQUIRY.md §12`
+
+#### 🎯 目标需求
+基于 UAT 阶段发现的问题，修复 3 个路由/图片识别 Bug，新增 AI 字段提取增强（§12.1 六个新字段 + §12.2 routing_reason），并新增 LOGITRACK_DRY_RUN 打印模式（不实际建单）以支持安全 UAT 测试。
+
+---
+
+#### 🐛 Bug 修复（B20–B22）
+
+##### B20 — GIF 内联图片 VLM 管线失效（`services/graph_client.py`）
+
+**根本原因**: `fetch_unread_emails()` 方法在请求头中传递了 `Prefer: outlook.body-content-type="text"`，导致 Graph API 强制返回纯文本格式，邮件 `body.contentType` 始终为 `"text"` 而非 `"html"`。HTML 体缺失 → `cid:` 内联图片引用不可检测 → `get_inline_images()` 从不调用 → VLM 货量提取管线永远不触发。
+
+**修复**: 从 `fetch_unread_emails()` 请求头中移除 `Prefer: outlook.body-content-type="text"` 一行。Graph API 现在默认返回 HTML body，VLM 管线正常触发。
+
+**影响文件**: `services/graph_client.py`（移除 1 行请求头）
+
+---
+
+##### B21 — CALLAO（未知目的地）默认路由到 CORE（`services/router.py`）
+
+**根本原因**: `get_routing()` 中 `is_core` 判断逻辑结尾 `else True`（当 destination_country 为空或不在规则表时默认为 CORE），导致秘鲁 CALLAO 等非主要航线目的地被错误路由到 CORE 规则。
+
+**修复**: `else True` → `else False`，未知目的地默认为 NON-CORE，并标记 `core_basis = "default_non_core"`。
+
+**影响文件**: `services/router.py`（~第104行，1 字符修改）
+
+---
+
+##### B22 — AIR no_cargo 使用错误路由规则（`services/router.py`）
+
+**根本原因**: R5 规则（AIR + `no_specific_cargo=True`）的 no_cargo 分支调用了 `_get_air_special_instruction()`（tender_bid_air_domestic 专用规则），而非正常的 `_build_single_instruction()`，导致路由指令错误。
+
+**修复**: R5 AIR no_cargo 分支改为调用 `_build_single_instruction(branch_code, is_core, routing_reason)` 走正常路由矩阵。
+
+**影响文件**: `services/router.py`（R5 分支逻辑约5行）
+
+---
+
+#### ✨ 新功能
+
+##### §12.1 — AI 分析新增 6 个提取字段（`services/ai_analyzer.py`）
+
+在 `SYSTEM_PROMPT` 的 JSON output schema 中新增以下字段，提高建单 payload 完整率：
+
+| 字段路径 | 说明 | 示例值 |
+|----------|------|--------|
+| `cargo_info.hs_code` | 海关 HS 编码（如邮件中提及） | `"8471.30"` |
+| `cargo_info.cargo_ready_date_raw` | 货物备货日期原文 | `"end of May"` |
+| `cargo_info.cargo_dimensions` | 货物尺寸/规格原文 | `"120*80*100 cm"` |
+| `cargo_info.special_requirements` | 特殊要求数组 | `["DG", "TEMPERATURE_CONTROLLED"]` |
+| `quote_deadline` | 报价截止日期（顶层字段） | `"2026-05-15"` |
+| `customer_reference` | 客户 PO 或参考编号（顶层字段） | `"PO-20260501"` |
+
+**影响文件**: `services/ai_analyzer.py`（SYSTEM_PROMPT JSON schema 部分）
+
+---
+
+##### §12.2 — 路由引擎新增 `routing_reason` 诊断字段（`services/router.py`）
+
+`get_forward_instruction()` 返回值中新增 `routing_reason` 字典，记录完整路由决策链：
+
+```python
+routing_reason = {
+    "is_core": bool,                  # CORE / NON-CORE 判断结果
+    "core_basis": str,                # "pod_country|destination_country|default_non_core"
+    "rule_triggered": str,            # "R2|R3|R4|R5|R6|normal"
+    "rule_note": str,                 # 规则触发说明
+    "branch_resolved": str,           # 最终 branch code
+    "sender_is_ziegler": bool,        # 是否 Ziegler 发件人
+    "destination_country": str,       # 解析出的目的国
+    "destination_matched": bool,      # 是否匹配到 destination_rules
+    "fallback_used": bool             # 是否使用了 fallback 规则
+}
+```
+
+`main.py` 将 `routing_reason` 写入 `_mon["routing_json"]`，前端监控面板详情展开面板可展示完整路由链。
+
+**影响文件**: `services/router.py`（`get_forward_instruction()` 末尾约30行）、`main.py`（`_mon["routing_json"]` 赋值处）
+
+---
+
+##### LOGITRACK_DRY_RUN 打印模式（`main.py` + `config/settings.py` + `.env`）
+
+新增环境变量 `LOGITRACK_DRY_RUN`，UAT 阶段设为 `true` 时：
+- 调用 `build_create_payload()` 构建建单 payload 但不实际调用 `create_enquiry()`
+- 控制台打印 `🧾 LogiTrack DRY-RUN: 建单 payload（不实际创建）` + 完整 payload JSON
+- 允许在生产 DB 环境下安全测试完整建单逻辑，不污染询价数据
+
+**新增配置**: `.env` 中 `LOGITRACK_DRY_RUN=true`，`config/settings.py` 中 `logitrack_dry_run: bool`
+
+**影响文件**: `main.py`（~第633-680行）、`config/settings.py`（+1行）、`.env`（+1行）
+
+---
+
+##### §12 计划文档更新（`docs/PLAN_AUTO_FILL_ENQUIRY.md`）
+
+在 LogiTrack 计划书末尾新增 §12 章节：
+- **§12.1**: 6 个新 AI 字段详细规格（字段名 / 类型 / 取值 / 映射目标）
+- **§12.2**: `routing_reason` 字段设计（数据结构 / 监控展示 / 人工审核价值 / 实施步骤）
+
+**影响文件**: `docs/PLAN_AUTO_FILL_ENQUIRY.md`（末尾追加 §12，约60行）
+
+---
+
+#### 📦 影响文件 (7个)
+
+| 文件 | 变更类型 | 说明 |
+|------|----------|------|
+| `email-ai-automation/services/graph_client.py` | Bug Fix | 移除 `Prefer: text` 请求头 (B20) |
+| `email-ai-automation/services/router.py` | Bug Fix + 新功能 | `is_core` 默认修复 (B21) + R5 分支修复 (B22) + `routing_reason` 字段 (§12.2) |
+| `email-ai-automation/services/ai_analyzer.py` | 新功能 | SYSTEM_PROMPT 新增 6 个输出字段 (§12.1) |
+| `email-ai-automation/main.py` | 新功能 | `LOGITRACK_DRY_RUN` 模式 + `routing_reason` 写入监控 |
+| `email-ai-automation/config/settings.py` | 新功能 | 新增 `logitrack_dry_run` 配置项 |
+| `email-ai-automation/.env` | 配置 | `LOGITRACK_DRY_RUN=true`，切换回生产 DB (`logitrack`) |
+| `docs/PLAN_AUTO_FILL_ENQUIRY.md` | 文档 | 新增 §12 AI 字段增强计划 |
+
+#### 📊 统计信息
+- **Bug 修复**: 3 个（B20/B21/B22）
+- **新增 AI 输出字段**: 6 个
+- **新增路由诊断字段**: 1 个（`routing_reason`，包含 9 个子字段）
+- **新增配置项**: 1 个（`LOGITRACK_DRY_RUN`）
+- **Python 语法验证**: ✅ 全部通过（`py -c` 测试 ALL PASS）
+- **UAT 模式**: TEST_FORWARD + 生产 DB + DRY_RUN（打印不建单）
+
+#### ✅ 验收状态
+- [x] B20 验证：Graph API 返回 HTML body，`cid:` 内联图片被检测，VLM 调用触发
+- [x] B21 验证：未知目的地路由结果为 NON-CORE（`core_basis = "default_non_core"`）
+- [x] B22 验证：AIR + no_cargo 走正常路由矩阵，不再触发 tender_bid_air_domestic 规则
+- [x] §12.1 验证：DeepSeek 输出中包含新字段（有内容时提取，无内容时为 null）
+- [x] §12.2 验证：`routing_json` 监控字段包含完整 `routing_reason` 子字典
+- [x] DRY_RUN 验证：LOGITRACK_DRY_RUN=true 时控制台打印 payload，不调用建单 API
+- [ ] GIF 内联图片 UAT：待 Inbox 测试邮件重新处理后验证 end-to-end
+
+---
+
+### M38: Web 监控面板 Phase 5 — 服务管理 + 监控面板全面增强 + 路由配置编辑器 (2026-05-11)
+
+**日期**: 2026-05-11  
+**系统**: `LogiTrack Pro 前端 (React)` + `Spring Boot 后端` + `email-ai-automation (Python)`  
+**关联文档**: `email-ai-automation/docs/PROJECT_STATUS_REPORT.md`
+
+#### 🎯 目标需求
+在 M36 只读配置查看器基础上进行全面升级：
+1. 新增 🚀 **服务管理 Tab** — 可在前端启动/停止 Python email-ai-automation 进程，配置运行模式和参数
+2. 增强 **AI 分析卡片** — 展示完整 `aiAnalysisJson` 字段（货量/尺寸/HS Code/特殊要求等）
+3. 增强 **路由指令卡片** — 展示 `routing_reason` 路由决策诊断面板（规则/CORE判断/发件人类型/fallback）
+4. 增强 **LogiTrack 建单区** — DRY-RUN 模式下展示完整 payload（Sales PIC/Office/货型/POL/POD 等）
+5. 增强 **调试重放面板** — 新增已测邮件快选列表 + 去重列表移除功能
+6. 重构 **配置查看器** — 由只读改为3子标签（路由配置可编辑 + API连接测试 + 跳过规则）
+
+---
+
+#### ✨ 新功能详情
+
+##### 1. 🚀 服务管理 Tab（`ServiceControl.tsx` 新建 + Spring Boot `ProcessManagerService`）
+
+**前端** (`logitrack-pro/components/settings/monitoring/tabs/ServiceControl.tsx`)：
+- **状态卡片 (StatusBanner)**：实时显示服务运行状态、PID、运行模式；绿色动态圆点（运行中）/ 红色（已停止）
+- **启动参数配置 (LaunchConfig)**：
+  - 运行模式选择：DRY_RUN / TEST_FORWARD / LIVE（三张卡片式选择器）
+  - TEST_FORWARD 目标邮箱输入框
+  - 轮询间隔滑块（30s / 60s / 120s / 300s 快捷按钮）
+  - LogiTrack 建单模式切换（DRY-RUN 打印 / 实际建单）
+- **运行时参数调整 (RuntimeControl)**（服务运行中时显示）：
+  - 即时调整轮询间隔（无需重启，调用 `/pyapi/control/poll-interval`）
+  - 即时切换 LogiTrack DRY-RUN 模式（调用 `/pyapi/control/logitrack-dry-run`）
+- **启动/停止按钮**：调用 Spring Boot `/api/monitor/process/start` 或 `/stop`
+- **轮询间隔**：服务停止时每 5 秒检查，运行时每 30 秒刷新
+
+**后端** (`backend/...`):
+- `ProcessManagerService.java`（新建）：
+  - 维护 `volatile Process process` 单例
+  - `start(StartRequestDTO)` — 构建 `ProcessBuilder` 命令行（含 `--mode`, `--poll-interval`, `--test-mailbox`，环境变量 `LOGITRACK_DRY_RUN`），启动 Python 进程，写 PID 文件
+  - `stop()` — `process.destroy()` + PID 文件清除
+  - `getStatus()` — 返回 running / pid / runMode / startTime / uptime
+- `ProcessManagerController.java`（新建）：
+  - `GET /api/monitor/process/status`
+  - `POST /api/monitor/process/start`（请求体：`StartRequestDTO`）
+  - `POST /api/monitor/process/stop`
+- `application.properties`（新增）：`emailai.python.path`、`emailai.script.path`、`emailai.working.dir`
+- `monitorApi.ts`（新增接口）：`processApi.getStatus()` / `processApi.start(req)` / `processApi.stop()`、`ProcessStatusDTO`、`StartRequestDTO` 接口定义
+
+---
+
+##### 2. AI 分析卡片增强（`AiAnalysisCard.tsx` 全面重写）
+
+原版仅展示少量字段，现在解析完整 `aiAnalysisJson` 原始 JSON：
+
+**核心区（始终显示）**：
+| 字段 | 说明 |
+|------|------|
+| 运输方式 / Branch / 风险等级 | 原有字段，来源优先用 log 顶层字段，fallback 用 AI JSON |
+| 起运城市 / 目的地 / POL→POD | 原有字段 |
+| 品名 (commodity) | 来自 `cargo_info.commodity`（新增） |
+| 重量 / 体积 | 来自 `cargo_info.gross_weight_kg` + `cargo_info.volume_cbm`（新增） |
+| 箱型 (containers) | 来自 `cargo_info.containers`（新增） |
+| LCL / FCL | 来自 `is_lcl` 布尔值（新增） |
+| 贸易条款 (incoterm) | 来自 `cargo_info.incoterm`（新增） |
+
+**扩展区（点击"展开更多字段"后显示）**（§12.1 新增字段）：
+| 字段 | 说明 |
+|------|------|
+| HS Code | `cargo_info.hs_code` |
+| 货好日期 | `cargo_info.cargo_ready_date_raw` |
+| 货物尺寸 | `cargo_info.cargo_dimensions` |
+| 特殊要求 | `cargo_info.special_requirements` |
+| 报价截止日 | `quote_deadline`（顶层） |
+| 客户单号 | `customer_reference`（顶层） |
+| POL/POD 国家 | `pol_country` / `pod_country` |
+| 风险标记 | `risk_flags` 数组 |
+| 风险说明 | `risk_summary` |
+| AI 建议 | `recommendation` |
+| AI耗时 / 总耗时 | `aiLatencyMs` / `totalLatencyMs` |
+
+标题行新增：危险品标记 (⚠️)、无具体货量提示、置信度百分比。
+
+---
+
+##### 3. 路由指令卡片增强（`RoutingCard.tsx` 全面重写）
+
+**routing_reason 路由决策说明面板** (`RoutingReasonPanel`)：
+- **规则徽章**：显示 `rule_triggered` 值（R2/R3/R4/R5/R6/normal），用颜色区分（蓝/紫/橙/红/黄/青）
+- **CORE / Non-Core 标签**：来自 `is_core` 布尔值（✅ Core / ⚪ Non-Core）
+- **发件人类型**：`sender_is_ziegler` → Ziegler 代理 / 外部客户
+- **Fallback 警告**：`fallback_used === true` 时显示黄色警告 ⚠️
+- **路由备注**：`rule_note` 文本
+- **细节字段网格**：POL 国家 / POD 国家 / Branch / Core 依据 / 目的地规则命中
+
+**路由指令卡片改进**：
+- 当 `skipReason` 存在但无 `routing_reason` 时，显示说明提示："💡 此邮件被跳过规则过滤，未执行路由决策，因此无路由诊断信息（routing_reason 仅对实际路由的询价邮件生成）"
+- `routing_reason` 展示区域可折叠，默认展开
+
+---
+
+##### 4. LogiTrack 建单区增强（`LogDetailPanel.tsx` 全面重写）
+
+**DRY-RUN Payload 展示面板** (`DryRunPayloadPanel`)：
+- 从 `routingJson.dry_run_payload` 提取结构化数据
+- **关键字段网格（始终显示）**：Assigned CN Office / Sales Office / Sales PIC / 货型 / 商品 / POL/POD IDs / 发件人邮箱 / 询价接收日期 / 状态
+- **其他字段（折叠展开）**：展示完整 payload 原始 JSON（深色代码块）
+- **LogiTrack 建单状态徽章**逻辑增强：
+  - `已建单` → 绿色 ✅
+  - `DRY-RUN 提取信息` → 蓝色 🖨（有 dry_run_payload 时）
+  - `已跳过（不触发建单）` → 灰色 ⏭（有 skipReason 但无 payload 时）
+  - `— 未建单` → 灰色（其他情况）
+
+---
+
+##### 5. 调试重放面板增强（`ReplayPanel.tsx` 第二次全面重写，2026-05-13）
+
+> **背景**：原 ReplayPanel 从 `tested_emails.json` 按 conversationId 查找邮件，但处理日志存在数据库，导致"Not Found"。本次重构对接 DB 处理日志，并彻底重写去重管理 UI。
+
+**双标签重构**：
+
+**标签 1 — 📋 从处理日志选择（`DbLogPicker` 组件）**：
+- 关键字搜索框 + 搜索按钮（Enter 触发），调用 `GET /api/monitor/process-logs?keyword=…&page=0&size=10`
+- 点击任意记录 → 直接调用 `POST /pyapi/replay/from-log`（携带 DB 中存储的 AI JSON），无需再从缓存查找
+- 右侧展示 `ReplayResultPanel`（SkipChecker 结果 + 路由决策 + 可折叠 routing_reason 诊断）
+
+**标签 2 — 🗑 去重缓存管理（`DedupManager` 组件）**：
+- **关键字搜索**：`keyword` 输入框 + 搜索按钮，Enter 快捷键，✕ 清除；服务端按主题/发件人过滤
+- 调用新增 `GET /pyapi/dedup/search?keyword=&limit=30` 端点（全量搜索，非仅 5 条最近记录）
+- 统计行：显示"共 N 条缓存，搜索到 M 条"
+- 每条记录：邮件类型标签 / 文件夹标签 / 主题 / 发件人 / 测试时间，鼠标悬停显示 🗑 移除按钮
+- 点击 🗑 移除 → 调用 `DELETE /pyapi/dedup/{conversationId}` → 即时从列表中移除，显示剩余条数
+
+**ProcessingLogs 表格增强（`ProcessingLogs.tsx`）**：
+- 新增 ▶ 操作列（9 列网格），点击打开 `InlineReplay` 内嵌面板
+- `InlineReplay` 组件：挂载即自动触发 `replayFromLog`，展示 SkipChecker + routing_reason，可关闭
+
+**`POST /pyapi/replay/from-log` 新端点**：
+- 请求体：`{ conversation_id, subject, sender, ai_analysis_json }` — 直接接收 DB 存储的 AI JSON
+- 解析 JSON → 运行 SkipChecker → 运行 Router → 返回完整判断结果，不需要查 `tested_emails.json`
+
+---
+
+##### 6. 去重缓存全量搜索端点（`monitor_api.py`，2026-05-13）
+
+新增 `GET /pyapi/dedup/search`：
+- 参数：`keyword`（主题/发件人关键字，默认空字符串）、`limit`（最多返回条数，默认 20）
+- 响应：`{ total, shown, keyword, records: [{conversation_id, subject, sender, folder, tested_at, email_type, is_inquiry}] }`
+- 替代原 `GET /pyapi/rules` 仅返回 5 条的限制，支持真正的全量搜索过滤
+
+---
+
+##### 7. 配置查看器重构（`ConfigViewer.tsx` 全面重写，由只读变为可编辑）
+
+由 2 区域只读展示 → **3 子标签可编辑**：
+
+**★ 路由配置**（默认标签，可编辑）：
+- `getRouting()` 加载 `pic_routing.json`，提取 `core_countries`、`managers_email`、`branch_to`、`branch_cc`
+- **Core 国家列表**：可添加新国家 / 点击 ✕ 删除；展示当前全部 Core 目的国
+- **Managers 邮件列表**：可添加/删除 manager 通知邮箱
+- **Branch TO/CC 邮件配置**：按 Branch（HKG/SZX/SHA/PEK）× 模式（CORE/NON-CORE）展示和编辑收件人
+- **保存按钮**：调用 `PUT /pyapi/routing` 保存变更（后端有字段白名单保护）
+
+**♦ API 连接**（`ServiceCard` 组件）：
+- 展示 5 个服务配置（Graph/LLM/VLM/VLM备用/LogiTrack），API key 只展示后4位
+- 每个服务有"测试连接"按钮，调用 `/pyapi/test-connection/{service}` 显示延迟和结果
+
+**📋 跳过规则**（只读）：
+- 展示 `skip_rules`：keywords 列表 + `enabled` 标志 + `all_folders` 标志
+- 展示 `non_inquiry_types` 跳过邮件类型列表
+
+---
+
+##### 8. Python 监控 API 新增端点（`monitor_api.py`）
+
+| 端点 | 方法 | 功能 |
+|------|------|------|
+| `/pyapi/dedup/{conversation_id}` | DELETE | 从 `tested_emails.json` 移除指定 conversation_id |
+| `/pyapi/dedup/search` | GET | 按关键字全量搜索去重缓存（支持主题/发件人过滤，替代 rules 5条限制）|
+| `/pyapi/replay/from-log` | POST | 接受 AI JSON 直接重算 SkipChecker + Router（不依赖缓存文件）|
+| `/pyapi/routing` | GET | 返回 `pic_routing.json` 结构化摘要（core_countries / managers_email / branch_to / branch_cc）|
+| `/pyapi/routing` | PUT | 接受 JSON 写入 `pic_routing.json`（字段白名单保护，仅允许更新 core_countries/managers_email/branch_to/branch_cc）|
+| `/pyapi/control/poll-interval` | POST | 即时修改运行中进程的轮询间隔 |
+| `/pyapi/control/logitrack-dry-run` | POST | 即时切换 LOGITRACK_DRY_RUN 标志 |
+
+---
+
+##### 9. main.py 增强 — DRY-RUN payload 写入监控字段
+
+```python
+# main.py 约第660行
+if settings.logitrack_dry_run and build_result.get("payload"):
+    _mon["routing_json"]["dry_run_payload"] = build_result["payload"]
+```
+
+前端 `LogDetailPanel` 读取 `routingJson.dry_run_payload` 展示结构化建单信息。
+
+---
+
+#### 📦 影响文件 (17个)
+
+| 文件 | 变更类型 | 说明 |
+|------|----------|------|
+| `logitrack-pro/components/settings/monitoring/tabs/ServiceControl.tsx` | **新建** | 服务管理 UI（状态卡片 + 启动配置 + 运行时控制） |
+| `logitrack-pro/components/settings/monitoring/MonitoringDashboard.tsx` | 修改 | 新增 🚀 服务管理标签（第1个），默认 Tab 改为 service |
+| `logitrack-pro/components/settings/monitoring/detail/AiAnalysisCard.tsx` | 重写 | 完整 aiAnalysisJson 解析，核心+扩展字段，"展开更多字段"折叠 |
+| `logitrack-pro/components/settings/monitoring/detail/RoutingCard.tsx` | 重写 | routing_reason 路由决策面板，跳过邮件说明提示 |
+| `logitrack-pro/components/settings/monitoring/detail/LogDetailPanel.tsx` | 重写 | DRY-RUN payload 展示，4种建单状态徽章，跳过邮件标签 |
+| `logitrack-pro/components/settings/monitoring/debug/ReplayPanel.tsx` | **第二次重写** | 双标签（DB日志选择器 + 去重搜索管理），`/pyapi/replay/from-log` 直接重算 |
+| `logitrack-pro/components/settings/monitoring/tabs/ProcessingLogs.tsx` | 修改 | 新增 ▶ 操作列 + `InlineReplay` 内嵌面板 |
+| `logitrack-pro/components/settings/monitoring/tabs/ConfigViewer.tsx` | 重写 | 3子标签（路由配置可编辑 / API连接测试 / 跳过规则） |
+| `logitrack-pro/services/monitorApi.ts` | 修改 | 新增 `replayFromLog` / `searchDedup` + processApi + removeDedup/getRouting/saveRouting 等共9个方法 |
+| `backend/src/.../service/ProcessManagerService.java` | **新建** | Python 进程生命周期管理（start/stop/status） |
+| `backend/src/.../controller/ProcessManagerController.java` | **新建** | REST 接口 /api/monitor/process/{status,start,stop} |
+| `backend/src/main/resources/application.properties` | 修改 | 新增 emailai.python.path / emailai.script.path / emailai.working.dir |
+| `email-ai-automation/services/monitor_api.py` | 修改 | 新增 7 个端点（DELETE dedup + GET dedup/search + POST replay/from-log + GET/PUT routing + POST control/*） |
+| `email-ai-automation/main.py` | 修改 | dry_run_payload 写入 routing_json.dry_run_payload |
+| `MILESTONE_CHANGELOG.md` | 文档 | M38 记录 + Phase 5 补充更新 |
+
+#### 📊 统计信息
+- **新建前端组件**: 1 个（ServiceControl.tsx）
+- **完整重写组件**: 6 个（AiAnalysisCard / RoutingCard / LogDetailPanel / ReplayPanel×2 / ConfigViewer）
+- **新建后端类**: 2 个（ProcessManagerService / ProcessManagerController）
+- **新增 API 端点**: 7 个（Python）+ 3 个（Spring Boot）
+- **新增 monitorApi 方法**: 9 个（processApi × 3 + monitorPyApi × 6）
+- **前端编译**: ✅ No errors（TypeScript 严格模式）
+- **Spring Boot 编译**: ✅ BUILD SUCCESS
+
+#### ✅ 验收状态
+- [x] 🚀 服务管理 Tab：成功显示并轮询 Spring Boot `/api/monitor/process/status`（HTTP 200）
+- [x] AiAnalysisCard：品名/LCL-FCL/货务条款/重量体积在 UAT 页面正确显示
+- [x] AiAnalysisCard："展开更多字段"折叠面板可交互
+- [x] ConfigViewer 3子标签：路由配置/API连接/跳过规则均可切换
+- [x] RoutingCard：skipped 邮件显示 💡 说明提示，routed 邮件显示 routing_reason 诊断面板
+- [x] LogDetailPanel：跳过邮件显示"⏭ 已跳过"徽章，DRY-RUN 邮件显示 payload 面板
+- [x] ReplayPanel DbLogPicker：从 DB 处理日志选择邮件，直接调用 `/pyapi/replay/from-log` 重算
+- [x] ProcessingLogs ▶ 内嵌重放：点击按钮展开 InlineReplay，自动触发重算并展示结果
+- [x] DedupManager 关键字搜索：`/pyapi/dedup/search?keyword=` 返回 35 条记录，服务端过滤正常（HTTP 200 验证）
+- [x] DedupManager 去重移除：`DELETE /pyapi/dedup/{id}` 端点正常（24路由已验证）
+- [ ] ConfigViewer 路由配置编辑：待验证保存功能
+
+---
+
+
+| `logitrack-pro/services/monitorApi.ts` | 修改 | 新增 processApi + removeDedup/getRouting/saveRouting/setPollInterval/setLogitrackDryRun |
+| `backend/src/.../service/ProcessManagerService.java` | **新建** | Python 进程生命周期管理（start/stop/status） |
+| `backend/src/.../controller/ProcessManagerController.java` | **新建** | REST 接口 /api/monitor/process/{status,start,stop} |
+| `backend/src/main/resources/application.properties` | 修改 | 新增 emailai.python.path / emailai.script.path / emailai.working.dir |
+| `email-ai-automation/services/monitor_api.py` | 修改 | 新增 5 个端点（DELETE dedup + GET/PUT routing + POST control/*） |
+| `email-ai-automation/main.py` | 修改 | dry_run_payload 写入 routing_json.dry_run_payload |
+| `MILESTONE_CHANGELOG.md` | 文档 | 新增 M38 记录 |
+
+#### 📊 统计信息
+- **新建前端组件**: 1 个（ServiceControl.tsx）
+- **完整重写组件**: 5 个（AiAnalysisCard / RoutingCard / LogDetailPanel / ReplayPanel / ConfigViewer）
+- **新建后端类**: 2 个（ProcessManagerService / ProcessManagerController）
+- **新增 API 端点**: 5 个（Python）+ 3 个（Spring Boot）
+- **新增 monitorApi 方法**: 7 个（processApi × 3 + monitorPyApi × 4）
+- **前端编译**: ✅ No errors（TypeScript 严格模式）
+- **Spring Boot 编译**: ✅ BUILD SUCCESS
+
+#### ✅ 验收状态
+- [x] 🚀 服务管理 Tab：成功显示并轮询 Spring Boot `/api/monitor/process/status`（HTTP 200）
+- [x] AiAnalysisCard：品名/LCL-FCL/货务条款/重量体积在 UAT 页面正确显示
+- [x] AiAnalysisCard："展开更多字段"折叠面板可交互
+- [x] ConfigViewer 3子标签：路由配置/API连接/跳过规则均可切换
+- [x] RoutingCard：skipped 邮件显示 💡 说明提示，routed 邮件显示 routing_reason 诊断面板
+- [x] LogDetailPanel：跳过邮件显示"⏭ 已跳过"徽章，DRY-RUN 邮件显示 payload 面板
+- [x] ReplayPanel 去重移除：待 Python 监控服务在线后验证 DELETE /pyapi/dedup 端点
+- [ ] ConfigViewer 路由配置编辑：待 Python 监控服务在线后验证保存功能
+
+---
+
+### M39: TEST_FORWARD UAT Bug 修复 + 邮件转发格式升级 (2026-05-13)
+
+**日期**: 2026-05-13  
+**系统**: `email-ai-automation (Python)` + `Spring Boot 后端`  
+**关联文档**: `email-ai-automation/docs/PROJECT_STATUS_REPORT.md`、`email-ai-automation_milestone.md`
+
+#### 🎯 目标需求
+系统进入 TEST_FORWARD 真实邮件转发测试阶段，UAT 期间发现 5 个问题并全部修复，同时升级邮件转发格式（双模板 + HTML body）和多分支路由合并逻辑。
+
+---
+
+#### 🐛 Bug 修复（B23–B27）
+
+| 编号 | 问题 | 根因 | 状态 |
+|---|---|---|---|
+| B23 | LIVE 模式启动参数错误 | `ProcessManagerService.java` 传 `--live`，但 argparse 只识别 `--forward` | ✅已修复 |
+| B24 | LIVE 模式子进程 EOFError | `_confirm_live_mode()` 调用 `input()` 在无 TTY 子进程中抛出 EOFError | ✅已修复 |
+| B25 | UI 删除去重记录后内存不刷新 | `tracker = TestTracker()` 只在启动时加载，UI DELETE 只更新磁盘文件 | ✅已修复 |
+| B26 | 多起运地只通知一个分支 PIC | `rizhao` 不在城市映射表；多条指令生成多封邮件（PIC 未合并） | ✅已修复 |
+| B27 | 转发邮件无换行 + 暴露 AI 元数据 | Graph API `comment` 字段纯文本渲染；`_build_forward_comment()` 包含大量 AI 内部字段 | ✅已修复 |
+
+#### ✨ 主要功能
+
+##### 1. LIVE 模式参数与交互修复
+
+**`backend/src/.../service/ProcessManagerService.java`**：
+- LIVE 模式命令行参数 `--live` → `--forward`
+- 注入环境变量 `LIVE_CONFIRMED=true`、`LIVE_OPERATOR=WebUI-{timestamp}` → 子进程绕过 `input()` 交互
+- `stopProcess()` 改用 Java 17 `ProcessHandle` API（替代 PowerShell/taskkill，更可靠）
+
+**`main.py`**：
+- `_confirm_live_mode()` 检测 `os.environ.get("LIVE_CONFIRMED") == "true"` → 跳过 `input()` 调用
+
+##### 2. 去重缓存热更新
+
+**`services/test_tracker.py`**：
+- 新增 `reload()` 方法：从磁盘重新加载 `data/tested_emails.json`，用于 UI 删除后即时生效
+
+**`main.py`**：
+- `process_new_emails()` 每轮开始处调用 `tracker.reload()`，确保 UI 侧的删除操作在下一轮就生效
+
+##### 3. 邮件转发双模板
+
+**`main.py`** 新增函数：
+
+- **`_build_greeting_and_comment(analysis, instr, sender_name, ref_number)`**：
+  - 模板 1（无 REF）：`Dear {name},\n\nThanks for your inquiry, will provide the best rate to you soonly.`
+  - 模板 2（有 REF）：`Dear {name},\n\nThanks for the opportunity. Adding the reference {REF} in subject and our origin office will offer EXW charges to you shortly.`
+  - 末尾追加 `_build_forward_comment()` 输出（目前仅 `[This is an automated reply from China Pricing AI]`）
+
+- **`_build_ref_subject(original_subject, ref_number)`**：
+  - 去掉原始多层 `Re:/FW:/Fwd:` 前缀（正则 `r'^(?:(?:RE|Re|FW|Fw|Fwd)\s*:\s*)+'`）
+  - 格式：`FW: <CN2604217-S> 40HQ Shenzhen to Riyadh`
+
+- **`_build_forward_comment()`**：精简为仅返回标识行 `[This is an automated reply from China Pricing AI]`，移除全部 Commodity/Note/Routing 等元数据
+
+##### 4. HTML 邮件正文
+
+**`services/graph_client.py`**：
+- 新增 `_comment_to_html(comment: str) -> str`：将 `\n` 转 `<br>`，包裹带样式的 `<div>` 标签
+- 新增 `_build_draft_html_body(comment, original_body) -> dict`：greeting HTML 在前，原邮件引用体在后
+- `forward_email(message_id, to, cc, comment, subject=None)`：改为 `createForward` 草稿 → PATCH（toRecipients/ccRecipients/subject?/body HTML）→ send
+- `reply_all_email(message_id, comment, extra_to, extra_cc, subject=None)`：改为 `createReplyAll` 草稿 → PATCH HTML body → send，不再通过 `comment` 参数传明文
+
+##### 5. 多分支路由邮件合并
+
+**`services/router.py`**：
+- `_city_to_branch()` 补充：`rizhao→TAO`、`weihai→TAO`、`linyi→TAO`、`xingang→TSN`
+- 新增静态方法 `_merge_instructions_by_mode(instructions)`：
+  - 将同一运输方式（transport_mode）的多条指令合并为一条
+  - TO 列表合并去重；CC 列表合并去重（排除已在 TO 中的地址）
+  - branch 字段拼接（如 `TSN+TAO`）
+  - 结果：多起运地（如天津+日照+青岛 SEA）只发送一封邮件，两个分支 PIC 都在 TO 中
+
+---
+
+#### 邮件最终格式（2026-05-13 确认）
+
+```
+[TEST-FORWARD] 或 (LIVE)
+主题: FW: <CN2604217-S> 40HQ Shenzhen to Riyadh   ← 有 REF 时
+
+正文:
+Dear Nadine Grunnert,
+
+Thanks for your inquiry, will provide the best rate to you soonly.
+
+[This is an automated reply from China Pricing AI]
+
+── 原邮件 ──
+(原始邮件内容)
+```
+
+---
+
+#### 📦 影响文件 (6个)
+
+| 文件 | 变更类型 | 说明 |
+|------|----------|------|
+| `email-ai-automation/main.py` | 修改 | `sender_name` 提取 / `_build_greeting_and_comment()` / `_build_ref_subject()` / `_build_forward_comment()` 精简 / `tracker.reload()` |
+| `email-ai-automation/services/test_tracker.py` | 修改 | 新增 `reload()` 方法 |
+| `email-ai-automation/services/router.py` | 修改 | 补充城市→分支映射 / `_merge_instructions_by_mode()` |
+| `email-ai-automation/services/graph_client.py` | 修改 | `_comment_to_html()` / `_build_draft_html_body()` / `forward_email()` HTML 重构 / `reply_all_email()` HTML 重构 |
+| `backend/src/.../service/ProcessManagerService.java` | 修改 | LIVE 参数修正 / `LIVE_CONFIRMED` 环境变量 / `ProcessHandle` stop |
+| `email-ai-automation_milestone.md` | 文档 | M11 会话补充（B23-B27 + 功能说明）|
+
+#### 📊 统计信息
+- **修复 Bug**: 5 个（B23–B27）
+- **新增函数**: 4 个（`reload` / `_build_greeting_and_comment` / `_build_ref_subject` / `_merge_instructions_by_mode`）
+- **重构函数**: 3 个（`_build_forward_comment` / `forward_email` / `reply_all_email`）
+- **Python 语法检查**: ✅ OK（main.py / test_tracker.py）
+
+#### ✅ 验收状态
+- [x] `tracker.reload()` 测试：删除记录后 reload → `is_tested=False` PASS
+- [x] `_comment_to_html()` 测试：输出包含 `<br>` 标签 PASS
+- [x] ELOG 邮件去重删除：UI 删除 → remaining=59 PASS
+- [x] Python 服务重启：新 PID 27880，TEST_FORWARD 模式确认
+- [x] `_build_forward_comment()` 精简：仅返回自动回复标识，无元数据
+
+---
+
+### M40: 附件转发 + 浙江城市映射修正 + 多票货拆单 B3 (2026-05-15)
+
+**日期**: 2026-05-15  
+**系统**: `email-ai-automation (Python)`  
+**关联文档**: `email-ai-automation/docs/PROJECT_STATUS_REPORT.md`、`email-ai-automation/milestone.md`
+
+#### 🎯 目标需求
+
+分析真实案例 "EXW CHINE TO CALLAO PORT FCL"（DB ID=12248）：
+1. 邮件有两个起运地（青岛 + 浙江丽水），丽水不在城市映射表 → NGB PIC 漏发
+2. 原始 PDF 附件未随转发邮件传递
+3. 同一对话链后续新询价（新 message_id）被 conversationId 去重跳过
+4. 多票货（两个起运地对应两票货物）应创建两个询价单，当前只建一个
+
+---
+
+#### 🐛 Bug 修复（B28–B32）
+
+| 编号 | 问题 | 根因 | 状态 |
+|---|---|---|---|
+| B28 | 杭州（Hangzhou）路由到 NGB 而非 SHA | `_city_to_branch("hangzhou")` 返回 "NGB"（地理错误） | ✅已修复 |
+| B29 | 转发/Reply All 邮件不携带原始附件 | `forward_email/reply_all_email` 无附件上传逻辑 | ✅已修复 |
+| B30 | CALLAO 案例丽水 NGB PIC 漏发 | `_city_to_branch("lishui")=None` → fallback TAO → 合并后无 NGB | ✅已修复 |
+| B31 | 对话链中新回复邮件被去重跳过 | `is_tested(conversationId)` 同链所有邮件共享一个 ID | ✅已修复 |
+| B32 | 多票货（青岛+丽水）只建 1 个询价单 | 无多票拆分架构，单票处理流程 | ✅已修复 |
+
+---
+
+#### ✨ 主要功能
+
+##### 1. 附件随转发邮件（B29）
+
+**`services/graph_client.py`**：
+- 新增 `_add_file_attachments_to_draft(draft_id, attachments)` 方法
+  - 遍历本地文件路径列表，读取文件内容 base64 编码后调用 Graph `/attachments` 接口上传到草稿
+  - 单文件 ≤ 3MB 直接上传；超限记录 warning 跳过
+- `forward_email()` 新增 `attachments: list[str] = None` 参数
+- `reply_all_email()` 新增 `attachments: list[str] = None` 参数
+
+**`main.py`**：
+- Step 1 下载附件后将本地路径列表存入 `attachments`
+- Step 10 调用转发时传入 `attachments=attachments`
+
+##### 2. 浙江城市映射修正（B28 + B30）
+
+**`services/router.py`** `_city_to_branch()` 关键变化：
+
+| 城市 | 修改前 | 修改后 | 说明 |
+|------|--------|--------|------|
+| hangzhou | NGB | SHA | 杭州属浙北，应走上海（沪杭甬一体） |
+| jiaxing | — | SHA | 浙北嘉兴，靠近上海 |
+| huzhou | — | SHA | 浙北湖州，靠近上海 |
+| lishui | — | NGB | 浙南丽水，应走宁波 |
+| taizhou | — | NGB | 浙南台州，应走宁波 |
+| jinhua | — | NGB | 浙中金华，应走宁波 |
+| quzhou | — | NGB | 浙西衢州，应走宁波 |
+| zhoushan | — | NGB | 舟山港，属宁波港范围 |
+
+同步更新：`main.py` Step 5.7 附件城市推断映射、`services/ai_analyzer.py` SYSTEM_PROMPT Branch 映射表。
+
+**`main.py` Step 5.7**（上一会话已实现，本会话扩展）：
+- 当 `branch_code=UNKNOWN` 时，扫描 `attachment_texts` 中的城市名
+- 用上述城市映射表推断并覆盖 `branch_code`
+
+**`services/ai_analyzer.py`**：
+- SYSTEM_PROMPT Branch 映射表更新：
+  - SHA: 上海/苏州/南京/无锡（沪苏）+ **杭州/嘉兴/湖州**（浙北）
+  - NGB: 宁波/义乌/温州/舟山 + **丽水/台州/金华/衢州**（浙南/中）
+  - 说明：杭州→SHA，宁波→NGB；附件中发货地地址也需提取
+
+##### 3. 去重 key 改为 message_id（B31）
+
+**`main.py` Step 0b**：
+```python
+# BEFORE:
+if conv_id_check and tracker.is_tested(conv_id_check):
+    logger.info("  ⏭️  此邮件已处理过，跳过")
+
+# AFTER:
+if message_id and tracker.is_tested(message_id):
+    logger.info("  ⏭️  此邮件已处理过，跳过 (message_id)")
+```
+
+两处 `tracker.record_test()` 调用均改为 `conversation_id=message_id`（参数名不变，含义变为 message 唯一 ID）。
+
+**效果**：同一对话链（conversationId 相同）中的每封新邮件（不同 message_id）将独立处理，不再因为对话链历史记录被跳过。
+
+##### 4. 多票货 B3 拆单架构（B32）
+
+**`services/ai_analyzer.py` schema 新增**：
+```json
+{
+  "shipments": null
+  // 多票时填写数组：
+  // [{"origin_city": "Qingdao", "branch_code": "TAO", "commodity": "...",
+  //   "containers": {...}, "gross_weight_kg": ..., "volume_cbm": ...,
+  //   "incoterm": "...", "note": "..."}, ...]
+  // 无法区分多票时保持 null
+}
+```
+
+SYSTEM_PROMPT 新增"shipments 多票货拆分规则"章节，含完整 JSON 示例。
+
+**`main.py` Step 8.5（新增）**：
+```python
+shipments = analysis.get("shipments")
+shipment_tasks = []
+if shipments and isinstance(shipments, list) and len(shipments) >= 2:
+    for si, ship in enumerate(shipments):
+        sub = copy.deepcopy(analysis)
+        sub["origin_city"] = ship.get("origin_city")
+        sub["branch_code"] = ship.get("branch_code")
+        sub["multiple_origins"] = False
+        sub["shipments"] = None
+        sub_instructions = router.get_forward_instruction(sub, ...)
+        shipment_tasks.append((sub, sub_instructions, sub_plan))
+else:
+    shipment_tasks.append((analysis, instructions, forward_plan))
+```
+
+**`main.py` Step 9-10（重构为循环）**：
+- 遍历 `shipment_tasks`，每票独立：LogiTrack 建单（各自 REF）→ 独立发邮件
+- 多票日志：`📦 票 [1/2]`、`📦 票 [2/2]`
+- `_mon` 监控字典仅第一票（`_task_idx==0`）写入，防止重复
+
+---
+
+#### 设计讨论结论（附于本里程碑）
+
+**Q1: 是否补全全国城市映射？**
+- 结论：**不全补，按物流高频城市逐步扩展**
+- 理由：AI 输出主要城市，300+ 城市维护成本远超收益
+- 规划：后续按实际出现频率补充江苏内陆（changzhou/nantong）、广东东翼（huizhou）等
+
+**Q2: 多票 B3 是否改为 B1（AI 全量多票输出）？**
+- 结论：**保持 B3，不迁移到 B1**
+- 理由：B3 完全向后兼容 + AI 低错误风险 + 95%+ 场景适用；B1 需全量重构 + AI 生成每票 26+ 字段错误率倍增 + fallback 能力丧失
+
+---
+
+#### 📦 影响文件 (5个)
+
+| 文件 | 变更类型 | 说明 |
+|------|----------|------|
+| `email-ai-automation/services/router.py` | 修改 | `_city_to_branch()` 杭州/嘉兴/湖州→SHA；丽水/台州/金华/衢州/舟山→NGB |
+| `email-ai-automation/services/graph_client.py` | 修改 | `_add_file_attachments_to_draft()`；`forward_email/reply_all_email` 新增 `attachments` 参数 |
+| `email-ai-automation/services/ai_analyzer.py` | 修改 | Branch 映射表更新；`shipments` schema 字段 + 拆分规则 |
+| `email-ai-automation/main.py` | 修改 | Step 5.7 附件城市推断；Step 0b 去重改 message_id；Step 8.5 多票拆单；Step 9-10 循环重构；record_test 改 message_id |
+| `email-ai-automation/docs/PROJECT_STATUS_REPORT.md` | 文档 | M12 更新（v1.4）|
+
+#### 📊 统计信息
+- **修复 Bug**: 5 个（B28–B32）
+- **新增方法**: 1 个（`_add_file_attachments_to_draft`）
+- **新增代码块**: 2 个（Step 8.5 多票拆单、shipments schema）
+- **重构范围**: main.py Step 9-10（单流程→循环）
+- **Python 语法检查**: ✅ OK（main.py / router.py / ai_analyzer.py）
+
+#### ✅ 验收状态
+- [x] `_test_callao_routing.py`：Branch=TAO+NGB，TO 包含 tao.hhao + ngb.vli PASS
+- [x] `_test_multi_shipment.py`：2票独立路由——票1(TAO)→tao PIC，票2(NGB)→ngb.vli PASS
+- [x] `router.py` `_city_to_branch("hangzhou")="SHA"` PASS
+- [x] `router.py` `_city_to_branch("lishui")="NGB"` PASS
+- [x] main.py 语法检查 OK，ai_analyzer.py 语法检查 OK
+
+---
+
+### M41: 已建号 FOLLOW_UP 边界修正 + Few-shot 训练状态同步 (2026-05-19)
+
+**日期**: 2026-05-19  
+**系统**: `email-ai-automation (Python)`  
+**关联文档**: `email-ai-automation/docs/PROJECT_STATUS_REPORT.md`、`email-ai-automation_milestone.md`、`docs/PLAN_AUTO_FILL_ENQUIRY.md`
+
+#### 🎯 目标需求
+
+复盘 Sea-Completed 两个真实案例，修正 `INQUIRY` / `FOLLOW_UP` 边界，避免已建号邮件被再次当成新询价自动建号：
+1. `Re: <CN2605138-S> Mubea FCL 40ft Quote request` 被误判为新询价，存在重复建号风险
+2. `20'GP Shenzhen to Riyadh` 这类“同代理但不同箱型”的新需求不能被错误并入旧单
+3. 将真实案例沉淀为 Few-shot，作为后续训练面板的基准样本
+4. 同步文档中的训练功能状态，避免继续把已落地能力写成“待实现”
+
+---
+
+#### 🐛 Bug 修复（B33）
+
+| 编号 | 问题 | 根因 | 状态 |
+|---|---|---|---|
+| B33 | 已建号主题邮件被误判为 `INQUIRY`，触发重复建号/重复转发风险 | Prompt 过度强调“不要仅凭 Re: 判 FOLLOW_UP”，但没有把 `<CN...>` 主题建号信号设为更高优先级 | ✅已修复 |
+
+---
+
+#### ✨ 主要功能
+
+##### 1. 已建号主题优先判 `FOLLOW_UP`
+
+`services/ai_analyzer.py`：
+- 在 `FOLLOW_UP` 定义中新增高优先级规则：Subject 含内部建号 `<CN...-S>` / `<CN...-A>` / `<CN...-AS>` 时，即使正文出现 `please quote` / `pls quote` / `kindly quote`，也视为已建号询价上的补充或修改请求
+- 在“多轮对话处理指引”中新增 `重要B（已建号判 FOLLOW_UP）`
+
+**业务效果**：
+- 已建号询价上的 FCA/EXW/incoterm 追价、箱型调整、细节补充，不再进入新询价建号路径
+
+##### 2. 用正反两个真实案例固化边界
+
+`data/base_fewshot.json`：
+- 新增 **案例23**：`<CN2605138-S>` 已建号追价请求 → `FOLLOW_UP`
+- 新增 **案例24**：同代理对同路线追加 `20GP` 新箱型需求 → 仍为独立 `INQUIRY`
+- 保留 **案例25**：内部同事把 chinapricing 拉入已有外部询价循环时，需从引用邮件抽取真实询价信息
+
+**边界结论**：
+- Subject **含内部 CN 编号**：优先按已建号处理，默认 `FOLLOW_UP`
+- Subject **不含内部 CN 编号**：即使正文提及旧单号，只要当前邮件是独立新报价需求，仍可判 `INQUIRY`
+
+##### 3. Few-shot 外部化状态同步
+
+本次复盘同时确认训练架构已不再停留在计划阶段：
+- `services/ai_analyzer.py` 已改为 `SYSTEM_PROMPT_TEMPLATE + {{FEWSHOT_CASES}}`
+- `data/base_fewshot.json` 已承载基础案例
+- `data/training_fewshot.json` 已作为后续纠错案例入口
+- `services/monitor_api.py` 已提供 `training/cases`、`fewshot-stats`、`preview-prompt` 等训练接口
+
+---
+
+#### 📦 影响文件 (4个)
+
+| 文件 | 变更类型 | 说明 |
+|------|----------|------|
+| `email-ai-automation/services/ai_analyzer.py` | 修改 | 已建号主题高优先级 `FOLLOW_UP` 规则 + 多轮对话规则补充 |
+| `email-ai-automation/data/base_fewshot.json` | 修改 | 新增案例23/24，固化 FOLLOW_UP / 新询价边界 |
+| `email-ai-automation/docs/PROJECT_STATUS_REPORT.md` | 文档 | 状态报告同步到 M13 / B33 / Few-shot 外部化现状 |
+| `email-ai-automation/docs/PLAN_WEB_MONITOR_DASHBOARD.md` | 文档 | AI 训练计划补充“已实现状态”说明 |
+
+#### 📊 统计信息
+- **修复 Bug**: 1 个（B33）
+- **新增真实 Few-shot 边界案例**: 2 个（案例23、案例24）
+- **当前基础案例总数**: 25 个（base）
+- **验证结果**: Case 1 已回归为 `FOLLOW_UP / is_inquiry=false`
+
+#### ✅ 验收状态
+- [x] Sea-Completed Case 1 根因定位完成：误判来自 prompt 边界缺口
+- [x] `services/ai_analyzer.py` 已加入已建号主题优先规则
+- [x] `data/base_fewshot.json` 已加入案例23/24
+- [x] Case 1 定向验证通过：`email_type=FOLLOW_UP`、`is_inquiry=false`
+- [x] 文档状态已同步，训练功能不再只按“待设计”描述
+
+---
+
+### M42: AI 训练前端接入 + 远程访问验证脚本 (2026-05-19)
+
+**日期**: 2026-05-19  
+**系统**: `logitrack-pro (React)` / `scripts`  
+**关联文档**: `email-ai-automation/docs/PLAN_WEB_MONITOR_DASHBOARD.md`、`email-ai-automation/docs/PROJECT_STATUS_REPORT.md`、`docs/PLAN_AUTO_FILL_ENQUIRY.md`
+
+#### 🎯 目标需求
+
+把 Email AI Automation 已有的训练 API 真正接到 LogiTrack 监控前端，形成可操作的 AI 训练面板；同时沉淀本次远程访问排障结论，避免继续把 Vite 开发服务当成外网验收入口。
+
+核心目标：
+1. 在监控面板中新增 `🎯 AI 训练` 顶级入口
+2. 打通训练案例库、路由模拟器、回归测试与日志详情纠错入口
+3. 为远程联调补一份可执行验证脚本，明确 API/DB 连通性检查方式
+4. 记录“外网 3000 访问应使用 preview/Nginx，而非依赖 Vite dev 外绑 IP”的部署结论
+
+---
+
+#### ✨ 主要功能
+
+##### 1. AI 训练顶级 Tab 接入监控面板
+
+`logitrack-pro/components/settings/monitoring/MonitoringDashboard.tsx`：
+- 新增 `training` 顶级 Tab
+- 将 `AITraining.tsx` 与服务管理、实时状态、处理日志、调试控制、配置查看并列挂载
+
+`logitrack-pro/components/settings/monitoring/tabs/AITraining.tsx`：
+- 集成 `FewShotStatusBar`、`TrainingCaseList`、`WhatIfSimulator`、`RegressionRunner`
+- 保存训练案例后自动刷新 few-shot 统计，并触发回归刷新 tick
+- 用 `CaseEditModal` 替代临时 prompt 式新增案例
+
+##### 2. 日志详情纠错入口打通
+
+`logitrack-pro/components/settings/monitoring/detail/LogDetailPanel.tsx`：
+- 新增 `🔧 纠错` 按钮
+- 直接挂载 `CorrectionWizard`
+- 让处理日志中的单条邮件可以原地进入三步纠错流程，而不是脱离上下文手工录入
+
+##### 3. 训练前端子能力可用化
+
+已接入的组件包括：
+- `FewShotStatusBar.tsx`：few-shot 统计、Prompt 预览、自动回归触发
+- `TrainingCaseList.tsx`：案例列表、状态切换、详情查看
+- `WhatIfSimulator.tsx`：独立路由模拟器，复用训练字段编辑器
+- `RegressionRunner.tsx`：基于 `tested_emails.json` 的轻量级路由回归测试
+- `CorrectionWizard.tsx`：从日志详情发起 AI 分析/路由规则纠错
+
+##### 4. 服务层与远程联调工具补齐
+
+`logitrack-pro/services/monitorApi.ts`：
+- 补齐 training 相关 DTO 与 API 封装
+- 前端统一通过 `monitorPyApi` 访问 `/pyapi/training/*`
+
+`scripts/verify-remote-access.ps1`：
+- 新增远程验证脚本
+- 可按顺序检查：TCP 8080、`/api/enquiries` HTTP 状态、TCP 3306、MySQL 登录与示例查询
+- 把“网络、端口、防火墙、MySQL host grant”排查步骤脚本化
+
+---
+
+#### 📦 影响文件 (7个)
+
+| 文件 | 变更类型 | 说明 |
+|------|----------|------|
+| `logitrack-pro/components/settings/monitoring/MonitoringDashboard.tsx` | 修改 | 新增 `🎯 AI 训练` 顶级 Tab |
+| `logitrack-pro/components/settings/monitoring/tabs/AITraining.tsx` | 新增/修改 | 集成案例库、模拟器、回归与新增案例弹窗 |
+| `logitrack-pro/components/settings/monitoring/detail/LogDetailPanel.tsx` | 修改 | 从处理日志详情直接发起 `CorrectionWizard` |
+| `logitrack-pro/components/settings/monitoring/training/FewShotStatusBar.tsx` | 新增/修改 | few-shot 统计、Prompt 预览、自动回归联动 |
+| `logitrack-pro/components/settings/monitoring/training/RegressionRunner.tsx` | 新增/修改 | 路由回归运行与结果展示 |
+| `logitrack-pro/services/monitorApi.ts` | 修改 | training 相关类型与 API 服务层补齐 |
+| `scripts/verify-remote-access.ps1` | 新增 | 远程 API/DB 连通性验证脚本 |
+
+#### 📊 统计信息
+- **新增前端训练入口**: 1 个顶级 Tab
+- **已接通训练子能力**: 4 个（状态栏、案例库、模拟器、回归测试）
+- **日志内嵌纠错入口**: 1 个
+- **远程验证脚本**: 1 个
+- **编译验证**: `npm run build` 通过
+
+#### 🧭 部署与访问结论
+
+本次联调明确了一个重要约束：
+
+- **Vite 开发服务适合本地开发，不应作为外网验收入口**
+- 如果需要从其他机器访问前端，应优先使用：
+  - `npm run build`
+  - `npm run preview -- --host 0.0.0.0 --port 3000`
+  - 或由 Nginx/80 反向代理静态资源与 `/api`
+- 远程环境若出现 `502`，应先区分是“前端 dev server 暴露方式错误”还是“后端 API 不可达”，不要把问题统称为 API 故障
+
+#### ✅ 验收状态
+- [x] `MonitoringDashboard` 已出现 `🎯 AI 训练` 顶级入口
+- [x] `AITraining` 已挂载案例库、模拟器、回归三类子页面
+- [x] `LogDetailPanel` 已可直接打开 `CorrectionWizard`
+- [x] 前端 training API 调用已统一封装到 `monitorApi.ts`
+- [x] `npm run build` 通过，说明首轮集成可编译
+- [x] 远程连通性检查脚本已补齐
+- [x] 远程访问 502 的根因和推荐部署方式已沉淀到文档结论
+
+---
+
+### M43: 监控补强 + 路由扩展性 + sender_name 解析增强 (2026-05-19)
+
+**日期**: 2026-05-19  
+**系统**: `email-ai-automation (Python)` / `logitrack-pro (React)` / `backend (Spring Boot)`  
+**关联文档**: `email-ai-automation/docs/PROJECT_STATUS_REPORT.md`、`email-ai-automation/docs/PLAN_WEB_MONITOR_DASHBOARD.md`、`docs/PLAN_AUTO_FILL_ENQUIRY.md`
+
+#### 🎯 目标需求
+
+在不破坏当前自动建单与监控链路的前提下，解决三类真实业务问题：
+
+1. 同一对话链中的**新 `message_id` / 新报价场景**不能再被旧的 `conversation_id` 数据库去重误拦截；
+2. 监控面板要能直接看到 **LogiTrack Ref**，并允许在 Web 服务管理页配置 **LIVE 审核 BCC**；
+3. 路由规则要从“纯城市白名单”升级为“高频城市 + 省份级回退”，同时修复 `Sales Ocean NL` 这类共享邮箱导致的错误称呼。
+
+#### ✨ 主要功能
+
+##### 1. 同对话链新询价边界修正（B34）
+
+`email-ai-automation/main.py`：
+- Step 9 移除跨轮次 `conversation_id` 数据库去重
+- 仅保留 `message_id` 去重 + 本轮 `_conv_ref_cache`
+- 允许“同线程但新的 `message_id` 且仍为 INQUIRY”的邮件新建 REF
+
+##### 2. 监控面板 Ref / BCC 能力补强（B35/B36）
+
+`logitrack-pro/components/settings/monitoring/detail/LogDetailPanel.tsx`：
+- 已建单成功时继续显示 `id + ref`
+- 复用旧 REF 时新增 `复用 Ref` 展示，便于人工判断“新建/复用”
+
+`logitrack-pro/components/settings/monitoring/tabs/ServiceControl.tsx`：
+- LIVE 模式新增审核 BCC 输入框
+
+`logitrack-pro/services/monitorApi.ts` + `backend/src/main/java/com/logitrack/backend/service/ProcessManagerService.java`：
+- `processApi.start()` 新增 `auditBcc`
+- Spring Boot 启动 Python 进程时注入 `LIVE_AUDIT_BCC`
+
+##### 3. 路由扩展性增强（B37）
+
+`email-ai-automation/services/router.py`：
+- `_city_to_branch()` 升级为“高频城市精确匹配 + 省份级回退”双层策略
+- 新增陕西分界：西安及以北 → TSN；西安以南 → SHA
+
+`email-ai-automation/services/ai_analyzer.py`：
+- Prompt 分支表同步加入湖北/湖南/陕西/甘肃/宁夏等覆盖说明
+- 修复 Wuhan / Weinan 等内陆起运地此前落入 fallback manager 的问题
+
+##### 4. sender_name 多来源解析器（B38）
+
+`email-ai-automation/services/sender_name_resolver.py`：
+- 新增独立解析模块，取代 `main.py` 中的简单规则
+- 解析优先级：缓存 → Graph `displayName` → 多语言签名提取 → 邮箱前缀
+- 支持英文/荷兰语/德语/西语/法语/印尼语 closing，兼容 `Jean-Pierre`、`O'Connor`、重音字符、括号昵称等姓名格式
+
+`email-ai-automation/main.py`：
+- 已接入新 resolver
+- 解决 `Sales Ocean NL`、`Customer Service` 这类共享邮箱被误用于 `Dear ...` 的问题
+
+#### 📦 影响文件 (8个)
+
+| 文件 | 变更类型 | 说明 |
+|------|----------|------|
+| `email-ai-automation/main.py` | 修改 | 移除跨轮次 conversation 去重，接入 sender_name resolver |
+| `email-ai-automation/services/router.py` | 修改 | 省份级回退 + 陕西分界规则 |
+| `email-ai-automation/services/ai_analyzer.py` | 修改 | Branch Prompt 覆盖范围同步升级 |
+| `email-ai-automation/services/sender_name_resolver.py` | 新增 | 多来源发件人姓名解析器 |
+| `logitrack-pro/components/settings/monitoring/detail/LogDetailPanel.tsx` | 修改 | 新建/复用两种 Ref 展示 |
+| `logitrack-pro/components/settings/monitoring/tabs/ServiceControl.tsx` | 修改 | LIVE 审核 BCC 输入框 |
+| `logitrack-pro/services/monitorApi.ts` | 修改 | `processApi.start()` 支持 `auditBcc` |
+| `backend/src/main/java/com/logitrack/backend/service/ProcessManagerService.java` | 修改 | 注入 `LIVE_AUDIT_BCC` 环境变量 |
+
+#### ✅ 验收状态
+
+- [x] 同对话链新 `message_id` 不再被旧 `conversation_id` 误拦截
+- [x] 监控详情面板可显示复用/新建 Ref
+- [x] LIVE 审核 BCC 已能从 Web 服务管理页下发
+- [x] Weinan / Wuhan 相关路由已通过定向测试，`fallback_used=false`
+- [x] sender_name 新解析器 22 个用例全部通过
+
+---
+

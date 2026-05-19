@@ -321,7 +321,7 @@ export const EnquiryDetail: React.FC<EnquiryDetailProps> = ({ enquiryId, onBack,
                 </div>
                 <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-5 rounded-xl border border-purple-100 hover:shadow-md transition-shadow duration-200">
                   <dt className="text-xs font-semibold text-purple-600 uppercase tracking-wider mb-2">Sales Country</dt>
-                  <dd className="text-lg font-bold text-gray-900">{enquiry.salesCountryCode}</dd>
+                  <dd className="text-lg font-bold text-gray-900">{getCountryName(enquiry.salesCountryCode)}</dd>
                 </div>
                 <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-5 rounded-xl border border-green-100 hover:shadow-md transition-shadow duration-200">
                   <dt className="text-xs font-semibold text-green-600 uppercase tracking-wider mb-2">Sales Office</dt>

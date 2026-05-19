@@ -11,8 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -261,6 +260,12 @@ public class OfferService {
             return new ArrayList<>();
         }
 
+        // 批量加载港口名称，避免 N+1
+        Set<Integer> allPortIds = new HashSet<>(polIds);
+        allPortIds.addAll(podIds);
+        Map<Integer, String> portNameMap = portRepository.findAllById(allPortIds).stream()
+                .collect(Collectors.toMap(Port::getId, Port::getPortName));
+
         List<OfferPriceLineDTO> result = new ArrayList<>();
         int sortOrder = 0;
 
@@ -270,8 +275,10 @@ public class OfferService {
                 line.setPolId(polId);
                 line.setPodId(podId);
                 line.setSortOrder(sortOrder++);
-                portRepository.findById(polId).ifPresent(p -> line.setPolName(p.getPortName()));
-                portRepository.findById(podId).ifPresent(p -> line.setPodName(p.getPortName()));
+                String polName = portNameMap.get(polId);
+                String podName = portNameMap.get(podId);
+                if (polName != null) line.setPolName(polName);
+                if (podName != null) line.setPodName(podName);
                 result.add(line);
             }
         }
@@ -287,16 +294,33 @@ public class OfferService {
     private List<OfferPriceLineDTO> generatePriceLinesFromRouteGroups(
             Long enquiryId, List<EnquiryRouteGroup> groups) {
 
-        List<OfferPriceLineDTO> result = new ArrayList<>();
-        int sortOrder = 0;
-
+        // 预加载所有路由组的 pol/pod ID
+        Map<Long, List<Integer>> groupPolMap = new HashMap<>();
+        Map<Long, List<Integer>> groupPodMap = new HashMap<>();
+        Set<Integer> allPortIds = new HashSet<>();
         for (EnquiryRouteGroup group : groups) {
             List<Integer> polIds = routeGroupPolRepository.findByRouteGroupId(group.getId())
                     .stream().map(EnquiryRouteGroupPol::getPortId).collect(Collectors.toList());
             List<Integer> podIds = routeGroupPodRepository.findByRouteGroupId(group.getId())
                     .stream().map(EnquiryRouteGroupPod::getPortId).collect(Collectors.toList());
+            groupPolMap.put(group.getId(), polIds);
+            groupPodMap.put(group.getId(), podIds);
+            allPortIds.addAll(polIds);
+            allPortIds.addAll(podIds);
+        }
+        // 批量加载港口名称，避免 N+1
+        Map<Integer, String> portNameMap = allPortIds.isEmpty() ? Collections.emptyMap() :
+                portRepository.findAllById(allPortIds).stream()
+                        .collect(Collectors.toMap(Port::getId, Port::getPortName));
 
-            if (polIds.isEmpty() || podIds.isEmpty()) continue;
+        List<OfferPriceLineDTO> result = new ArrayList<>();
+        int sortOrder = 0;
+
+        for (EnquiryRouteGroup group : groups) {
+            List<Integer> polIds = groupPolMap.get(group.getId());
+            List<Integer> podIds = groupPodMap.get(group.getId());
+
+            if (polIds == null || polIds.isEmpty() || podIds == null || podIds.isEmpty()) continue;
 
             for (Integer polId : polIds) {
                 for (Integer podId : podIds) {
@@ -306,8 +330,10 @@ public class OfferService {
                     line.setPolId(polId);
                     line.setPodId(podId);
                     line.setSortOrder(sortOrder++);
-                    portRepository.findById(polId).ifPresent(p -> line.setPolName(p.getPortName()));
-                    portRepository.findById(podId).ifPresent(p -> line.setPodName(p.getPortName()));
+                    String polName = portNameMap.get(polId);
+                    String podName = portNameMap.get(podId);
+                    if (polName != null) line.setPolName(polName);
+                    if (podName != null) line.setPodName(podName);
                     result.add(line);
                 }
             }
@@ -421,16 +447,19 @@ public class OfferService {
     }
 
     private void loadTransientData(Offer offer) {
-        if (offer.getPriceLines() == null) return;
+        if (offer.getPriceLines() == null || offer.getPriceLines().isEmpty()) return;
+        // 批量加载港口名称，避免每条 PriceLine 各查一次 N+1
+        Set<Integer> allPortIds = new HashSet<>();
         for (OfferPriceLine line : offer.getPriceLines()) {
-            if (line.getPolId() != null) {
-                portRepository.findById(line.getPolId())
-                        .ifPresent(p -> line.setPolName(p.getPortName()));
-            }
-            if (line.getPodId() != null) {
-                portRepository.findById(line.getPodId())
-                        .ifPresent(p -> line.setPodName(p.getPortName()));
-            }
+            if (line.getPolId() != null) allPortIds.add(line.getPolId());
+            if (line.getPodId() != null) allPortIds.add(line.getPodId());
+        }
+        Map<Integer, String> portNameMap = allPortIds.isEmpty() ? Collections.emptyMap() :
+                portRepository.findAllById(allPortIds).stream()
+                        .collect(Collectors.toMap(Port::getId, Port::getPortName));
+        for (OfferPriceLine line : offer.getPriceLines()) {
+            if (line.getPolId() != null) line.setPolName(portNameMap.get(line.getPolId()));
+            if (line.getPodId() != null) line.setPodName(portNameMap.get(line.getPodId()));
         }
     }
 }

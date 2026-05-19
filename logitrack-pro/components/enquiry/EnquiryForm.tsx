@@ -1052,6 +1052,16 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
             </div>
 
             <div>
+              <label className="block text-sm font-medium text-gray-700">Created By</label>
+              <input
+                type="text"
+                value={initialData?.createdBy || localStorage.getItem('username') || '-'}
+                disabled
+                className="mt-1 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm text-gray-500"
+              />
+            </div>
+
+            <div>
               <label className="block text-sm font-medium text-gray-700">Product Type <span className="text-red-500 font-bold">*</span></label>
               <select
                 value={formData.productCode}
@@ -1180,8 +1190,8 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
                     <input
                       type="number"
                       step="0.01"
-                      value={formData.volumeCbm || ''}
-                      onChange={(e) => handleChange('volumeCbm', e.target.value ? Number(e.target.value) : null)}
+                      value={formData.volumeCbm ?? ''}
+                      onChange={(e) => handleChange('volumeCbm', e.target.value === '' ? null : Number(e.target.value))}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                       placeholder="e.g. 120.5"
                     />
@@ -1198,8 +1208,8 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
                   <input
                     type="number"
                     step="0.01"
-                    value={formData.quantity || ''}
-                    onChange={(e) => handleChange('quantity', e.target.value ? Number(e.target.value) : null)}
+                    value={formData.quantity ?? ''}
+                    onChange={(e) => handleChange('quantity', e.target.value === '' ? null : Number(e.target.value))}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                     placeholder="e.g. 100"
                   />

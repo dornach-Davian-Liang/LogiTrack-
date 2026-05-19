@@ -117,9 +117,21 @@ public class StatisticsService {
         int confirmedPrevious = (int) previous.stream()
             .filter(e -> e.getStatus() == Enquiry.EnquiryStatus.Secured)
             .count();
+
+        int lostCurrent = (int) current.stream()
+            .filter(e -> e.getStatus() == Enquiry.EnquiryStatus.Lost)
+            .count();
+        int cancelledCurrent = (int) current.stream()
+            .filter(e -> e.getStatus() == Enquiry.EnquiryStatus.Cancelled)
+            .count();
         
         return DashboardOverviewDTO.builder()
             .totalEnquiries(totalCurrent)
+            .newEnquiries(pendingCurrent)
+            .quotedPending(quotedCurrent)
+            .secured(confirmedCurrent)
+            .lost(lostCurrent)
+            .cancelled(cancelledCurrent)
             .quoted(quotedCurrent)
             .pending(pendingCurrent)
             .confirmed(confirmedCurrent)
@@ -154,32 +166,42 @@ public class StatisticsService {
     }
     
     /**
-     * Build monthly trend for last N months
+     * Build monthly trend for last 12 months.
+     * 一次查询 13 个月数据，在内存中按月分组，避免每月一次 DB 查询（N+1）。
      */
     private List<MonthlyTrendDTO> buildMonthlyTrend(YearMonth currentMonth) {
+        // 查询 13 个月范围（12 个月 + 上一个月用于计算环比）
+        YearMonth oldestMonth = currentMonth.minusMonths(12);
+        LocalDate startDate = oldestMonth.atDay(1);
+        LocalDate endDate = currentMonth.atEndOfMonth();
+        List<Enquiry> allEnquiries = enquiryRepository.findByEnquiryReceivedDateBetween(startDate, endDate);
+
+        // 按 YearMonth 分组统计数量
+        Map<YearMonth, Long> countByMonth = allEnquiries.stream()
+            .filter(e -> e.getEnquiryReceivedDate() != null)
+            .collect(Collectors.groupingBy(
+                e -> YearMonth.from(e.getEnquiryReceivedDate()),
+                Collectors.counting()
+            ));
+
         List<MonthlyTrendDTO> trend = new ArrayList<>();
-        
         for (int i = 0; i < 12; i++) {
             YearMonth month = currentMonth.minusMonths(i);
-            List<Enquiry> monthData = getEnquiriesByMonth(month);
-            int count = monthData.size();
-            
-            // Calculate change from previous month
+            int count = countByMonth.getOrDefault(month, 0L).intValue();
+
             Integer change = null;
             if (i < 11) {
-                YearMonth prevMonth = month.minusMonths(1);
-                List<Enquiry> prevMonthData = getEnquiriesByMonth(prevMonth);
-                int prevCount = prevMonthData.size();
+                int prevCount = countByMonth.getOrDefault(month.minusMonths(1), 0L).intValue();
                 change = calculatePercentageChange(count, prevCount);
             }
-            
+
             trend.add(MonthlyTrendDTO.builder()
                 .month(month.format(MONTH_FORMATTER))
                 .count(count)
                 .change(change)
                 .build());
         }
-        
+
         return trend;
     }
     
@@ -296,14 +318,11 @@ public class StatisticsService {
         // Build status breakdown
         Map<String, StatusBreakdownDTO> statusBreakdown = buildStatusBreakdown(currentEnquiries);
         
-        // Build monthly trend for the selected date range
-        List<MonthlyTrendDTO> monthlyTrend = buildFilteredMonthlyTrend(
-            filter.getStartDate(), 
-            filter.getEndDate(), 
-            filter.getCoreFlags(), 
-            filter.getCnOffice(),
-            filter.getProducts(),
-            filter.getCountries()
+        // Build monthly trend for the selected date range（直接用已有数据，避免重复查询）
+        List<MonthlyTrendDTO> monthlyTrend = buildFilteredMonthlyTrendFromData(
+            filter.getStartDate(),
+            filter.getEndDate(),
+            currentEnquiries
         );
         
         // Build location statistics
@@ -370,45 +389,54 @@ public class StatisticsService {
     }
     
     /**
-     * Build monthly trend for filtered date range
+     * Build monthly trend from already-fetched enquiry data (no DB query).
+     */
+    private List<MonthlyTrendDTO> buildFilteredMonthlyTrendFromData(LocalDate startDate, LocalDate endDate,
+                                                                      List<Enquiry> allEnquiries) {
+        Map<String, List<Enquiry>> byMonth = allEnquiries.stream()
+                .filter(e -> e.getEnquiryReceivedDate() != null)
+                .collect(Collectors.groupingBy(
+                        e -> YearMonth.from(e.getEnquiryReceivedDate()).format(MONTH_FORMATTER)
+                ));
+
+        List<MonthlyTrendDTO> trend = new ArrayList<>();
+        YearMonth currentMonth = YearMonth.from(startDate);
+        YearMonth endMonth = YearMonth.from(endDate);
+
+        while (!currentMonth.isAfter(endMonth)) {
+            String key = currentMonth.format(MONTH_FORMATTER);
+            List<Enquiry> monthEnquiries = byMonth.getOrDefault(key, java.util.Collections.emptyList());
+
+            int quoted = (int) monthEnquiries.stream()
+                    .filter(e -> e.getStatus() == Enquiry.EnquiryStatus.Quoted_Pending)
+                    .count();
+
+            int confirmed = (int) monthEnquiries.stream()
+                    .filter(e -> e.getStatus() == Enquiry.EnquiryStatus.Secured)
+                    .count();
+
+            trend.add(MonthlyTrendDTO.builder()
+                    .month(key)
+                    .totalEnquiries(monthEnquiries.size())
+                    .quoted(quoted)
+                    .confirmed(confirmed)
+                    .build());
+
+            currentMonth = currentMonth.plusMonths(1);
+        }
+
+        return trend;
+    }
+
+    /**
+     * Build monthly trend for filtered date range.
+     * 一次性查询整个日期范围，然后在内存中按月分组，避免 N+1（每月一次 DB 查询）。
      */
     private List<MonthlyTrendDTO> buildFilteredMonthlyTrend(LocalDate startDate, LocalDate endDate,
                                                              List<String> coreFlags, String cnOffice,
                                                              List<String> products, List<String> countries) {
-        List<MonthlyTrendDTO> trend = new ArrayList<>();
-        
-        YearMonth currentMonth = YearMonth.from(startDate);
-        YearMonth endMonth = YearMonth.from(endDate);
-        
-        while (!currentMonth.isAfter(endMonth)) {
-            LocalDate monthStart = currentMonth.atDay(1);
-            LocalDate monthEnd = currentMonth.atEndOfMonth();
-            
-            // Adjust to filter boundaries
-            if (monthStart.isBefore(startDate)) monthStart = startDate;
-            if (monthEnd.isAfter(endDate)) monthEnd = endDate;
-            
-            List<Enquiry> monthEnquiries = getFilteredEnquiries(monthStart, monthEnd, coreFlags, cnOffice, products, countries);
-            
-            int quoted = (int) monthEnquiries.stream()
-                .filter(e -> e.getStatus() == Enquiry.EnquiryStatus.Quoted_Pending)
-                .count();
-            
-            int confirmed = (int) monthEnquiries.stream()
-                .filter(e -> e.getStatus() == Enquiry.EnquiryStatus.Secured)
-                .count();
-            
-            trend.add(MonthlyTrendDTO.builder()
-                .month(currentMonth.format(MONTH_FORMATTER))
-                .totalEnquiries(monthEnquiries.size())
-                .quoted(quoted)
-                .confirmed(confirmed)
-                .build());
-            
-            currentMonth = currentMonth.plusMonths(1);
-        }
-        
-        return trend;
+        List<Enquiry> allEnquiries = getFilteredEnquiries(startDate, endDate, coreFlags, cnOffice, products, countries);
+        return buildFilteredMonthlyTrendFromData(startDate, endDate, allEnquiries);
     }
     
     /**
@@ -523,7 +551,41 @@ public class StatisticsService {
                 })
                 .collect(Collectors.toList());
 
-        // 4. 转换为前端兼容格式
+        // 4. 转换为前端兼容格式（批量预加载，避免 N+1 查询）
+        List<Long> enquiryIds = enquiries.stream().map(Enquiry::getId).collect(Collectors.toList());
+
+        // 批量加载 salesPic 名称
+        Set<Integer> picIds = enquiries.stream()
+                .filter(e -> e.getSalesPicId() != null)
+                .map(Enquiry::getSalesPicId)
+                .collect(Collectors.toSet());
+        Map<Integer, String> picNameMap = picIds.isEmpty() ? Collections.emptyMap() :
+                salesPicRepository.findAllById(picIds).stream()
+                        .collect(Collectors.toMap(SalesPic::getId, SalesPic::getName));
+
+        // 批量加载 POL（每个询价取第一条）
+        Map<Long, Integer> firstPolPortIdMap = enquiryPolRepository.findByEnquiryIdIn(enquiryIds).stream()
+                .collect(Collectors.toMap(
+                        EnquiryPol::getEnquiryId,
+                        EnquiryPol::getPortId,
+                        (a, b) -> a  // 保留第一条
+                ));
+        // 批量加载 POD（每个询价取第一条）
+        Map<Long, Integer> firstPodPortIdMap = enquiryPodRepository.findByEnquiryIdIn(enquiryIds).stream()
+                .collect(Collectors.toMap(
+                        EnquiryPod::getEnquiryId,
+                        EnquiryPod::getPortId,
+                        (a, b) -> a  // 保留第一条
+                ));
+
+        // 批量加载港口显示名称
+        Set<Integer> allPortIds = new HashSet<>(firstPolPortIdMap.values());
+        allPortIds.addAll(firstPodPortIdMap.values());
+        Map<Integer, String> portDisplayMap = allPortIds.isEmpty() ? Collections.emptyMap() :
+                portRepository.findAllById(allPortIds).stream()
+                        .collect(Collectors.toMap(Port::getId,
+                                p -> p.getPortCode() + " - " + p.getPortName()));
+
         return enquiries.stream().map(e -> {
             Map<String, Object> item = new HashMap<>();
             item.put("id", e.getId());
@@ -540,24 +602,22 @@ public class StatisticsService {
             item.put("commodity", e.getCommodity());
             item.put("assignedCnOffice", e.getAssignedCnOffice());
 
-            // Sales PIC name
-            if (e.getSalesPicId() != null) {
-                salesPicRepository.findById(e.getSalesPicId())
-                    .ifPresent(pic -> item.put("salesPicName", pic.getName()));
+            // Sales PIC name（从预加载 map 取）
+            String picName = picNameMap.get(e.getSalesPicId());
+            if (picName != null) item.put("salesPicName", picName);
+
+            // POL name（从预加载 map 取）
+            Integer polPortId = firstPolPortIdMap.get(e.getId());
+            if (polPortId != null) {
+                String polDisplay = portDisplayMap.get(polPortId);
+                if (polDisplay != null) item.put("polName", polDisplay);
             }
 
-            // POL name (first POL port)
-            List<EnquiryPol> pols = enquiryPolRepository.findByEnquiryId(e.getId());
-            if (!pols.isEmpty()) {
-                portRepository.findById(pols.get(0).getPortId())
-                    .ifPresent(port -> item.put("polName", port.getPortCode() + " - " + port.getPortName()));
-            }
-
-            // POD name (first POD port)
-            List<EnquiryPod> pods = enquiryPodRepository.findByEnquiryId(e.getId());
-            if (!pods.isEmpty()) {
-                portRepository.findById(pods.get(0).getPortId())
-                    .ifPresent(port -> item.put("podName", port.getPortCode() + " - " + port.getPortName()));
+            // POD name（从预加载 map 取）
+            Integer podPortId = firstPodPortIdMap.get(e.getId());
+            if (podPortId != null) {
+                String podDisplay = portDisplayMap.get(podPortId);
+                if (podDisplay != null) item.put("podName", podDisplay);
             }
 
             return item;

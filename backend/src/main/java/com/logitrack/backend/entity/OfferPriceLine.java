@@ -67,6 +67,7 @@ public class OfferPriceLine {
     
     // 容器明细（FCL/BUYER-CONSOL）
     @OneToMany(mappedBy = "priceLine", cascade = CascadeType.ALL, orphanRemoval = true)
+    @org.hibernate.annotations.BatchSize(size = 50)
     private List<OfferContainerDetail> containerDetails = new ArrayList<>();
     
     // Transient 展示字段
