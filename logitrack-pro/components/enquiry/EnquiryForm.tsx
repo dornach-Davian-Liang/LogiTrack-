@@ -848,6 +848,39 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
         }
       }
 
+      // 验证 Category 必填
+      if (!formData.category) {
+        alert('Please select a Category');
+        setIsLoading(false);
+        return;
+      }
+
+      // 验证 Lost/Cancelled 状态时 reason 必填
+      if (formData.status === 'Lost') {
+        if (!formData.lostReason) {
+          alert('Please select a reason for Lost status');
+          setIsLoading(false);
+          return;
+        }
+        if (formData.lostReason === 'OTHERS' && !formData.lostReasonText?.trim()) {
+          alert('Please specify the reason for "Others"');
+          setIsLoading(false);
+          return;
+        }
+      }
+      if (formData.status === 'Cancelled') {
+        if (!formData.cancelledReason) {
+          alert('Please select a reason for Cancelled status');
+          setIsLoading(false);
+          return;
+        }
+        if (formData.cancelledReason === 'OTHERS' && !formData.cancelledReasonText?.trim()) {
+          alert('Please specify the reason for "Others"');
+          setIsLoading(false);
+          return;
+        }
+      }
+
       // 验证港口选择
       const mixed = isMixedProduct((formData.productCode || 'SEA') as ProductCode);
       if (mixed) {
@@ -1440,7 +1473,7 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">Category</label>
+              <label className="block text-sm font-medium text-gray-700">Category <span className="text-red-500">*</span></label>
               <select
                 value={formData.category || ''}
                 onChange={(e) => handleChange('category', e.target.value)}

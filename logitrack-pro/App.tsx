@@ -653,8 +653,8 @@ const App: React.FC = () => {
                       {currentView === 'master-carriers' && 'Carrier Management'}
                       {currentView === 'master-currencies' && 'Currency Management'}
                       {currentView === 'report-dashboard' && '基础报表'}
-                      {currentView === 'report-enhanced' && '增强报表'}
-                      {currentView === 'report-comparison' && '时期对比报告'}
+                      {currentView === 'report-enhanced' && 'Enhanced Report'}
+                      {currentView === 'report-comparison' && 'Period Comparison Report'}
                       {currentView === 'ai-chat' && 'AI 数据分析助手'}
                       {currentView === 'settings' && '系统设置'}
                     </h2>

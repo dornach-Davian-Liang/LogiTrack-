@@ -149,7 +149,7 @@ const RuntimeParamsPanel: React.FC<{ config: Record<string, unknown> }> = ({ con
   );
 };
 
-// ─── D3：跳过规则查看 ─────────────────────────────────────────────────────────
+// ─── D3：跳过规则编辑器 ──────────────────────────────────────────────────────
 
 const CollapsibleSection: React.FC<{ title: string; count?: number; children: React.ReactNode }> = ({ title, count, children }) => {
   const [open, setOpen] = useState(false);
@@ -167,96 +167,178 @@ const CollapsibleSection: React.FC<{ title: string; count?: number; children: Re
   );
 };
 
-const SkipRulesPanel: React.FC<{ rules: Record<string, unknown> }> = ({ rules }) => {
-  const skipLists = rules.skip_lists as Record<string, unknown> | undefined;
-  const routingSummary = rules.routing_summary as Record<string, unknown> | undefined;
-  const testedEmails = rules.tested_emails as { total: number; recent: Array<Record<string, unknown>> } | undefined;
+// 单列关键词字段编辑器（chips + 新增输入框）
+const KeywordListEditor: React.FC<{
+  label: string;
+  items: string[];
+  placeholder?: string;
+  onChange: (items: string[]) => void;
+}> = ({ label, items, placeholder = '添加条目', onChange }) => {
+  const [input, setInput] = useState('');
+  const add = () => {
+    const v = input.trim();
+    if (v && !items.includes(v)) { onChange([...items, v]); setInput(''); }
+  };
+  const remove = (i: number) => onChange(items.filter((_, idx) => idx !== i));
+  return (
+    <div className="space-y-1.5">
+      <label className="text-xs font-medium text-gray-500">{label} ({items.length})</label>
+      <div className="flex flex-wrap gap-1 min-h-[28px]">
+        {items.length === 0 && <span className="text-xs text-gray-300 italic">(空)</span>}
+        {items.map((kw, i) => (
+          <span key={i} className="flex items-center gap-1 px-2 py-0.5 bg-orange-50 text-orange-700 border border-orange-100 rounded text-xs font-mono">
+            {kw}
+            <button onClick={() => remove(i)} className="text-orange-300 hover:text-orange-600"><X size={10} /></button>
+          </span>
+        ))}
+      </div>
+      <div className="flex gap-1.5">
+        <input
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && add()}
+          placeholder={placeholder}
+          className="flex-1 border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-orange-300"
+        />
+        <button onClick={add} disabled={!input.trim()} className="px-2 py-1 bg-orange-500 text-white rounded text-xs hover:bg-orange-600 disabled:opacity-40">
+          <Plus size={11} />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// 跳过规则分类标题映射
+const SKIP_CATEGORY_LABELS: Record<string, string> = {
+  regular_customers: '常客（Regular Customers）',
+  agent_enquiry:     '代理询价（Agent Enquiry）',
+  non_core_biz:      '非核心地区（Non-Core Business）',
+};
+const SKIP_FIELD_LABELS: Record<string, string> = {
+  keywords:              'keywords（主题+正文关键词）',
+  sender_domains:        'sender_domains（发件人域名屏蔽）',
+  destination_countries: 'destination_countries（目的地国家）',
+  subject_body_keywords: 'subject_body_keywords（主题+正文关键词）',
+};
+
+const SkipRulesEditor: React.FC = () => {
+  const [skipRules, setSkipRules] = useState<Record<string, unknown> | null>(null);
+  const [edited, setEdited] = useState<Record<string, unknown> | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const r = await monitorPyApi.getSkipRules();
+      setSkipRules(r);
+      setEdited(JSON.parse(JSON.stringify(r)));
+    } catch (e: unknown) {
+      setSaveMsg({ type: 'err', text: `加载失败: ${e instanceof Error ? e.message : String(e)}` });
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleSave = async () => {
+    if (!edited) return;
+    setSaving(true);
+    setSaveMsg(null);
+    try {
+      await monitorPyApi.saveSkipRules(edited);
+      setSaveMsg({ type: 'ok', text: '✅ 跳过规则已保存，SkipChecker 缓存已热重载' });
+      setSkipRules(JSON.parse(JSON.stringify(edited)));
+    } catch (e: unknown) {
+      setSaveMsg({ type: 'err', text: `保存失败: ${e instanceof Error ? e.message : String(e)}` });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const resetEdits = () => {
+    if (skipRules) { setEdited(JSON.parse(JSON.stringify(skipRules))); setSaveMsg(null); }
+  };
+
+  const isDirty = JSON.stringify(edited) !== JSON.stringify(skipRules);
+
+  const setField = (category: string, field: string, items: string[]) => {
+    setEdited(prev => ({
+      ...prev!,
+      [category]: { ...(prev![category] as Record<string, unknown>), [field]: items },
+    }));
+  };
+
+  const getList = (category: string, field: string): string[] => {
+    if (!edited) return [];
+    const cat = edited[category] as Record<string, unknown> | undefined;
+    if (!cat) return [];
+    const val = cat[field];
+    return Array.isArray(val) ? (val as string[]) : [];
+  };
+
+  if (loading) return <div className="text-sm text-gray-400 py-8 text-center">加载跳过规则...</div>;
+  if (!edited) return <div className="text-sm text-yellow-700 bg-yellow-50 rounded px-4 py-3">⚠️ 跳过规则加载失败，请确认 Python 监控服务是否运行</div>;
 
   return (
-    <div className="space-y-3">
-      <div className="text-sm font-semibold text-gray-700">📋 跳过规则 & 路由配置（只读）</div>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="text-sm font-semibold text-gray-700">🚧 跳过规则编辑</div>
+        <div className="flex gap-2">
+          {isDirty && (
+            <button onClick={resetEdits} className="px-3 py-1.5 text-xs border border-gray-200 text-gray-600 rounded hover:bg-gray-50">
+              撤销修改
+            </button>
+          )}
+          <button
+            onClick={handleSave}
+            disabled={saving || !isDirty}
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded text-xs font-semibold transition-all ${
+              isDirty ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            <Save size={12} />
+            {saving ? '保存中...' : isDirty ? '💾 保存规则' : '已是最新'}
+          </button>
+        </div>
+      </div>
 
-      {/* SkipChecker 规则 */}
-      {skipLists && Object.entries(skipLists).map(([category, data]) => {
-        if (typeof data !== 'object' || !data) return null;
-        const obj = data as Record<string, unknown>;
-        const allKeywords: Array<{ section: string; kw: string }> = [];
-        Object.entries(obj).forEach(([section, val]) => {
-          if (Array.isArray(val)) {
-            (val as string[]).forEach(kw => allKeywords.push({ section, kw }));
-          }
-        });
+      {isDirty && (
+        <div className="flex items-center gap-2 text-xs text-yellow-700 bg-yellow-50 border border-yellow-200 rounded px-3 py-2">
+          <AlertTriangle size={13} />
+          有未保存的修改，保存后 SkipChecker 缓存立即热重载
+        </div>
+      )}
+
+      {saveMsg && (
+        <div className={`text-xs rounded px-3 py-2 ${saveMsg.type === 'ok' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
+          {saveMsg.text}
+        </div>
+      )}
+
+      {(['regular_customers', 'agent_enquiry', 'non_core_biz'] as const).map(category => {
+        const catData = edited[category] as Record<string, unknown> | undefined;
+        if (!catData) return null;
+        const editableFields = Object.keys(catData).filter(k => !k.startsWith('_') && Array.isArray(catData[k]));
+        const totalItems = editableFields.reduce((s, f) => s + (catData[f] as string[]).length, 0);
         return (
-          <CollapsibleSection key={category} title={`🚧 ${category}`} count={allKeywords.length}>
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {Object.entries(obj).map(([section, val]) => {
-                if (!Array.isArray(val) || val.length === 0) return null;
-                return (
-                  <div key={section}>
-                    <div className="text-xs font-medium text-gray-500 mb-1">{section} ({val.length})</div>
-                    <div className="flex flex-wrap gap-1">
-                      {(val as string[]).map((kw, i) => (
-                        <span key={i} className="px-2 py-0.5 bg-orange-50 text-orange-700 border border-orange-100 rounded text-xs font-mono">
-                          {kw}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
+          <CollapsibleSection key={category} title={`🚧 ${SKIP_CATEGORY_LABELS[category] ?? category}`} count={totalItems}>
+            <div className="space-y-4">
+              {editableFields.map(field => (
+                <KeywordListEditor
+                  key={field}
+                  label={SKIP_FIELD_LABELS[field] ?? field}
+                  items={getList(category, field)}
+                  placeholder={field === 'sender_domains' ? '添加域名（如 example.com）' : '添加关键词'}
+                  onChange={items => setField(category, field, items)}
+                />
+              ))}
             </div>
           </CollapsibleSection>
         );
       })}
-
-      {/* PIC 路由摘要 */}
-      {routingSummary && (
-        <CollapsibleSection title="🗺 PIC 路由规则摘要">
-          <div className="space-y-2 text-xs text-gray-600">
-            <div>Core Countries: <span className="font-semibold">{String(routingSummary.core_countries_count ?? '—')}</span> 个</div>
-            <div>
-              Branches: {Array.isArray(routingSummary.branches)
-                ? (routingSummary.branches as string[]).map(b => (
-                    <span key={b} className="ml-1 px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded font-mono">{b}</span>
-                  ))
-                : '—'}
-            </div>
-            {Array.isArray(routingSummary.core_countries_preview) && (
-              <div>
-                <div className="text-gray-400 mb-1">Core Countries（前10）:</div>
-                <div className="flex flex-wrap gap-1">
-                  {(routingSummary.core_countries_preview as string[]).map(c => (
-                    <span key={c} className="px-1.5 py-0.5 bg-green-50 text-green-700 border border-green-100 rounded text-xs">{c}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </CollapsibleSection>
-      )}
-
-      {/* 已测邮件 */}
-      {testedEmails && (
-        <CollapsibleSection title="📬 已测邮件记录" count={testedEmails.total}>
-          <div className="space-y-2">
-            {testedEmails.recent.length === 0 ? (
-              <div className="text-xs text-gray-400">暂无记录</div>
-            ) : (
-              <>
-                <div className="text-xs text-gray-400 mb-2">最近 5 条：</div>
-                {testedEmails.recent.map((r, i) => (
-                  <div key={i} className="text-xs border border-gray-100 rounded p-2 bg-gray-50">
-                    <div className="font-medium text-gray-700 truncate">{String(r.subject || '(无主题)')}</div>
-                    <div className="text-gray-400 mt-0.5">
-                      {String(r.folder || '—')} · {String(r.email_type || '?')} · {String(r.tested_at || '').substring(0, 16)}
-                    </div>
-                  </div>
-                ))}
-              </>
-            )}
-          </div>
-        </CollapsibleSection>
-      )}
     </div>
   );
 };
@@ -310,7 +392,28 @@ const EmailListEditor: React.FC<{
   );
 };
 
+// 行内文本新增辅助组件（用于 destination_rules 中 countries 添加）
+const AddInlineItem: React.FC<{ placeholder: string; onAdd: (v: string) => void; accentClass?: string }> = ({ placeholder, onAdd, accentClass = '' }) => {
+  const [v, setV] = useState('');
+  const add = () => { const s = v.trim(); if (s) { onAdd(s); setV(''); } };
+  return (
+    <div className="flex gap-1.5 mt-1">
+      <input
+        value={v}
+        onChange={e => setV(e.target.value)}
+        onKeyDown={e => e.key === 'Enter' && add()}
+        placeholder={placeholder}
+        className={`flex-1 border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 ${accentClass}`}
+      />
+      <button onClick={add} disabled={!v.trim()} className="px-2 py-1 bg-purple-500 text-white rounded text-xs hover:bg-purple-600 disabled:opacity-40">
+        <Plus size={11} />
+      </button>
+    </div>
+  );
+};
+
 // 单 branch 编辑器（core + non_core 的 TO/CC）
+// 对 SHA 和 NGB 的 core，额外渲染 destination_rules 国家级编辑区
 const BranchEditor: React.FC<{
   mode: string;
   branch: string;
@@ -328,6 +431,23 @@ const BranchEditor: React.FC<{
     onChange({ ...data, [bizKey]: biz });
   };
 
+  // destination_rules 编辑器辅助（仅 SEA SHA/NGB）
+  const hasDestRules = mode === 'SEA' && (branch === 'SHA' || branch === 'NGB');
+  const coreData = (data['core'] ?? {}) as Record<string, unknown>;
+  const destRules: Array<Record<string, unknown>> = hasDestRules && Array.isArray(coreData['destination_rules'])
+    ? (coreData['destination_rules'] as Array<Record<string, unknown>>)
+    : [];
+
+  const setDestRules = (rules: Array<Record<string, unknown>>) => {
+    const biz = { ...coreData, destination_rules: rules };
+    onChange({ ...data, core: biz });
+  };
+
+  const updateRule = (idx: number, rule: Record<string, unknown>) => {
+    const next = destRules.map((r, i) => i === idx ? rule : r);
+    setDestRules(next);
+  };
+
   const coreToCount = getEmails('core', 'to').length;
   const nonCoreToCount = getEmails('non_core', 'to').length;
 
@@ -340,14 +460,21 @@ const BranchEditor: React.FC<{
         <span className="flex items-center gap-2">
           <span className="font-mono text-indigo-600">{branch}</span>
           <span className="text-xs text-gray-400 font-normal">Core TO:{coreToCount} · NonCore TO:{nonCoreToCount}</span>
+          {hasDestRules && destRules.length > 0 && (
+            <span className="text-xs text-purple-500 font-normal">· {destRules.length} 国家规则</span>
+          )}
         </span>
         {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
       </button>
       {open && (
         <div className="p-4 space-y-4 border-t border-gray-100">
+          {/* 通用 Core / Non-Core TO/CC */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-3">
               <div className="text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-1 rounded">Core（核心国家）</div>
+              {hasDestRules && (
+                <p className="text-xs text-gray-400">⚠️ SHA/NGB 默认 Core TO 为空是合法配置，国家命中走下方「国家级路由规则」，未命中时回退到 Managers。</p>
+              )}
               <EmailListEditor label="TO" emails={getEmails('core','to')} onChange={e => setEmails('core','to',e)} />
               <EmailListEditor label="CC" emails={getEmails('core','cc')} onChange={e => setEmails('core','cc',e)} />
             </div>
@@ -357,6 +484,77 @@ const BranchEditor: React.FC<{
               <EmailListEditor label="CC" emails={getEmails('non_core','cc')} onChange={e => setEmails('non_core','cc',e)} />
             </div>
           </div>
+
+          {/* destination_rules 国家级路由（仅 SHA/NGB SEA core） */}
+          {hasDestRules && (
+            <div className="space-y-2 border-t border-gray-100 pt-3">
+              <div className="text-xs font-semibold text-purple-700 bg-purple-50 px-2 py-1 rounded">
+                🗺 国家级 To PIC 规则（Core destination_rules）
+              </div>
+              {destRules.length === 0 && (
+                <p className="text-xs text-gray-400 italic">暂无国家级规则</p>
+              )}
+              {destRules.map((rule, idx) => {
+                const countries = Array.isArray(rule['countries']) ? (rule['countries'] as string[]) : [];
+                const hasFclLcl = 'to_fcl' in rule || 'to_lcl' in rule;
+                const toList    = Array.isArray(rule['to'])     ? (rule['to']     as string[]) : [];
+                const toFclList = Array.isArray(rule['to_fcl']) ? (rule['to_fcl'] as string[]) : [];
+                const toLclList = Array.isArray(rule['to_lcl']) ? (rule['to_lcl'] as string[]) : [];
+                return (
+                  <div key={idx} className="border border-purple-100 rounded-lg p-3 space-y-3 bg-purple-50/30">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-purple-600">
+                        规则 #{idx + 1} — {countries.join(', ') || '(无国家)'}
+                      </span>
+                    </div>
+
+                    {/* Countries */}
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-gray-500">Countries</label>
+                      <div className="flex flex-wrap gap-1">
+                        {countries.map((c, ci) => (
+                          <span key={ci} className="flex items-center gap-1 px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs">
+                            {c}
+                            <button
+                              onClick={() => updateRule(idx, { ...rule, countries: countries.filter((_, i) => i !== ci) })}
+                              className="text-purple-300 hover:text-purple-700"><X size={10} /></button>
+                          </span>
+                        ))}
+                      </div>
+                      <AddInlineItem
+                        placeholder="添加国家（如 France）"
+                        onAdd={c => updateRule(idx, { ...rule, countries: [...countries, c] })}
+                        accentClass="focus:ring-purple-300"
+                      />
+                    </div>
+
+                    {/* TO / TO_FCL / TO_LCL */}
+                    {hasFclLcl ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <EmailListEditor
+                          label="TO (FCL)"
+                          emails={toFclList}
+                          onChange={e => updateRule(idx, { ...rule, to_fcl: e })}
+                        />
+                        <EmailListEditor
+                          label="TO (LCL)"
+                          emails={toLclList}
+                          onChange={e => updateRule(idx, { ...rule, to_lcl: e })}
+                        />
+                      </div>
+                    ) : (
+                      <EmailListEditor
+                        label="TO"
+                        emails={toList}
+                        onChange={e => updateRule(idx, { ...rule, to: e })}
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           <p className="text-xs text-gray-400">⚠️ 修改后需点击"保存配置"才生效</p>
         </div>
       )}
@@ -548,7 +746,7 @@ const RoutingEditor: React.FC = () => {
       </div>
 
       <p className="text-xs text-gray-400">
-        ⚠️ 只允许修改 TO/CC 邮件列表、Core Countries 和 Managers。特殊规则（destination_rules、special_rules 等）请直接编辑 <code>data/pic_routing.json</code> 文件。
+        ⚠️ 路由配置可修改 TO/CC、Core Countries、Managers 和 SHA/NGB 的国家级 destination_rules。special_rules 仍需直接编辑 <code>data/pic_routing.json</code> 文件。
       </p>
     </div>
   );
@@ -567,7 +765,6 @@ const CONFIG_TABS: { id: ConfigTab; label: string }[] = [
 const ConfigViewer: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ConfigTab>('routing');
   const [config, setConfig] = useState<Record<string, unknown> | null>(null);
-  const [rules, setRules] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -575,12 +772,8 @@ const ConfigViewer: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const [cfg, rls] = await Promise.all([
-        monitorPyApi.getConfig(),
-        monitorPyApi.getRules(),
-      ]);
+      const cfg = await monitorPyApi.getConfig();
       setConfig(cfg);
-      setRules(rls);
     } catch (e: unknown) {
       setError('无法加载配置（Python 监控服务未运行？）');
     } finally {
@@ -631,11 +824,7 @@ const ConfigViewer: React.FC = () => {
       )}
 
       {/* 跳过规则 Tab */}
-      {activeTab === 'rules' && (
-        loading && !rules
-          ? <div className="text-sm text-gray-400 py-8 text-center">加载中...</div>
-          : rules ? <SkipRulesPanel rules={rules} /> : null
-      )}
+      {activeTab === 'rules' && <SkipRulesEditor />}
     </div>
   );
 };

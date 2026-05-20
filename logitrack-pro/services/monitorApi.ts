@@ -326,9 +326,20 @@ export const monitorPyApi = {
   /** 读取完整 pic_routing.json */
   getRouting: () => pyRequest<Record<string, unknown>>('/pyapi/routing'),
 
-  /** 保存 pic_routing.json 修改（仅 core_countries / managers / branch to|cc） */
+  /** 保存 pic_routing.json 修改（仅 core_countries / managers / branch to|cc|destination_rules） */
   saveRouting: (payload: Record<string, unknown>) =>
     fetch('/pyapi/routing', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }).then(async r => { if (!r.ok) throw new Error(await r.text()); return r.json() as Promise<{ ok: boolean; message: string }>; }),
+
+  /** 读取完整 skip_lists.json */
+  getSkipRules: () => pyRequest<Record<string, unknown>>('/pyapi/skip-rules'),
+
+  /** 保存 skip_lists.json 修改（仅 keywords / sender_domains / destination_countries 等白名单字段） */
+  saveSkipRules: (payload: Record<string, unknown>) =>
+    fetch('/pyapi/skip-rules', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
