@@ -15,7 +15,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import jakarta.servlet.http.HttpServletRequest;
+import java.io.IOException;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
@@ -106,6 +109,41 @@ public class EnquiryController {
     @GetMapping("/all")
     public ResponseEntity<List<Enquiry>> getAllEnquiriesNoPaging() {
         return ResponseEntity.ok(enquiryService.getAllEnquiries());
+    }
+
+    /**
+     * GET /api/enquiries/export-xlsx — 导出询价为 Excel（含 Lost/Cancelled Reason 下拉验证）
+     */
+    @GetMapping("/export-xlsx")
+    public ResponseEntity<byte[]> exportXlsx(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String cargoTypeCode,
+            @RequestParam(required = false) String salesCountryCode,
+            @RequestParam(required = false) String assignedCnOffice,
+            @RequestParam(required = false) String coreNonCore,
+            @RequestParam(required = false) String dateFrom,
+            @RequestParam(required = false) String dateTo,
+            @RequestParam(required = false) Integer polPortId,
+            @RequestParam(required = false) Integer podPortId,
+            @RequestParam(required = false) String createdDateFrom,
+            @RequestParam(required = false) String createdDateTo) {
+        try {
+            byte[] data = enquiryService.exportToExcel(
+                    keyword, status, cargoTypeCode,
+                    salesCountryCode, assignedCnOffice, coreNonCore,
+                    dateFrom, dateTo, polPortId, podPortId,
+                    createdDateFrom, createdDateTo);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.parseMediaType(
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+            headers.setContentDispositionFormData("attachment",
+                    "Enquiries_Export_" + LocalDate.now() + ".xlsx");
+            return new ResponseEntity<>(data, headers, HttpStatus.OK);
+        } catch (IOException e) {
+            log.error("Export Excel failed", e);
+            return ResponseEntity.internalServerError().build();
+        }
     }
     
     /**

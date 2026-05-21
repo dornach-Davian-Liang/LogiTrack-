@@ -100,12 +100,15 @@ export const CORE_STATUSES: CoreNonCore[] = ['Core', 'Non-Core'];
 // ==========================================
 
 export const CATEGORIES = [
-  { code: 'FREIGHT', label: '1. Freight' },
-  { code: 'FREIGHT_ORIGIN_EXW', label: '2. Freight + Origin Charge/EXW' },
-  { code: 'FREIGHT_ORIGIN_DEST', label: '3. Freight + Origin Charge/EXW + Dest. Charges' },
-  { code: 'ORIGIN_EXW', label: '4. Origin Charges/EXW' },
-  { code: 'LCL', label: '5. LCL' },
-  { code: 'EXW_LOCATION', label: '6. EXW Location' },
+  { code: 'OCEAN_FREIGHT', label: 'Ocean Freight' },
+  { code: 'OCEAN_FREIGHT_ORIGIN', label: 'Ocean Freight + Origin Charges & EXW' },
+  { code: 'OCEAN_FREIGHT_ORIGIN_DEST', label: 'Ocean Freight + Origin Charges & EXW + Dest. Charges' },
+  { code: 'OCEAN_FREIGHT_DEST', label: 'Ocean Freight + Dest. Charges' },
+  { code: 'ORIGIN_CHARGES_EXW', label: 'Origin Charges & EXW' },
+  { code: 'DEST_CHARGES', label: 'Dest. Charges' },
+  { code: 'LCL', label: 'LCL' },
+  { code: 'AIR_FREIGHT', label: 'Air Freight' },
+  { code: 'AIR_FREIGHT_ORIGIN', label: 'Air Freight + Origin Charge & EXW' },
 ];
 
 // ==========================================

@@ -1,7 +1,7 @@
 ﻿# 自动填询价单（Auto-Fill Enquiry）— 功能计划书
 
-> **版本**: v1.2  
-> **日期**: 2026-05-07（已按第二轮审核意见更新）  
+> **版本**: v1.3  
+> **日期**: 2026-05-21（已按 2026-05-19 / 2026-05-21 实现情况同步）  
 > **状态**: 已审核 ✅  
 > **涉及项目**:  
 > - `email-ai-automation` — 邮件 AI 自动化（数据源端）  
@@ -157,7 +157,7 @@
 | 2.1 | 完善 `logitrack_mapping.json` 配置文件 | P0 | 添加 `branch_sales_country_fallbacks`、`sender_domain_sales_country_fallbacks`、`country_default_sales_pic` 映射；增加 Ziegler 各国域名 → 国家 CODE 的完整对照表 |
 | 2.2 | 港口匹配增强（别名表 + 多名称拆分） | P0 | 见第 §5（风险强化方案）详细设计 |
 | 2.3 | Sales Country/PIC 解析三层 fallback | P0 | 见第 §5（风险强化方案）详细设计 |
-| 2.4 | `no_specific_cargo=true` 跳过建单 | P0 | **Q7已确认**: SkipChecker 中新增此条件，skip=True 时不建单 |
+| 2.4 | `no_specific_cargo=true` 跳过建单 | P0 | **Q7已确认**: SkipChecker 中新增此条件，skip=True 时不建单；但 SEA/FCL 邮件若已明确提到 1-2 种柜型（如 `20GP` / `40HQ`）且仅缺数量，按行业惯例默认各 1 柜，不视为 `no_specific_cargo` |
 | 2.5 | 建单幂等性：`message_id` 为主，`conversation_id` 仅做本轮缓存 | P0 | **设计已更新**: 真实案例证明同一 `conversation_id` 下可能出现新的独立询价；当前仅保留 `message_id` 硬去重 + 进程内 `_conv_ref_cache`，不再做跨轮次 DB 级 conversation 去重 |
 | 2.6 | 混合运输/多 POL 处理 | P1 | `multiple_origins=true` 时标记 `CN-MULTI`，不尝试解析单一 POL |
 | 2.7 | 单元测试补充 | P1 | 针对 20+ 种典型邮件场景的映射测试（使用测试 DB 数据） |
@@ -196,6 +196,34 @@
       - MySQL 登录与示例查询是否通过
     - 若脚本在 MySQL 步骤失败，通常不是 Auto-Fill 逻辑问题，而是 `bind-address`、防火墙或 MySQL host grant 未放通
 
+### 3.6 当前 LLM 成本控制与可靠性补充（2026-05-21）
+
+本轮围绕 `email-ai-automation` 的 LLM 运行方式做了新的联调结论，这些结论会直接影响 Auto-Fill 的稳定性判断：
+
+1. **当前生产假设不应再依赖单一 DeepSeek 渠道**
+  - 实测 `api.qnaigc.com` 上的 `DeepSeek-V4-Flash` 出现过 `no available channels for model DeepSeek-V4-Flash`
+  - 因此当前基线已增加备用链路：`https://api.deepseek.com / deepseek-v4-flash`
+  - Auto-Fill 与邮件路由共用同一份 AI 结构化输出，所以该备用链路同时是“自动建单可靠性”的组成部分，而非仅影响聊天质量
+
+2. **当前推荐模型策略为：Flash + thinking=medium 先跑，复杂邮件自动升级到 Pro**
+  - Flash 路径负责大多数标准询价，控制成本
+  - 当出现以下任一条件时，自动升级到 `deepseek-v4-pro` 重新分析：
+    - `confidence < 0.80`
+    - `risk_level == HIGH`
+    - `branch_code == UNKNOWN`
+    - `multiple_origins == true`
+    - 输出被截断
+  - 该策略不会降低 LIVE 模式召回率，因为复杂邮件最终使用的是 Pro 结果，而不是勉强接受 Flash 结果
+
+3. **当前 token 消耗的最大头部是必要上下文，不宜强裁**
+  - 25 个 base few-shot 已达到约 `35173 chars`
+  - system prompt + few-shot + 邮件正文上限合计约 `17724 tokens`（未含输出与思考 token）
+  - 当前没有发现可以在不伤害 FOLLOW_UP 判定、branch 修正或 cargo 回填准确率前提下安全删除的“大块非必要 token”
+
+4. **代码变更的生效边界已确认**
+  - 当 `email-ai-automation` 代码被修改后，只要通过 Web 面板或进程管理逻辑执行“停止服务 → 启动服务”，新 Python 进程就会加载最新代码
+  - Auto-Fill 的行为变更无需为此重启 Spring Boot；Spring Boot 仅负责重拉 Python 进程
+
 ### Phase 4: LogiTrack 前后端“自动建单”标识功能（预计 1-1.5 天）
 
 **目标**: 利用现有 `createdBy` 字段区分人工建单与自动建单，支持筛选和补全（Q6已确认）
@@ -219,8 +247,8 @@
 |------|------|--------|------|
 | 5.1 | Dry-Run 模式验证 | P0 | `LOGITRACK_ENABLED=true` + `DRY_RUN=true`，打印 payload 但不实际建单 |
 | 5.2 | 10 封历史 INQUIRY 端到端测试（测试 DB） | P0 | **Q5已确认**: 使用独立测试 DB，从 `data/tested_emails.json` 选取典型 INQUIRY |
-| 5.3 | 幂等性测试：同邮件重复轮询 | P0 | **Q4已确认**: 验证相同 `conversation_id` 第二次轮询时不重复建单 |
-| 5.4 | `no_specific_cargo=true` 拦截验证 | P0 | **Q7已确认**: 无具体货量邮件确认不建单 |
+| 5.3 | 幂等性测试：同邮件重复轮询 | P0 | **Q4已更新**: 验证相同 `message_id` 第二次轮询时不重复建单；同一 `conversation_id` 下若出现新的 `message_id` 且仍为独立新询价，允许新建 REF |
+| 5.4 | `no_specific_cargo=true` 拦截验证 | P0 | **Q7已确认**: 真正无货量邮件不建单；但 SEA/FCL 单/双柜型未写数量的场景必须验证“不被误拦截” |
 | 5.5 | 缺失字段统计分析 | P1 | 统计哪些字段最常缺失，针对性完善 mapping.json |
 | 5.6 | 回归测试 | P0 | 确认路由/转发/SkipChecker 逻辑未受影响（INQUIRY 召回率仍 100%） |
 | 5.7 | 导出器验证 | P1 | 验证每日 `[AUTO-FILL INCOMPLETE]` 邮件通知正常 |
@@ -305,22 +333,29 @@ L5: port.portName 子串匹配（单结果时采用）
 ↓ 全部失败 → 标记 [INCOMPLETE: polIds/podIds]，人工跟进
 ```
 
-#### 措施三 — 建单幂等性（`conversation_id` 去重，Q4已确认）
+#### 措施三 — 建单幂等性（`message_id` 硬去重 + 本轮 `conversation_id` 缓存，2026-05-19 更新）
 
-在 `LogiTrackClient.create_enquiry()` 前查重：
+当前实现不再做“跨轮次 `conversation_id` 数据库查重”，原因是同一对话链下可能出现新的独立询价（新箱型 / 新路线 / 新报价需求），若继续按 `conversation_id` 全局拦截，会误伤真实新单。
+
+当前策略为：
 
 ```python
-def check_duplicate(self, conversation_id: str) -> Optional[dict]:
-    """查询是否已存在相同 conversation_id 的询价单（从 remark 字段匹配）"""
-    result = self._request("GET", f"/api/enquiries?page=0&size=5&search={conversation_id}")
-    items = result.get("content") or (result if isinstance(result, list) else [])
-    for item in items:
-        if conversation_id in (item.get("remark") or ""):
-            return item
-    return None
+# Step 0b
+if message_id and tracker.is_tested(message_id):
+  # 相同邮件不重复处理
+  continue
+
+# Step 9a
+_existing_ref = _conv_ref_cache.get(conversation_id)
+if _existing_ref:
+  # 仅在同一轮次/同一批次处理中复用已有 REF，避免当轮重复建号
+  reuse_ref(_existing_ref)
 ```
 
-若已存在则跳过，日志打印 `⏭️ conversation_id 已建单 (id=xxx)，跳过`。
+结论：
+- **跨轮次唯一硬去重键**是 `message_id`
+- **本轮内存级防重**使用 `_conv_ref_cache`
+- **同一 `conversation_id` 下新的 `message_id`**，若当前邮件仍被识别为 `INQUIRY`，允许建新 REF
 
 ---
 
@@ -388,7 +423,7 @@ def check_duplicate(self, conversation_id: str) -> Optional[dict]:
 | Q1 | LogiTrack 后端是否已有 Token 认证机制？ | ✅ **无 Token 认证**，所有 `/api/**` 公开。`X-Username: email-ai-bot` header 传入，`createdBy` 自动写入 |
 | Q2 | 三个 master API 端点是否已存在？ | ✅ **均已存在**：`/api/master/sales-countries`、`/api/master/sales-pics`、`/api/master/ports` |
 | Q3 | 网络架构？ | ✅ **开发测试直接在 LogiTrack 本机进行**，`localhost:8080`，无需网络打通 |
-| Q4 | 是否需要重复建单检测？ | ✅ **需要**，基于 `conversation_id` 查重，详见 §5.2 措施三 |
+| Q4 | 是否需要重复建单检测？ | ✅ **需要**，但当前已更新为“`message_id` 硬去重 + 本轮 `_conv_ref_cache` 防重”；不再做跨轮次 `conversation_id` 全局查重，详见 §5.2 措施三 |
 | Q5 | 自动建单是否需要审批流？测试数据库？ | ✅ **直接建单 `status=New`**；使用独立测试 DB `logitrack_test` 隔离 |
 | Q6 | 前端是否需要自动建单标识/筛选？ | ✅ **需要**，利用现有 `createdBy` 字段，传 `X-Username: email-ai-bot`，前端按 `createdBy` 筛选 |
 | Q7 | `no_specific_cargo=true` 是否建单？ | ✅ **暂不建单**，SkipChecker 拦截 |
@@ -407,7 +442,7 @@ def check_duplicate(self, conversation_id: str) -> Optional[dict]:
 | 港口匹配失败 | 中 | polIds/podIds 缺失 | **§5.2 措施一二**：港口别名表 + 五级降级匹配；失败标 INCOMPLETE |
 | Sales PIC 解析失败 | 中 | salesPicId 缺失 | 现有 mapper 已有 sender_office 解析；失败标 INCOMPLETE，人工补充 |
 | 测试数据污染生产 | 中 | 脏数据 | **独立测试 DB `logitrack_test`**，完全隔离（Q5确认） |
-| 重复建单 | 低 | 数据冗余 | `conversation_id` 去重（§5.2 措施三） |
+| 重复建单 | 低 | 数据冗余 | `message_id` 硬去重 + 本轮 `_conv_ref_cache` 防重；同线程新 `message_id` 新询价允许建新号（§5.2 措施三） |
 | LogiTrack 后端响应异常 | 低 | 主流程延迟 | 20s 超时 + 捕获异常不阻断转发流程 |
 
 ---
@@ -484,7 +519,7 @@ LOGITRACK_DB_NAME=logitrack_test               # 独立测试数据库
 
 ---
 
-**v1.2 更新说明**: 确认 `exwLocation`/`cargoReadyDate`/`hasSpecificCargoReadyDate`/`cargoReadyDateDetails` 不自动填写（人工跟进）；移除风险方案中的"不采用"措施（置信度门控、branch默认POL、PIC多层fallback），统一改为"匹配失败→标记INCOMPLETE→建单"；自动建单标识改用现有 `createdBy` 字段（`EnquiryController` 已自动实现）而非新增字段；Phase 3 简化为同机器配置；新增 Q9/Q10；开发顺序建议。
+**v1.3 同步说明**: 在保留 v1.2 决策基础上，补充两项实现级边界同步：1）建单幂等性已收敛为“`message_id` 硬去重 + 本轮 `_conv_ref_cache`”，移除文档中旧的跨轮次 `conversation_id` 全局查重表述；2）`no_specific_cargo` 对 SEA/FCL 单/双柜型场景已增加业务边界：客户只写 `20GP` / `40HQ` 等柜型但未写数量时，默认各 `1` 柜，不应拦截自动建单。另：sender_name 当前兜底已统一为 `Sender`，仅影响转发称呼，不影响 Auto-Fill 字段映射。
 
 
 ---

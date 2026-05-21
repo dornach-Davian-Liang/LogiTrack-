@@ -44,6 +44,8 @@
   - [M41: 已建号 FOLLOW_UP 边界修正 + Few-shot 训练状态同步 (2026-05-19)](#m41-已建号-follow_up-边界修正--few-shot-训练状态同步-2026-05-19)
   - [M42: AI 训练前端接入 + 远程访问验证脚本 (2026-05-19)](#m42-ai-训练前端接入--远程访问验证脚本-2026-05-19)
   - [M43: 监控补强 + 路由扩展性 + sender_name 解析增强 (2026-05-19)](#m43-监控补强--路由扩展性--sender_name-解析增强-2026-05-19)
+  - [M46: 转发稳定性 + no_specific_cargo 边界 + sender_name 兜底收敛 (2026-05-20 ~ 2026-05-21)](#m46-转发稳定性--no_specific_cargo-边界--sender_name-兜底收敛-2026-05-20--2026-05-21)
+  - [M47: LLM 成本控制与 LIVE 可靠性补强 (2026-05-21)](#m47-llm-成本控制与-live-可靠性补强-2026-05-21)
 
 ---
 
@@ -92,6 +94,8 @@
 | M41 | 2026-05-19 | - | Sea-Completed 真实案例复盘：已建号主题强制 FOLLOW_UP（B33）+ 同代理新箱型仍建新号 + Few-shot 外部化/训练 API 状态同步 | 4 |
 | M42 | 2026-05-19 | - | LogiTrack 监控面板 AI 训练前端接入（Tab/模拟器/回归/纠错向导）+ 远程访问验证脚本与 502 排障结论沉淀 | 7 |
 | M43 | 2026-05-19 | - | 监控面板 Ref/BCC 补强（B35/B36）+ 同对话链新询价建号边界修正（B34）+ 省份级 branch 回退与陕西分界（B37）+ sender_name 多来源解析器（B38） | 8 |
+| M46 | 2026-05-20 ~ 05-21 | - | 自回复循环重复转发修复（B39）+ inline 签名图片误转发修复（B40）+ FCL 单/双柜型默认 1 柜（B41）+ sender_name 兜底改为 Sender（B42） | 6 |
+| M47 | 2026-05-21 | - | LLM 备用 API + thinking=medium + Flash/Pro 混合升级策略 + LIVE 回复模板规范化 + Web 停启重载结论 | 4 |
 
 ---
 
@@ -5180,6 +5184,185 @@ else:
 - [x] LIVE 审核 BCC 已能从 Web 服务管理页下发
 - [x] Weinan / Wuhan 相关路由已通过定向测试，`fallback_used=false`
 - [x] sender_name 新解析器 22 个用例全部通过
+
+---
+
+### M46: 转发稳定性 + no_specific_cargo 边界 + sender_name 兜底收敛 (2026-05-20 ~ 2026-05-21)
+
+**日期**: 2026-05-20 ~ 2026-05-21  
+**系统**: `email-ai-automation (Python)`  
+**关联文档**: `email-ai-automation/docs/PROJECT_STATUS_REPORT.md`、`docs/PLAN_AUTO_FILL_ENQUIRY.md`
+
+#### 🎯 目标需求
+
+基于真实 UAT 邮件复盘，解决 4 类高频且互相关联的问题：
+
+1. Reply All 会把共享邮箱自己带入收件人，引发系统拾取自己已发送邮件继续二次处理；
+2. 签名区的 logo / 社媒图标被误当成真实附件转发给客户；
+3. FCL 邮件只写柜型不写数量时，经常被误判为 `no_specific_cargo=true` 而不建单；
+4. sender_name 最后兜底仍会退回邮箱前缀或邮箱地址本身，造成错误的 `Dear ...` 称呼。
+
+#### ✨ 主要功能
+
+##### 1. 转发重复循环修复（B39）
+
+`email-ai-automation/main.py`：
+- 在邮件处理入口新增 self-sent 判断
+- 若发件人就是共享邮箱自身，则直接跳过处理并避免再次转发
+
+`email-ai-automation/services/graph_client.py`：
+- `reply_all_email()` 在 PATCH 草稿时，主动从 `toRecipients/ccRecipients` 中移除共享邮箱自身
+- 使 Reply All 不再回发给自己，从源头切断重复转发循环
+
+##### 2. inline 签名图片误转发修复（B40）
+
+`email-ai-automation/main.py`：
+- 转发前只保留 `is_inline=False` 的真实文件附件
+- `TEST_FORWARD` 路径不再对 `createForward` 草稿重复添加原始附件
+
+结果：
+- 原始 PDF/Excel 等真实附件继续随邮件转发
+- logo、Facebook/Instagram 图标、签名图片不再作为独立附件暴露给客户
+
+##### 3. FCL 单/双柜型默认 1 柜（B41）
+
+`email-ai-automation/main.py`：
+- 在 Step 5.6b 新增柜型默认数量推断
+- 当 SEA/FCL 邮件只提到 1-2 种柜型（如 `20'GP rate`、`40HQ to Lagos`）但未写数量时，默认各 `1` 柜
+
+`email-ai-automation/services/ai_analyzer.py`：
+- Prompt 规则补充“单柜型/双柜型提及默认 1 柜”的明确说明
+
+`email-ai-automation/services/skip_checker.py`：
+- 若 `containers` 中有任意非零值，则强制 `no_specific_cargo=false`
+
+##### 4. sender_name 兜底收敛（B42）
+
+`email-ai-automation/services/sender_name_resolver.py`：
+- 删除邮箱 local-part 兜底
+- 删除未验证 displayName / 邮箱地址本身作为称呼回退的路径
+- 无可靠来源时统一返回 `Sender`
+
+`email-ai-automation/main.py`：
+- `_build_greeting_and_comment()` 对空值再做一层防御，统一渲染 `Dear Sender,`
+- Step 2b 将精化后的 `sender_name` 回写到 `parsed["sender_name"]`
+
+`email-ai-automation/_test_resolver.py`：
+- 将旧的邮箱前缀兜底断言改为 `Sender`
+
+#### 📦 影响文件 (6个)
+
+| 文件 | 变更类型 | 说明 |
+|------|----------|------|
+| `email-ai-automation/main.py` | 修改 | self-sent 跳过、真实附件过滤、Step 5.6b 柜型默认 1 柜、sender_name 回写与 greeting 防御 |
+| `email-ai-automation/services/graph_client.py` | 修改 | Reply All 草稿剔除共享邮箱自身 |
+| `email-ai-automation/services/ai_analyzer.py` | 修改 | Prompt 明确单/双柜型默认 1 柜规则 |
+| `email-ai-automation/services/skip_checker.py` | 修改 | `containers` 非零时不再视为 `no_specific_cargo` |
+| `email-ai-automation/services/sender_name_resolver.py` | 修改 | sender_name 兜底从“邮箱前缀/显示名”收敛为固定 `Sender` |
+| `email-ai-automation/_test_resolver.py` | 修改 | sender_name 新边界用例同步更新 |
+
+#### ✅ 验收状态
+
+- [x] Reply All 不再把共享邮箱自己带回收件人列表
+- [x] 系统不会再拾取自己已发送的邮件形成重复转发循环
+- [x] inline 签名图片不会再作为独立附件转发给客户
+- [x] `20'GP rate` / `40HQ` 一类 FCL 邮件不再被误判为 `no_specific_cargo`
+- [x] sender_name 无可靠来源时统一输出 `Dear Sender,`
+- [x] `_test_resolver.py` 26/26 全部通过
+
+---
+
+### M47: LLM 成本控制与 LIVE 可靠性补强 (2026-05-21)
+
+**日期**: 2026-05-21  
+**系统**: `email-ai-automation (Python)`  
+**关联文档**: `email-ai-automation/docs/PLAN_WEB_MONITOR_DASHBOARD.md`、`docs/PLAN_AUTO_FILL_ENQUIRY.md`
+
+#### 🎯 目标需求
+
+在不降低 LIVE 模式召回率的前提下，解决两类运行问题：
+
+1. DeepSeek-V4-Flash 主渠道成本较低，但主供应商通道存在不可用风险，需要可靠备用链路；
+2. Flash 适合大多数标准询价，但高风险 / 多起运地 / 不确定结果不能直接用于 LIVE 模式路由与建单。
+
+#### ✨ 主要功能
+
+##### 1. LLM 备用 API 接入 + thinking=medium 验证
+
+`email-ai-automation/.env`：
+- 新增 `LLM_BACKUP_API_KEY` / `LLM_BACKUP_BASE_URL` / `LLM_BACKUP_MODEL`
+- 新增 `LLM_THINKING_ENABLED=true` 与 `LLM_THINKING_EFFORT=medium`
+
+`email-ai-automation/config/settings.py`：
+- 新增备用 LLM 与 thinking 配置读取
+
+`email-ai-automation/services/ai_analyzer.py`：
+- 主 LLM 请求增加 `extra_body.thinking={type: enabled}`
+- 同时传入 `reasoning_effort=medium`
+- 主 API 连续失败后自动切换 `https://api.deepseek.com`
+
+运行结论：
+- `api.qnaigc.com` 上的 `DeepSeek-V4-Flash` 在本轮验证中出现 `no available channels for model DeepSeek-V4-Flash`
+- `api.deepseek.com` 上的 `deepseek-v4-flash` 已验证可返回 `reasoning_content`，说明 thinking 模式可用
+
+##### 2. Flash / Pro 混合升级策略（方案 A）
+
+`email-ai-automation/.env`：
+- 新增 `LLM_ESCALATION_ENABLED` / `LLM_ESCALATION_API_KEY` / `LLM_ESCALATION_BASE_URL` / `LLM_ESCALATION_MODEL=deepseek-v4-pro`
+
+`email-ai-automation/config/settings.py` + `email-ai-automation/services/ai_analyzer.py`：
+- 新增升级模型客户端
+- Flash 成功返回后执行 `_should_escalate()`
+- 若满足任一条件，则自动升级到 Pro 重新分析：
+  - `confidence < 0.80`
+  - `risk_level == HIGH`
+  - `branch_code == UNKNOWN`
+  - `multiple_origins == true`
+  - 输出被截断
+- 即使 Flash 是经由备用 API 成功返回，也会继续执行升级判断
+
+策略结论：
+- 该方案不会降低 LIVE 成功率，因为复杂邮件最终采用的是 Pro 结果；
+- 简单明确邮件仍保留 Flash 低成本路径；
+- 按会话内估算，混合方案相对纯 Pro 约节省 54% 成本。
+
+##### 3. 当前 token 消耗结论沉淀
+
+本轮对 `email-ai-automation` 当前提示词结构做了定量复盘：
+- base few-shot: 25 个案例，约 `35173 chars`
+- system prompt + few-shot + 邮件正文上限合计约 `17724 tokens`（未含输出与思考 token）
+
+结论：
+- 最大 token 消耗来自 few-shot 与系统规则，不属于可安全删除的“非必要步骤”；
+- 对话链、附件文本、VLM 图片文本虽会增加消耗，但仍是 FOLLOW_UP 边界、branch 修正与 cargo 回填所需上下文；
+- 当前没有可在不伤召回率前提下大幅裁剪的高消耗环节。
+
+##### 4. LIVE 回复模板规范化 + 服务重启边界确认
+
+`email-ai-automation/main.py`：
+- 将有 REF / 无 REF 两种自动回复模板统一为句号结尾
+- 移除模板中的尾随空格与多余空行，作为当前 LIVE 基线文案
+
+运行边界结论：
+- 通过 Web 面板停止再启动 Python 服务，会重新拉起新进程并加载修改后的 `email-ai-automation` 代码；
+- 因此 Python 项目代码变更的生效边界是“服务重启”，无需重启 Spring Boot。
+
+#### 📦 影响文件 (4个)
+
+| 文件 | 变更类型 | 说明 |
+|------|----------|------|
+| `email-ai-automation/.env` | 修改 | 追加备用 LLM、thinking、升级模型配置 |
+| `email-ai-automation/config/settings.py` | 修改 | 追加备用与升级模型 settings 字段 |
+| `email-ai-automation/services/ai_analyzer.py` | 修改 | 实现 thinking、备用 API 与 Flash/Pro 混合升级策略 |
+| `email-ai-automation/main.py` | 修改 | 规范化 LIVE 自动回复模板文案 |
+
+#### ✅ 验收状态
+
+- [x] 备用 API `deepseek-v4-flash` 已实际返回内容，并带出 `reasoning_content`
+- [x] Flash 成功后仍可按条件升级到 `deepseek-v4-pro`
+- [x] 备用 API 路径已纳入升级判断，不会绕过 Pro 兜底
+- [x] LIVE 模式回复模板已完成语法与文案规范化
+- [x] 已确认 Web 停止/启动服务即可加载最新 Python 代码
 
 ---
 

@@ -468,7 +468,7 @@ export interface ReferencePreview {
 
 export interface EnquirySearchParams {
   keyword?: string;
-  status?: EnquiryStatus;
+  status?: EnquiryStatus | string;
   productCode?: ProductCode;
   cargoTypeCode?: string;
   salesCountryCode?: string;

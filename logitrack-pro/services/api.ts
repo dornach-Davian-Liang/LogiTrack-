@@ -229,12 +229,15 @@ export const masterDataApi = {
   getCategories: async (): Promise<SelectOption[]> =>
     request<SelectOption[]>('/dict/categories').catch(() => {
       const cats: CategoryDict[] = [
-        { code: 'ORIGIN_CHARGES', name: 'Origin Charges', isActive: true },
-        { code: 'EXW_LOCATION', name: 'EXW Location', isActive: true },
-        { code: 'OCEAN_FREIGHT', name: 'Ocean Freight', isActive: true },
-        { code: 'AIR_FREIGHT', name: 'Air Freight', isActive: true },
-        { code: 'DEST_CHARGES', name: 'Dest. Charges', isActive: true },
-        { code: 'SPECIAL', name: 'Special', isActive: true },
+        { code: 'OCEAN_FREIGHT',             name: 'Ocean Freight',                                       isActive: true },
+        { code: 'OCEAN_FREIGHT_ORIGIN',      name: 'Ocean Freight + Origin Charges & EXW',                isActive: true },
+        { code: 'OCEAN_FREIGHT_ORIGIN_DEST', name: 'Ocean Freight + Origin Charges & EXW + Dest. Charges', isActive: true },
+        { code: 'OCEAN_FREIGHT_DEST',        name: 'Ocean Freight + Dest. Charges',                       isActive: true },
+        { code: 'ORIGIN_CHARGES_EXW',        name: 'Origin Charges & EXW',                                isActive: true },
+        { code: 'DEST_CHARGES',              name: 'Dest. Charges',                                       isActive: true },
+        { code: 'LCL',                       name: 'LCL',                                                 isActive: true },
+        { code: 'AIR_FREIGHT',               name: 'Air Freight',                                         isActive: true },
+        { code: 'AIR_FREIGHT_ORIGIN',        name: 'Air Freight + Origin Charge & EXW',                   isActive: true },
       ];
       return cats.map(c => ({ value: c.code, label: c.name }));
     }),
@@ -470,7 +473,7 @@ export const enquiryApi = {
     search?: string;
     keyword?: string;
     status?: EnquiryStatus | EnquiryStatus[];
-    cargoType?: string;
+    cargoType?: string | string[];
     cargoTypeCode?: string;
     salesCountryCode?: string;
     salesPicId?: number;
@@ -490,8 +493,8 @@ export const enquiryApi = {
       page: params?.page || 0,
       size: params?.pageSize || params?.size || 20,
       keyword: params?.search || params?.keyword || undefined,
-      status: Array.isArray(params?.status) ? params.status[0] : (params?.status || undefined),
-      cargoTypeCode: params?.cargoType || params?.cargoTypeCode || undefined,
+      status: Array.isArray(params?.status) ? (params.status.length > 0 ? params.status.join(',') : undefined) : (params?.status || undefined),
+      cargoTypeCode: Array.isArray(params?.cargoType) ? (params.cargoType.length > 0 ? params.cargoType.join(',') : undefined) : (params?.cargoType || params?.cargoTypeCode || undefined),
       salesCountryCode: params?.salesCountryCode || undefined,
       coreNonCore: params?.coreNonCore || undefined,
       assignedCnOffice: params?.assignedCnOffice || undefined,

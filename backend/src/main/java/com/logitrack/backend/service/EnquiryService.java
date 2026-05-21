@@ -6,12 +6,18 @@ import com.logitrack.backend.repository.*;
 import com.logitrack.backend.specification.EnquirySpecification;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.util.CellRangeAddressList;
+import org.apache.poi.xssf.usermodel.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -37,6 +43,8 @@ public class EnquiryService {
     private final SalesPicRepository salesPicRepository;
     private final SalesOfficeRepository salesOfficeRepository;
     private final PortRepository portRepository;
+    private final LostReasonRepository lostReasonRepository;
+    private final CancelledReasonRepository cancelledReasonRepository;
     
     // ═══════════════════════════════════
     // 查询方法
@@ -703,5 +711,149 @@ public class EnquiryService {
                 });
             }
         }
+    }
+
+    // ═══════════════════════════════════
+    // Excel 导出
+    // ═══════════════════════════════════
+
+    /**
+     * 导出询价数据为 Excel（含 Lost/Cancelled Reason 下拉验证）
+     */
+    public byte[] exportToExcel(
+            String keyword, String status, String cargoTypeCode,
+            String salesCountryCode, String assignedCnOffice, String coreNonCore,
+            String dateFrom, String dateTo, Integer polPortId, Integer podPortId,
+            String createdDateFrom, String createdDateTo) throws IOException {
+
+        // 1. 查询全量（带过滤，无分页）
+        Specification<Enquiry> spec = EnquirySpecification.withFilters(
+                keyword, status, null, cargoTypeCode,
+                salesCountryCode, assignedCnOffice, coreNonCore,
+                dateFrom, dateTo, polPortId, podPortId,
+                createdDateFrom, createdDateTo, null);
+        List<Enquiry> enquiries = enquiryRepository.findAll(spec, Sort.by(Sort.Direction.DESC, "id"));
+        batchLoadTransientData(enquiries);
+        enrichWithDerivedFields(enquiries);
+
+        // 2. 加载 Reason 字典
+        List<LostReason> lostReasons = lostReasonRepository.findAllByOrderBySortOrderAsc();
+        List<CancelledReason> cancelledReasons = cancelledReasonRepository.findAllByOrderBySortOrderAsc();
+        Map<String, String> lostLabelMap = lostReasons.stream()
+                .collect(Collectors.toMap(LostReason::getCode, LostReason::getLabel));
+        Map<String, String> cancelledLabelMap = cancelledReasons.stream()
+                .collect(Collectors.toMap(CancelledReason::getCode, CancelledReason::getLabel));
+
+        // 3. 构建 Workbook
+        try (XSSFWorkbook wb = new XSSFWorkbook()) {
+            // 隐藏字典 sheet
+            XSSFSheet dictSheet = wb.createSheet("_dict");
+            Row dictHeader = dictSheet.createRow(0);
+            dictHeader.createCell(0).setCellValue("Lost Reason");
+            dictHeader.createCell(1).setCellValue("Cancelled Reason");
+            int maxDictRows = Math.max(lostReasons.size(), cancelledReasons.size());
+            for (int i = 0; i < maxDictRows; i++) {
+                Row dr = dictSheet.createRow(i + 1);
+                if (i < lostReasons.size()) dr.createCell(0).setCellValue(lostReasons.get(i).getLabel());
+                if (i < cancelledReasons.size()) dr.createCell(1).setCellValue(cancelledReasons.get(i).getLabel());
+            }
+            wb.setSheetHidden(wb.getSheetIndex("_dict"), true);
+
+            // 主数据 sheet
+            XSSFSheet sheet = wb.createSheet("Enquiries");
+            // 列顺序：Status 后紧跟 Lost Reason / Cancelled Reason
+            // idx: 0  1  2  3      4           5                 6~
+            String[] headers = {
+                "Reference Number", "Product Type", "Cargo Type", "Status",
+                "Lost Reason", "Cancelled Reason",
+                "Sales Country", "Sales PIC", "Sales Office", "Assigned CN Office",
+                "Sender Email", "Core/Non-Core", "POL", "POD", "POD Country",
+                "Commodity", "Cargo Type(Detail)", "Volume (CBM)", "Quantity", "UOM",
+                "Is Oversize", "Cargo Ready Date", "Remark", "Offer Type",
+                "Received Date", "Created Date", "Offers Count", "Latest Offer Date"
+            };
+            Row headerRow = sheet.createRow(0);
+            for (int i = 0; i < headers.length; i++) {
+                headerRow.createCell(i).setCellValue(headers[i]);
+            }
+
+            final int COL_LOST = 4;
+            final int COL_CANCELLED = 5;
+
+            for (int ri = 0; ri < enquiries.size(); ri++) {
+                Enquiry e = enquiries.get(ri);
+                Row row = sheet.createRow(ri + 1);
+                row.createCell(0).setCellValue(nvl(e.getRefNumber()));
+                row.createCell(1).setCellValue(nvl(e.getProductCode()));
+                row.createCell(2).setCellValue(nvl(e.getCargoTypeCode()));
+                row.createCell(3).setCellValue(e.getStatus() != null ? e.getStatus().toJsonValue() : "");
+                // Lost Reason: code → label
+                row.createCell(COL_LOST).setCellValue(
+                    e.getLostReason() != null ? lostLabelMap.getOrDefault(e.getLostReason(), e.getLostReason()) : "");
+                // Cancelled Reason: code → label
+                row.createCell(COL_CANCELLED).setCellValue(
+                    e.getCancelledReason() != null ? cancelledLabelMap.getOrDefault(e.getCancelledReason(), e.getCancelledReason()) : "");
+                row.createCell(6).setCellValue(nvl(e.getSalesCountryCode()));
+                row.createCell(7).setCellValue(nvl(e.getSalesPicName()));
+                row.createCell(8).setCellValue(nvl(e.getSalesOfficeName()));
+                row.createCell(9).setCellValue(nvl(e.getAssignedCnOffice()));
+                row.createCell(10).setCellValue(nvl(e.getSenderEmail()));
+                row.createCell(11).setCellValue(e.getCoreNonCore() != null ? e.getCoreNonCore().toJsonValue() : "");
+                row.createCell(12).setCellValue(nvl(e.getPolName()));
+                row.createCell(13).setCellValue(nvl(e.getPodName()));
+                row.createCell(14).setCellValue(nvl(e.getPodCountry()));
+                row.createCell(15).setCellValue(nvl(e.getCommodity()));
+                row.createCell(16).setCellValue(nvl(e.getCargoTypeCode()));
+                row.createCell(17).setCellValue(e.getVolumeCbm() != null ? e.getVolumeCbm().toPlainString() : "");
+                row.createCell(18).setCellValue(e.getQuantity() != null ? e.getQuantity().toPlainString() : "");
+                row.createCell(19).setCellValue(nvl(e.getUom()));
+                row.createCell(20).setCellValue(Boolean.TRUE.equals(e.getIsOversizeCargo()) ? "Yes" : "No");
+                row.createCell(21).setCellValue(e.getCargoReadyDate() != null ? e.getCargoReadyDate().toString() : "");
+                row.createCell(22).setCellValue(nvl(e.getRemark()));
+                row.createCell(23).setCellValue(e.getOfferType() != null ? e.getOfferType().toJsonValue() : "");
+                row.createCell(24).setCellValue(e.getEnquiryReceivedDate() != null ? e.getEnquiryReceivedDate().toString() : "");
+                row.createCell(25).setCellValue(e.getEnquiryCreatedDate() != null ? e.getEnquiryCreatedDate().toString().substring(0, 10) : "");
+                // offersCount / latestOfferDate from offers relationship
+                List<Offer> offers = e.getOffers();
+                row.createCell(26).setCellValue(offers != null ? String.valueOf(offers.size()) : "0");
+                if (offers != null && !offers.isEmpty()) {
+                    offers.stream()
+                        .map(Offer::getCreatedAt)
+                        .filter(Objects::nonNull)
+                        .max(Comparator.naturalOrder())
+                        .ifPresent(d -> row.createCell(27).setCellValue(d.toString().substring(0, 10)));
+                }
+            }
+
+            // 数据验证下拉
+            if (!enquiries.isEmpty()) {
+                int lastRow = enquiries.size();
+                DataValidationHelper dvHelper = sheet.getDataValidationHelper();
+                if (!lostReasons.isEmpty()) {
+                    CellRangeAddressList lostRange = new CellRangeAddressList(1, lastRow, COL_LOST, COL_LOST);
+                    DataValidationConstraint lostDvc = dvHelper.createFormulaListConstraint(
+                            "_dict!$A$2:$A$" + (lostReasons.size() + 1));
+                    DataValidation lostDv = dvHelper.createValidation(lostDvc, lostRange);
+                    lostDv.setSuppressDropDownArrow(true);
+                    sheet.addValidationData(lostDv);
+                }
+                if (!cancelledReasons.isEmpty()) {
+                    CellRangeAddressList cancelledRange = new CellRangeAddressList(1, lastRow, COL_CANCELLED, COL_CANCELLED);
+                    DataValidationConstraint cancelledDvc = dvHelper.createFormulaListConstraint(
+                            "_dict!$B$2:$B$" + (cancelledReasons.size() + 1));
+                    DataValidation cancelledDv = dvHelper.createValidation(cancelledDvc, cancelledRange);
+                    cancelledDv.setSuppressDropDownArrow(true);
+                    sheet.addValidationData(cancelledDv);
+                }
+            }
+
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            wb.write(out);
+            return out.toByteArray();
+        }
+    }
+
+    private static String nvl(String s) {
+        return s != null ? s : "";
     }
 }

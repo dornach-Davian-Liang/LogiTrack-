@@ -21,8 +21,8 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
   
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<EnquiryStatus | ''>('');
-  const [cargoTypeFilter, setCargoTypeFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<EnquiryStatus[]>([]);
+  const [cargoTypeFilter, setCargoTypeFilter] = useState<string[]>([]);
   const [officeFilter, setOfficeFilter] = useState<string[]>([]);
   const [polFilter, setPolFilter] = useState<number | null>(null);
   const [podFilter, setPodFilter] = useState<number | null>(null);
@@ -46,9 +46,13 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
   const [showPolDropdown, setShowPolDropdown] = useState(false);
   const [showPodDropdown, setShowPodDropdown] = useState(false);
   const [showOfficeDropdown, setShowOfficeDropdown] = useState(false);
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+  const [showCargoDropdown, setShowCargoDropdown] = useState(false);
   const polRef = useRef<HTMLDivElement>(null);
   const podRef = useRef<HTMLDivElement>(null);
   const officeRef = useRef<HTMLDivElement>(null);
+  const statusRef = useRef<HTMLDivElement>(null);
+  const cargoRef = useRef<HTMLDivElement>(null);
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -66,6 +70,8 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
       if (polRef.current && !polRef.current.contains(e.target as Node)) setShowPolDropdown(false);
       if (podRef.current && !podRef.current.contains(e.target as Node)) setShowPodDropdown(false);
       if (officeRef.current && !officeRef.current.contains(e.target as Node)) setShowOfficeDropdown(false);
+      if (statusRef.current && !statusRef.current.contains(e.target as Node)) setShowStatusDropdown(false);
+      if (cargoRef.current && !cargoRef.current.contains(e.target as Node)) setShowCargoDropdown(false);
     };
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
@@ -109,8 +115,8 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
         page: Math.max(0, currentPage - 1),
         pageSize,
         search: searchTerm || undefined,
-        status: statusFilter || undefined,
-        cargoType: cargoTypeFilter || undefined,
+        status: statusFilter.length > 0 ? statusFilter : undefined,
+        cargoType: cargoTypeFilter.length > 0 ? cargoTypeFilter : undefined,
         assignedCnOffice: officeFilter.length > 0 ? officeFilter.join(',') : undefined,
         polPortId: polFilter || undefined,
         podPortId: podFilter || undefined,
@@ -237,56 +243,27 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
   const handleExportXlsx = async () => {
     setIsExporting(true);
     try {
-      // Fetch all pages with current filters (up to 10000 records)
-      const response = await enquiryApi.list({
-        page: 0,
-        pageSize: 10000,
-        search: searchTerm || undefined,
-        status: statusFilter || undefined,
-        cargoType: cargoTypeFilter || undefined,
-        assignedCnOffice: officeFilter.length > 0 ? officeFilter.join(',') : undefined,
-        polPortId: polFilter || undefined,
-        podPortId: podFilter || undefined,
-        createdDateFrom: createdDateFrom ? createdDateFrom.toISOString().split('T')[0] : undefined,
-        createdDateTo: createdDateTo ? createdDateTo.toISOString().split('T')[0] : undefined,
-      });
+      const params = new URLSearchParams();
+      if (searchTerm) params.set('keyword', searchTerm);
+      if (statusFilter.length > 0) params.set('status', statusFilter.join(','));
+      if (cargoTypeFilter.length > 0) params.set('cargoTypeCode', cargoTypeFilter.join(','));
+      if (officeFilter.length > 0) params.set('assignedCnOffice', officeFilter.join(','));
+      if (polFilter) params.set('polPortId', String(polFilter));
+      if (podFilter) params.set('podPortId', String(podFilter));
+      if (createdDateFrom) params.set('createdDateFrom', createdDateFrom.toISOString().split('T')[0]);
+      if (createdDateTo) params.set('createdDateTo', createdDateTo.toISOString().split('T')[0]);
 
-      const rows = response.content.map((e: any) => ({
-        'Reference Number':    e.refNumber || '',
-        'Product Type':        e.productCode || e.productAbbr || '',
-        'Cargo Type':          e.cargoTypeCode || '',
-        'Status':              e.status || '',
-        'Sales Country':       e.salesCountryCode || '',
-        'Sales PIC':           e.salesPicName || '',
-        'Sales Office':        e.salesOfficeName || '',
-        'Assigned CN Office':  e.assignedCnOffice || '',
-        'Sender Email':        e.senderEmail || '',
-        'Core/Non-Core':       e.coreNonCore || '',
-        'POL':                 e.polName || '',
-        'POD':                 e.podName || '',
-        'POD Country':         e.podCountry || '',
-        'Commodity':           e.commodity || '',
-        'Cargo Type(Detail)':  e.cargoTypeCode || '',
-        'Volume (CBM)':        e.volumeCbm ?? '',
-        'Quantity':            e.quantity ?? '',
-        'UOM':                 e.uom || '',
-        'Is Oversize':         e.isOversizeCargo ? 'Yes' : 'No',
-        'EXW Location':        e.exwLocation || '',
-        'Cargo Ready Date':    e.cargoReadyDate || '',
-        'Remark':              e.remark || '',
-        'Offer Type':          e.offerType || '',
-        'Received Date':       e.enquiryReceivedDate || '',
-        'Created Date':        e.enquiryCreatedDate ? String(e.enquiryCreatedDate).substring(0, 10) : '',
-        'Offers Count':        e.offersCount ?? '',
-        'Latest Offer Date':   e.latestOfferDate || '',
-      }));
+      const response = await fetch(`/api/enquiries/export-xlsx?${params.toString()}`);
+      if (!response.ok) throw new Error(`Export failed: ${response.status}`);
 
-      const ws = XLSX.utils.json_to_sheet(rows);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Enquiries');
-
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
       const today = new Date().toISOString().split('T')[0];
-      XLSX.writeFile(wb, `Enquiries_Export_${today}.xlsx`);
+      a.download = `Enquiries_Export_${today}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
     } catch (err) {
       alert('Failed to export data');
       console.error('[handleExportXlsx] error:', err);
@@ -358,30 +335,69 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
             />
           </div>
 
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as EnquiryStatus | '')}
-            className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-          >
-            <option value="">All Status</option>
-            <option value="New">New</option>
-            <option value="Quoted & Pending">Quoted & Pending</option>
-            <option value="Secured">Secured</option>
-            <option value="Lost">Lost</option>
-            <option value="Cancelled">Cancelled</option>
-          </select>
+          <div ref={statusRef} className="relative">
+            <button
+              type="button"
+              onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+              className={`w-full text-left rounded-md border shadow-sm px-3 py-2 text-sm focus:border-indigo-500 focus:ring-indigo-500 ${statusFilter.length > 0 ? 'bg-indigo-50 border-indigo-300' : 'border-gray-300'}`}
+            >
+              {statusFilter.length === 0 ? 'All Status' : `${statusFilter.length} status selected`}
+            </button>
+            {showStatusDropdown && (
+              <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                {(['New', 'Quoted & Pending', 'Secured', 'Lost', 'Cancelled'] as EnquiryStatus[]).map(s => (
+                  <label key={s} className="flex items-center px-3 py-2 text-sm hover:bg-indigo-50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={statusFilter.includes(s)}
+                      onChange={(ev) => {
+                        if (ev.target.checked) {
+                          setStatusFilter([...statusFilter, s]);
+                        } else {
+                          setStatusFilter(statusFilter.filter(v => v !== s));
+                        }
+                        setCurrentPage(1);
+                      }}
+                      className="mr-2 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    {s}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
 
-          <select
-            value={cargoTypeFilter}
-            onChange={(e) => setCargoTypeFilter(e.target.value)}
-            className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-          >
-            <option value="">All Cargo Types</option>
-            <option value="FCL">FCL</option>
-            <option value="LCL">LCL</option>
-            <option value="AIR">AIR</option>
-            <option value="BUYER-CONSOL">BUYER-CONSOL</option>
-          </select>
+          <div ref={cargoRef} className="relative">
+            <button
+              type="button"
+              onClick={() => setShowCargoDropdown(!showCargoDropdown)}
+              className={`w-full text-left rounded-md border shadow-sm px-3 py-2 text-sm focus:border-indigo-500 focus:ring-indigo-500 ${cargoTypeFilter.length > 0 ? 'bg-indigo-50 border-indigo-300' : 'border-gray-300'}`}
+            >
+              {cargoTypeFilter.length === 0 ? 'All Cargo Types' : `${cargoTypeFilter.length} type(s) selected`}
+            </button>
+            {showCargoDropdown && (
+              <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                {['FCL', 'LCL', 'AIR', 'BUYER-CONSOL'].map(c => (
+                  <label key={c} className="flex items-center px-3 py-2 text-sm hover:bg-indigo-50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={cargoTypeFilter.includes(c)}
+                      onChange={(ev) => {
+                        if (ev.target.checked) {
+                          setCargoTypeFilter([...cargoTypeFilter, c]);
+                        } else {
+                          setCargoTypeFilter(cargoTypeFilter.filter(v => v !== c));
+                        }
+                        setCurrentPage(1);
+                      }}
+                      className="mr-2 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    {c}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
 
           <select
             value={pageSize}

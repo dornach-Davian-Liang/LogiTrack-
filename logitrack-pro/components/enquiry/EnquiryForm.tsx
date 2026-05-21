@@ -1483,6 +1483,7 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
                 <option value="OCEAN_FREIGHT">Ocean Freight</option>
                 <option value="OCEAN_FREIGHT_ORIGIN">Ocean Freight + Origin Charges &amp; EXW</option>
                 <option value="OCEAN_FREIGHT_ORIGIN_DEST">Ocean Freight + Origin Charges &amp; EXW + Dest. Charges</option>
+                <option value="OCEAN_FREIGHT_DEST">Ocean Freight + Dest. Charges</option>
                 <option value="ORIGIN_CHARGES_EXW">Origin Charges &amp; EXW</option>
                 <option value="DEST_CHARGES">Dest. Charges</option>
                 <option value="LCL">LCL</option>

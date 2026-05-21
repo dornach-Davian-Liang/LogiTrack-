@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * JPA Specification for dynamic enquiry filtering.
@@ -48,13 +49,27 @@ public class EnquirySpecification {
                 ));
             }
 
-            // Status filter — handle both "Quoted & Pending" and "Quoted_Pending"
+            // Status filter — supports comma-separated multiple values
             if (status != null && !status.isBlank()) {
-                try {
-                    Enquiry.EnquiryStatus enumStatus = Enquiry.EnquiryStatus.fromString(status);
-                    predicates.add(cb.equal(root.get("status"), enumStatus));
-                } catch (IllegalArgumentException e) {
-                    // Unknown status, ignore
+                if (status.contains(",")) {
+                    List<Enquiry.EnquiryStatus> statusList = Arrays.stream(status.split(","))
+                            .map(String::trim).filter(s -> !s.isEmpty())
+                            .map(s -> {
+                                try { return Enquiry.EnquiryStatus.fromString(s); }
+                                catch (IllegalArgumentException e) { return null; }
+                            })
+                            .filter(Objects::nonNull)
+                            .toList();
+                    if (!statusList.isEmpty()) {
+                        predicates.add(root.get("status").in(statusList));
+                    }
+                } else {
+                    try {
+                        Enquiry.EnquiryStatus enumStatus = Enquiry.EnquiryStatus.fromString(status);
+                        predicates.add(cb.equal(root.get("status"), enumStatus));
+                    } catch (IllegalArgumentException e) {
+                        // Unknown status, ignore
+                    }
                 }
             }
 
@@ -63,9 +78,15 @@ public class EnquirySpecification {
                 predicates.add(cb.equal(root.get("productCode"), productCode));
             }
 
-            // Cargo type filter
+            // Cargo type filter — supports comma-separated multiple values
             if (cargoTypeCode != null && !cargoTypeCode.isBlank()) {
-                predicates.add(cb.equal(root.get("cargoTypeCode"), cargoTypeCode));
+                if (cargoTypeCode.contains(",")) {
+                    List<String> cargoList = Arrays.stream(cargoTypeCode.split(","))
+                            .map(String::trim).filter(s -> !s.isEmpty()).toList();
+                    predicates.add(root.get("cargoTypeCode").in(cargoList));
+                } else {
+                    predicates.add(cb.equal(root.get("cargoTypeCode"), cargoTypeCode));
+                }
             }
 
             // Sales country filter
