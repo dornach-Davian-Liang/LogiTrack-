@@ -46,6 +46,7 @@
   - [M43: 监控补强 + 路由扩展性 + sender_name 解析增强 (2026-05-19)](#m43-监控补强--路由扩展性--sender_name-解析增强-2026-05-19)
   - [M46: 转发稳定性 + no_specific_cargo 边界 + sender_name 兜底收敛 (2026-05-20 ~ 2026-05-21)](#m46-转发稳定性--no_specific_cargo-边界--sender_name-兜底收敛-2026-05-20--2026-05-21)
   - [M47: LLM 成本控制与 LIVE 可靠性补强 (2026-05-21)](#m47-llm-成本控制与-live-可靠性补强-2026-05-21)
+  - [M48: Enquiry 审核导出补强 + Category 扩展 + SZX-LCL 路由持久化 (2026-05-21)](#m48-enquiry-审核导出补强--category-扩展--szx-lcl-路由持久化-2026-05-21)
 
 ---
 
@@ -96,6 +97,7 @@
 | M43 | 2026-05-19 | - | 监控面板 Ref/BCC 补强（B35/B36）+ 同对话链新询价建号边界修正（B34）+ 省份级 branch 回退与陕西分界（B37）+ sender_name 多来源解析器（B38） | 8 |
 | M46 | 2026-05-20 ~ 05-21 | - | 自回复循环重复转发修复（B39）+ inline 签名图片误转发修复（B40）+ FCL 单/双柜型默认 1 柜（B41）+ sender_name 兜底改为 Sender（B42） | 6 |
 | M47 | 2026-05-21 | - | LLM 备用 API + thinking=medium + Flash/Pro 混合升级策略 + LIVE 回复模板规范化 + Web 停启重载结论 | 4 |
+| M48 | 2026-05-21 | - | Enquiry 管理多选筛选 + 后端 XLSX 导出升级 + Category 新选项 + SZX-LCL 路由拆分与配置持久化 | 12 |
 
 ---
 
@@ -5363,6 +5365,105 @@ else:
 - [x] 备用 API 路径已纳入升级判断，不会绕过 Pro 兜底
 - [x] LIVE 模式回复模板已完成语法与文案规范化
 - [x] 已确认 Web 停止/启动服务即可加载最新 Python 代码
+
+---
+
+### M48: Enquiry 审核导出补强 + Category 扩展 + SZX-LCL 路由持久化 (2026-05-21)
+
+**日期**: 2026-05-21  
+**系统**: `LogiTrack (React/Spring Boot)` + `email-ai-automation (Python)`  
+**关联文档**: `docs/PLAN_AUTO_FILL_ENQUIRY.md`、`email-ai-automation/docs/PROJECT_STATUS_REPORT.md`
+
+#### 🎯 目标需求
+
+围绕本轮跨项目联调，完成两类能力补强：
+
+1. 在 LogiTrack 侧提升自动建单记录的人工审核效率，包括多选筛选、后端 XLSX 导出、Reason 下拉与 Category 值域补全；
+2. 在 Email AI Automation 侧把 SEA/SZX 从单一路由拆为 FCL 与 LCL 两个分支，并让新的 branch key 能通过监控配置页持久化。
+
+#### ✨ 主要功能
+
+##### 1. Enquiry Management 多选筛选
+
+`logitrack-pro/components/enquiry/EnquiryList.tsx`：
+- `Status` 与 `Cargo Types` 从单选 `<select>` 改为复选框下拉
+- 筛选参数改为数组，多选时显示选中数量
+
+`logitrack-pro/services/api.ts` + `logitrack-pro/types.ts`：
+- `status` / `cargoType` 前端参数支持数组
+- 多选值统一转为逗号分隔字符串透传后端
+
+`backend/src/main/java/com/logitrack/backend/specification/EnquirySpecification.java`：
+- `status` 与 `cargoTypeCode` 从单值 `equal()` 扩展为支持多值 `IN (...)`
+
+##### 2. XLSX 导出升级为后端生成
+
+`backend/pom.xml`：
+- 新增 `poi-ooxml 5.2.3`
+
+`backend/src/main/java/com/logitrack/backend/service/EnquiryService.java`：
+- 新增后端 Excel 导出能力
+- 删除 `EXW Location`
+- 新增 `Lost Reason` / `Cancelled Reason`
+- 使用隐藏 `_dict` sheet + Data Validation 为两列提供下拉
+- 将 `Lost Reason` / `Cancelled Reason` 挪到 `Status` 旁边
+
+`backend/src/main/java/com/logitrack/backend/controller/EnquiryController.java`：
+- 新增 `GET /api/enquiries/export-xlsx`
+
+`logitrack-pro/components/enquiry/EnquiryList.tsx`：
+- 导出逻辑从前端 `xlsx` 改为调用后端 `export-xlsx` 下载 blob
+
+##### 3. Category 值域收敛与新选项补充
+
+`logitrack-pro/components/enquiry/EnquiryForm.tsx`：
+- 新增 `OCEAN_FREIGHT_DEST / Ocean Freight + Dest. Charges`
+
+`logitrack-pro/constants.ts` + `logitrack-pro/services/api.ts`：
+- 收敛旧版 `FREIGHT/ORIGIN_EXW` 常量
+- 与当前 EnquiryForm 统一到 `OCEAN_FREIGHT*` / `AIR_FREIGHT*` 现行编码
+
+##### 4. SZX-LCL 路由拆分与配置持久化
+
+`email-ai-automation/services/router.py`：
+- 参照 `HKG-LCL` 新增 `SZX-LCL` branch 重映射
+- 当 `transport_mode=SEA`、`branch_code=SZX`、`is_lcl=true` 时切换到 `SZX-LCL`
+
+`email-ai-automation/data/pic_routing.json`：
+- 保持 `SZX` 作为 FCL 路由不变
+- 新增 `SZX-LCL`
+- `core` / `non_core` 均发给 `szx.seaops@zieglergroup.cn`
+- `cc` 为 `hkg.cyip@zieglergroup.cn`、`susan.zhang@zieglergroup.cn`、`hkg.yho@zieglergroup.cn`
+
+`email-ai-automation/services/monitor_api.py`：
+- `PUT /pyapi/routing` 从“仅能更新已存在 branch”扩展为“允许在白名单字段内新增 branch key”
+- 新 branch 保存后仍保留热重载能力
+
+#### 📦 影响文件 (12个)
+
+| 文件 | 变更类型 | 说明 |
+|------|----------|------|
+| `logitrack-pro/components/enquiry/EnquiryList.tsx` | 修改 | 多选筛选 + 后端 XLSX 导出入口 |
+| `logitrack-pro/services/api.ts` | 修改 | 多选参数传递 + Category 回退字典收敛 |
+| `logitrack-pro/types.ts` | 修改 | 查询参数类型兼容多值状态 |
+| `backend/src/main/java/com/logitrack/backend/specification/EnquirySpecification.java` | 修改 | status/cargoTypeCode 支持 `IN (...)` |
+| `backend/pom.xml` | 修改 | 增加 Apache POI 依赖 |
+| `backend/src/main/java/com/logitrack/backend/service/EnquiryService.java` | 修改 | 后端 XLSX 生成与下拉验证 |
+| `backend/src/main/java/com/logitrack/backend/controller/EnquiryController.java` | 修改 | 新增 `export-xlsx` 端点 |
+| `logitrack-pro/components/enquiry/EnquiryForm.tsx` | 修改 | 新增 `OCEAN_FREIGHT_DEST` 选项 |
+| `logitrack-pro/constants.ts` | 修改 | Category 常量统一到当前值域 |
+| `email-ai-automation/services/router.py` | 修改 | 新增 `SZX-LCL` 分支重映射 |
+| `email-ai-automation/data/pic_routing.json` | 修改 | 新增 `SZX-LCL` 配置 |
+| `email-ai-automation/services/monitor_api.py` | 修改 | 路由保存接口支持新增 branch |
+
+#### ✅ 验收状态
+
+- [x] Enquiry Management 支持 `Status` / `Cargo Types` 多选并走服务端筛选
+- [x] 导出文件已改为后端生成，并支持 `Lost Reason` / `Cancelled Reason` 下拉
+- [x] `Lost Reason` / `Cancelled Reason` 已移动到 `Status` 旁边
+- [x] Category 下拉已补充 `Ocean Freight + Dest. Charges`
+- [x] `SZX` 已拆分为 FCL (`SZX`) 与 LCL (`SZX-LCL`) 两条 SEA 路由
+- [x] `PUT /pyapi/routing` 已支持保存新增 branch key，配置页可以持久化 `SZX-LCL`
 
 ---
 

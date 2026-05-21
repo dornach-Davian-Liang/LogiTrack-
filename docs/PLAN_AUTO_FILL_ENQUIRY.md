@@ -1,6 +1,6 @@
 ﻿# 自动填询价单（Auto-Fill Enquiry）— 功能计划书
 
-> **版本**: v1.3  
+> **版本**: v1.4  
 > **日期**: 2026-05-21（已按 2026-05-19 / 2026-05-21 实现情况同步）  
 > **状态**: 已审核 ✅  
 > **涉及项目**:  
@@ -223,6 +223,25 @@
 4. **代码变更的生效边界已确认**
   - 当 `email-ai-automation` 代码被修改后，只要通过 Web 面板或进程管理逻辑执行“停止服务 → 启动服务”，新 Python 进程就会加载最新代码
   - Auto-Fill 的行为变更无需为此重启 Spring Boot；Spring Boot 仅负责重拉 Python 进程
+
+### 3.7 当前消费端补强（2026-05-21）
+
+本轮与 LogiTrack 消费端联调，新增了三类直接服务 Auto-Fill 审核/补全流程的能力：
+
+1. **Enquiry Management 列表筛选已支持更细粒度人工复核**
+  - `Status` 与 `Cargo Types` 已从单选改为多选
+  - 前端通过逗号分隔参数透传，后端 `EnquirySpecification` 已支持多值 `IN (...)` 查询
+  - 对自动建单记录做“状态交叉复核”与“货型批量排查”时，不再需要重复切换单值筛选
+
+2. **XLSX 导出已升级为后端生成，适合人工离线补全**
+  - 导出链路已从前端 `xlsx` 临时拼表迁移到后端 Apache POI 生成
+  - 导出文件删除 `EXW Location`，新增 `Lost Reason` / `Cancelled Reason`
+  - 两列支持 Excel Data Validation 下拉，并已调整到 `Status` 旁边，便于业务人员对状态与原因联动复核
+
+3. **Category 值域已向当前 EnquiryForm 收敛，并补充海运目的港费用场景**
+  - Category 下拉新增 `OCEAN_FREIGHT_DEST`（`Ocean Freight + Dest. Charges`）
+  - `constants.ts` 与 `getCategories()` 回退值已统一到 `OCEAN_FREIGHT*` / `AIR_FREIGHT*` 这一套现行编码
+  - 这意味着 Auto-Fill 后续若要在消费端补充 category，不再受旧版 `FREIGHT` / `ORIGIN_EXW` 历史常量干扰
 
 ### Phase 4: LogiTrack 前后端“自动建单”标识功能（预计 1-1.5 天）
 
