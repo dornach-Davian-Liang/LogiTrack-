@@ -227,8 +227,14 @@ function Start-Frontend {
         if (Test-Path $FrontendLog) { Remove-Item $FrontendLog -Force -ErrorAction SilentlyContinue }
         if (Test-Path $FrontendErr) { Remove-Item $FrontendErr -Force -ErrorAction SilentlyContinue }
 
-        $proc = Start-Process -FilePath "cmd.exe" -ArgumentList "/c", "npm run dev" -WorkingDirectory $FrontendDir -RedirectStandardOutput $FrontendLog -RedirectStandardError $FrontendErr -PassThru
-        Write-Ok "Frontend process started (PID=$($proc.Id))"
+        Write-Step "Building frontend for preview mode"
+        & npm run build
+        if ($LASTEXITCODE -ne 0) {
+            throw "Frontend build failed. Check npm / Vite output."
+        }
+
+        $proc = Start-Process -FilePath "cmd.exe" -ArgumentList "/c", "npm run preview -- --host 0.0.0.0 --port 3000 --strictPort" -WorkingDirectory $FrontendDir -RedirectStandardOutput $FrontendLog -RedirectStandardError $FrontendErr -PassThru
+        Write-Ok "Frontend preview process started (PID=$($proc.Id))"
 
         Start-Sleep -Seconds 3
         $frontReady = Test-HttpReady -Url "http://127.0.0.1:$FrontendPort" -TimeoutSeconds 60
@@ -252,7 +258,7 @@ function Start-Frontend {
             throw "Frontend health check timeout. Check logs: $FrontendLog / $FrontendErr"
         }
 
-        Write-Ok "Frontend is ready at http://${FrontendHost}:$FrontendPort"
+        Write-Ok "Frontend preview is ready at http://${FrontendHost}:$FrontendPort"
     }
     finally {
         Pop-Location

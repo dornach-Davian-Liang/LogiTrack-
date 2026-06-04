@@ -473,6 +473,7 @@ export const enquiryApi = {
     search?: string;
     keyword?: string;
     status?: EnquiryStatus | EnquiryStatus[];
+    productCode?: string | string[];
     cargoType?: string | string[];
     cargoTypeCode?: string;
     salesCountryCode?: string;
@@ -494,6 +495,7 @@ export const enquiryApi = {
       size: params?.pageSize || params?.size || 20,
       keyword: params?.search || params?.keyword || undefined,
       status: Array.isArray(params?.status) ? (params.status.length > 0 ? params.status.join(',') : undefined) : (params?.status || undefined),
+      productCode: Array.isArray(params?.productCode) ? (params.productCode.length > 0 ? params.productCode.join(',') : undefined) : (params?.productCode || undefined),
       cargoTypeCode: Array.isArray(params?.cargoType) ? (params.cargoType.length > 0 ? params.cargoType.join(',') : undefined) : (params?.cargoType || params?.cargoTypeCode || undefined),
       salesCountryCode: params?.salesCountryCode || undefined,
       coreNonCore: params?.coreNonCore || undefined,

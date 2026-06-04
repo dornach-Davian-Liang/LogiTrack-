@@ -67,6 +67,10 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   };
 
+  const isContainerCargoType = (cargoTypeCode?: string) => {
+    return cargoTypeCode ? CONTAINER_CARGO_TYPES.includes(cargoTypeCode as OfferType) : false;
+  };
+
   const [formData, setFormData] = useState<FormData>({
     status: 'New',
     enquiryReceivedDate: getLocalDateISO(),
@@ -389,7 +393,7 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
         const filteredCargo = allowed.map(c => ({ value: c, label: c }));
         setCargoTypes(filteredCargo);
         // 如果当前 cargoTypeCode 不在允许列表中，重置为第一个
-        if (!allowed.includes(updated.cargoTypeCode || '')) {
+        if (!updated.cargoTypeCode || !allowed.includes(updated.cargoTypeCode as OfferType)) {
           updated.cargoTypeCode = allowed[0];
         }
       }
@@ -835,7 +839,7 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
       }
 
       // 验证容器信息（FCL/BUYER-CONSOL 时至少一个柜型 > 0）
-      if (CONTAINER_CARGO_TYPES.includes(formData.cargoTypeCode || '')) {
+      if (isContainerCargoType(formData.cargoTypeCode)) {
         const containerRows = formData.containerRows || [];
         const hasAnyContainer = containerRows.some(r =>
           (r.qty20 || 0) > 0 || (r.qty40 || 0) > 0 || (r.qty40hq || 0) > 0 || (r.qty45 || 0) > 0 ||
@@ -1216,7 +1220,7 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
               </div>
 
               {/* AIR/LCL 额外显示 Volume, Quantity, UOM */}
-              {!CONTAINER_CARGO_TYPES.includes(formData.cargoTypeCode || '') && (
+              {!isContainerCargoType(formData.cargoTypeCode) && (
                 <>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Volume (CBM)</label>
@@ -1234,7 +1238,7 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
             </div>
 
             {/* AIR/LCL: Quantity + UOM */}
-            {!CONTAINER_CARGO_TYPES.includes(formData.cargoTypeCode || '') && (
+            {!isContainerCargoType(formData.cargoTypeCode) && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Quantity</label>
@@ -1288,7 +1292,7 @@ export const EnquiryForm: React.FC<EnquiryFormProps> = ({ initialData, onSubmit,
             </div>
 
             {/* FCL/BUYER-CONSOL: 容器信息表格 */}
-            {CONTAINER_CARGO_TYPES.includes(formData.cargoTypeCode || '') && (
+            {isContainerCargoType(formData.cargoTypeCode) && (
               <CargoContainerTable
                 rows={formData.containerRows || [{ qty20: 0, qty40: 0, qty40hq: 0, qty45: 0 }]}
                 onChange={(rows) => handleChange('containerRows', rows)}

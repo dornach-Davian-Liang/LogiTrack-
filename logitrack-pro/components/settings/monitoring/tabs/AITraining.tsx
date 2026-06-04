@@ -13,20 +13,22 @@ import WhatIfSimulator from '../training/WhatIfSimulator';
 import RegressionRunner from '../training/RegressionRunner';
 import CaseEditModal from '../training/CaseEditModal';
 import { monitorPyApi } from '../../../../services/monitorApi';
+import { useLanguage } from '../../../../i18n/LanguageContext';
 
 type SubTab = 'cases' | 'simulator' | 'regression';
-
-const SUB_TABS: { id: SubTab; label: string }[] = [
-  { id: 'cases',      label: '📚 案例库' },
-  { id: 'simulator',  label: '🧪 路由模拟器' },
-  { id: 'regression', label: '🔁 回归测试' },
-];
 
 const AITraining: React.FC = () => {
   const [subTab, setSubTab] = useState<SubTab>('cases');
   const [refreshTick, setRefreshTick] = useState(0);
   const [regressionTick, setRegressionTick] = useState(0);
   const [showAddModal, setShowAddModal] = useState(false);
+  const { translations: t } = useLanguage();
+
+  const SUB_TABS: { id: SubTab; label: string }[] = [
+    { id: 'cases',      label: `📚 ${t.monitoring.training.tabs.cases}` },
+    { id: 'simulator',  label: `🧪 ${t.monitoring.training.tabs.simulator}` },
+    { id: 'regression', label: `🔁 ${t.monitoring.training.tabs.regression}` },
+  ];
 
   const refresh = () => {
     setRefreshTick(t => t + 1);

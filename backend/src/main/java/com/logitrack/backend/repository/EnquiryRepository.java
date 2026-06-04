@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -52,4 +53,8 @@ public interface EnquiryRepository extends JpaRepository<Enquiry, Long>, JpaSpec
                                @Param("productAbbr") String productAbbr);
     
     List<Enquiry> findByEnquiryReceivedDateBetween(LocalDate startDate, LocalDate endDate);
+
+    // 数据质检：直接查询 AI 自动建单的询价单（created_by='email-ai-bot'，按创建时间过滤）
+    @Query("SELECT e FROM Enquiry e WHERE e.createdBy = :createdBy AND e.enquiryCreatedDate >= :since ORDER BY e.enquiryCreatedDate DESC")
+    List<Enquiry> findByCreatedBySince(@Param("createdBy") String createdBy, @Param("since") LocalDateTime since);
 }

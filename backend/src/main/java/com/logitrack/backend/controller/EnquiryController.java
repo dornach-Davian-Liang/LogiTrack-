@@ -3,7 +3,9 @@ package com.logitrack.backend.controller;
 import com.logitrack.backend.aspect.AuditLogAspect.Audit;
 import com.logitrack.backend.dto.ReferencePreview;
 import com.logitrack.backend.entity.Enquiry;
+import com.logitrack.backend.service.AuthService;
 import com.logitrack.backend.service.EnquiryService;
+import com.logitrack.backend.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -23,6 +25,7 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 询价?�制??v3
@@ -34,12 +37,33 @@ import java.util.Map;
 public class EnquiryController {
     
     private final EnquiryService enquiryService;
-    
+    private final AuthService authService;
+    private final UserService userService;
+
     /**
-     * GET /api/enquiries — 询价列表（带筛选）
+     * 获取当前用户允许访问的办公室过滤字符串；
+     * 非 Admin 返回用户绑定办公室的逗号拼接字符串，Admin 返回 null 表示不限制。
      */
+    private String resolveOfficeFilter(HttpServletRequest request, String clientFilter) {
+        String authHeader = request.getHeader("Authorization");
+        Integer userId = authService.resolveUserIdFromAuthHeader(authHeader);
+        if (userId == null) return clientFilter;
+        // Admin 不受限制
+        if (authService.isAdmin(userId)) return clientFilter;
+        // 非 Admin：取用户绑定办公室
+        Set<String> allowed = userService.getUserAllowedOffices(userId);
+        if (allowed.isEmpty()) return clientFilter;
+        // 如果前端也传了办公室过滤，取交集
+        if (clientFilter != null && !clientFilter.isBlank()) {
+            Set<String> clientSet = new java.util.HashSet<>(java.util.Arrays.asList(clientFilter.split(",")));
+            clientSet.retainAll(allowed);
+            return clientSet.isEmpty() ? "__NONE__" : String.join(",", clientSet);
+        }
+        return String.join(",", allowed);
+    }
     @GetMapping
     public ResponseEntity<?> getAllEnquiries(
+            HttpServletRequest request,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String keyword,
@@ -66,6 +90,9 @@ public class EnquiryController {
         log.info("GET /api/enquiries - page={}, size={}, keyword={}, status={}, product={}, cargo={}", 
                 page, size, keyword, status, productCode, cargoTypeCode);
         
+        // 行级权限：非 Admin 用户只能看到自己绑定的 CN Office 数据
+        String effectiveOffice = resolveOfficeFilter(request, assignedCnOffice);
+        
         Sort sort = direction.equalsIgnoreCase("asc") 
             ? Sort.by(sortBy).ascending() 
             : Sort.by(sortBy).descending();
@@ -74,7 +101,7 @@ public class EnquiryController {
         // Check if any filter is active
         boolean hasFilters = (keyword != null && !keyword.isBlank()) ||
                 status != null || productCode != null || cargoTypeCode != null ||
-                salesCountryCode != null || assignedCnOffice != null ||
+                salesCountryCode != null || effectiveOffice != null ||
                 coreNonCore != null || dateFrom != null || dateTo != null ||
                 createdDateFrom != null || createdDateTo != null ||
                 polPortId != null || podPortId != null ||
@@ -85,7 +112,7 @@ public class EnquiryController {
             enquiryPage = enquiryService.getEnquiriesFiltered(
                     keyword != null ? keyword.trim() : null,
                     status, productCode, cargoTypeCode,
-                    salesCountryCode, assignedCnOffice, coreNonCore,
+                    salesCountryCode, effectiveOffice, coreNonCore,
                     dateFrom, dateTo, polPortId, podPortId,
                     createdDateFrom, createdDateTo,
                     createdBy, pageable);
@@ -116,6 +143,7 @@ public class EnquiryController {
      */
     @GetMapping("/export-xlsx")
     public ResponseEntity<byte[]> exportXlsx(
+            HttpServletRequest request,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String cargoTypeCode,
@@ -129,9 +157,11 @@ public class EnquiryController {
             @RequestParam(required = false) String createdDateFrom,
             @RequestParam(required = false) String createdDateTo) {
         try {
+            // 行级权限：非 Admin 用户只能导出自己绑定的 CN Office 数据
+            String effectiveOffice = resolveOfficeFilter(request, assignedCnOffice);
             byte[] data = enquiryService.exportToExcel(
                     keyword, status, cargoTypeCode,
-                    salesCountryCode, assignedCnOffice, coreNonCore,
+                    salesCountryCode, effectiveOffice, coreNonCore,
                     dateFrom, dateTo, polPortId, podPortId,
                     createdDateFrom, createdDateTo);
             HttpHeaders headers = new HttpHeaders();

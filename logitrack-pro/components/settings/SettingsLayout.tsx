@@ -3,30 +3,29 @@ import { Settings as SettingsIcon, ClipboardList, Users, Activity } from 'lucide
 import AuditLog from './AuditLog';
 import UserManagement from './UserManagement';
 import MonitoringDashboard from './monitoring/MonitoringDashboard';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 type SettingsTab = 'audit-log' | 'user-management' | 'email-monitor';
 
 export const SettingsLayout: React.FC = () => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('audit-log');
+  const { translations: t } = useLanguage();
 
   const tabs = [
     {
       id: 'user-management' as const,
-      label: '👥 用户管理',
+      label: t.settings.tabs.userManagement,
       icon: Users,
-      description: '用户账号、权限与状态管理'
     },
     {
       id: 'audit-log' as const,
-      label: '📋 操作日志',
+      label: t.settings.tabs.auditLog,
       icon: ClipboardList,
-      description: '系统操作审计日志'
     },
     {
       id: 'email-monitor' as const,
-      label: '📊 邮件监控',
+      label: t.settings.tabs.emailMonitor,
       icon: Activity,
-      description: '邮件 AI 自动化处理监控面板'
     }
   ];
 
@@ -36,9 +35,9 @@ export const SettingsLayout: React.FC = () => {
       <div>
         <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
           <SettingsIcon size={32} />
-          系统设置
+          {t.settings.title}
         </h1>
-        <p className="text-gray-500 mt-1">管理系统配置、主数据和操作日志</p>
+        <p className="text-gray-500 mt-1">{t.settings.subtitle}</p>
       </div>
 
       {/* 选项卡导航 */}

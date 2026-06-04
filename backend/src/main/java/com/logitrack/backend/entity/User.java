@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 用户实体类
@@ -18,7 +19,7 @@ import java.util.Set;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(exclude = "roles")
+@EqualsAndHashCode(exclude = {"roles", "cnOffices"})
 public class User {
     
     @Id
@@ -65,6 +66,21 @@ public class User {
         inverseJoinColumns = @JoinColumn(name = "role_id")
     )
     private Set<Role> roles = new HashSet<>();
+
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+        name = "user_cn_office",
+        joinColumns = @JoinColumn(name = "user_id"),
+        inverseJoinColumns = @JoinColumn(name = "cn_office_code", referencedColumnName = "code")
+    )
+    private Set<CnOffice> cnOffices = new HashSet<>();
+
+    /**
+     * 获取用户绑定的 CN Office code 列表（便于权限判断）
+     */
+    public Set<String> getCnOfficeCodes() {
+        return cnOffices.stream().map(CnOffice::getCode).collect(Collectors.toSet());
+    }
     
     @PrePersist
     protected void onCreate() {

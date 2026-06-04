@@ -78,6 +78,7 @@ public class AuthService {
             .roles(roleNames)
             .permissions(allPermissions)
             .loginTime(LocalDateTime.now())
+            .cnOffices(user.getCnOfficeCodes())
             .build();
     }
     

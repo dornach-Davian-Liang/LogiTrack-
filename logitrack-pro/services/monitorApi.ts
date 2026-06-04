@@ -73,6 +73,7 @@ export interface PagedResponse<T> {
 
 export interface PyApiStatus {
   run_mode: string;
+  create_ref_mode?: string;
   is_running: boolean;
   poll_interval: number;
   last_poll_time: string | null;
@@ -114,6 +115,68 @@ export interface LogSearchParams {
   endTime?: string;
   page?: number;
   size?: number;
+}
+
+// ─── 数据质检类型 ──────────────────────────────────────────────────────────
+
+export interface QualityCheckConfig {
+  enabled: boolean;
+  cronExpression: string;
+  checkScopeDays: number;
+  globalRecipients: string[];
+  routeBasedEnabled: boolean;
+}
+
+export interface QualityCheckResult {
+  enquiryId: number;
+  refNumber: string;
+  logId: number;
+  emailSubject: string | null;
+  senderEmail: string | null;
+  processedAt: string;
+  missingFields: string[];
+  isComplete: boolean;
+  verified: boolean;
+  verifiedBy: string | null;
+  verifiedAt: string | null;
+  routeRecipients: string[];
+  routeCc: string[];
+}
+
+export interface QualityRunResponse {
+  results: QualityCheckResult[];
+  fieldStats: Record<string, number>;
+  totalChecked: number;
+  totalIncomplete: number;
+}
+
+export interface QualityCheckHistory {
+  id: number;
+  executedAt: string;
+  checkScopeDays: number;
+  totalChecked: number;
+  totalComplete: number;
+  totalIncomplete: number;
+  completionRate: number;
+  fieldStatsJson: string | null;
+  reportSent: boolean;
+  globalRecipientsCount: number;
+  routeRecipientsCount: number;
+  errorMessage: string | null;
+  createdAt: string;
+}
+
+export interface FieldStatsResponse {
+  stats: Record<string, number>;
+  labels: Record<string, string>;
+  totalChecked: number;
+}
+
+export interface TrendPoint {
+  date: string;
+  totalChecked: number;
+  totalIncomplete: number;
+  completionRate: number;
 }
 
 // ─── 训练案例类型 ──────────────────────────────────────────────────────────
@@ -210,6 +273,48 @@ export const monitorApi = {
 
   /** 最近 20 条日志 */
   getRecentLogs: () => request<ProcessingLogDTO[]>('/monitor/logs/recent'),
+
+  // ─── 数据质检模块 ──────────────────────────────────────────────────────────
+
+  /** 获取质检配置 */
+  getQualityConfig: () => request<QualityCheckConfig>('/monitor/quality/config'),
+
+  /** 更新质检配置 */
+  updateQualityConfig: (cfg: Partial<QualityCheckConfig>) =>
+    fetch('/api/monitor/quality/config', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(cfg),
+    }).then(async r => { if (!r.ok) throw new Error(await r.text()); return r.json() as Promise<QualityCheckConfig>; }),
+
+  /** 手动触发质检（含发送邮件） */
+  runQualityCheck: () =>
+    fetch('/api/monitor/quality/run', { method: 'POST' })
+      .then(async r => { if (!r.ok) throw new Error(await r.text()); return r.json() as Promise<QualityRunResponse>; }),
+
+  /** 获取质检结果（不发邮件） */
+  getQualityResults: (days = 7) => request<QualityRunResponse>(`/monitor/quality/results?days=${days}`),
+
+  /** 获取执行历史（最近 30 次） */
+  getQualityHistory: () => request<QualityCheckHistory[]>('/monitor/quality/history'),
+
+  /** 字段缺失统计（热力图数据） */
+  getFieldStats: (days = 30) => request<FieldStatsResponse>(`/monitor/quality/field-stats?days=${days}`),
+
+  /** 每日完整率趋势（折线图数据） */
+  getQualityTrend: (days = 30) => request<TrendPoint[]>(`/monitor/quality/trend?days=${days}`),
+
+  /** 标记询价单已核验 */
+  markVerified: (enquiryId: number, username: string) =>
+    fetch(`/api/monitor/quality/verify/${enquiryId}`, {
+      method: 'POST',
+      headers: { 'X-Username': username },
+    }).then(async r => { if (!r.ok) throw new Error(await r.text()); return r.json(); }),
+
+  /** 撤销已核验标记 */
+  unmarkVerified: (enquiryId: number) =>
+    fetch(`/api/monitor/quality/verify/${enquiryId}`, { method: 'DELETE' })
+      .then(async r => { if (!r.ok) throw new Error(await r.text()); return r.json(); }),
 };
 
 // ─── Python FastAPI（实时进程状态）──────────────────────────────────────────
@@ -311,6 +416,14 @@ export const monitorPyApi = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ enabled }),
+    }).then(async r => { if (!r.ok) throw new Error(await r.text()); return r.json(); }),
+
+  /** 切换 CREATE_REF_MODE (DRY_RUN / TEST_FORWARD / LIVE) */
+  setCreateRefMode: (mode: string) =>
+    fetch('/pyapi/control/create-ref-mode', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode }),
     }).then(async r => { if (!r.ok) throw new Error(await r.text()); return r.json(); }),
 
   /** 从去重列表（tested_emails.json）移除指定 conversation_id */
@@ -417,7 +530,7 @@ export interface ProcessStatusDTO {
 export interface StartRequestDTO {
   runMode: string;           // DRY_RUN / TEST_FORWARD / LIVE
   pollInterval?: number;     // 秒
-  logitrackDryRun?: boolean; // true=打印建单，false=实际建单
+  createRefMode?: string;    // DRY_RUN / TEST_FORWARD / LIVE
   testMailbox?: string;      // TEST_FORWARD 目标邮箱
   auditBcc?: string;         // LIVE 模式审核 BCC 邮箱
 }

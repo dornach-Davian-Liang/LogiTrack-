@@ -43,6 +43,7 @@ public class EnquiryService {
     private final SalesPicRepository salesPicRepository;
     private final SalesOfficeRepository salesOfficeRepository;
     private final PortRepository portRepository;
+    private final SalesCountryRepository salesCountryRepository;
     private final LostReasonRepository lostReasonRepository;
     private final CancelledReasonRepository cancelledReasonRepository;
     
@@ -739,6 +740,8 @@ public class EnquiryService {
         // 2. 加载 Reason 字典
         List<LostReason> lostReasons = lostReasonRepository.findAllByOrderBySortOrderAsc();
         List<CancelledReason> cancelledReasons = cancelledReasonRepository.findAllByOrderBySortOrderAsc();
+        Map<String, String> salesCountryNameMap = salesCountryRepository.findByIsActiveTrueOrderBySortOrderAsc().stream()
+            .collect(Collectors.toMap(SalesCountry::getCode, SalesCountry::getName));
         Map<String, String> lostLabelMap = lostReasons.stream()
                 .collect(Collectors.toMap(LostReason::getCode, LostReason::getLabel));
         Map<String, String> cancelledLabelMap = cancelledReasons.stream()
@@ -793,7 +796,10 @@ public class EnquiryService {
                 // Cancelled Reason: code → label
                 row.createCell(COL_CANCELLED).setCellValue(
                     e.getCancelledReason() != null ? cancelledLabelMap.getOrDefault(e.getCancelledReason(), e.getCancelledReason()) : "");
-                row.createCell(6).setCellValue(nvl(e.getSalesCountryCode()));
+                row.createCell(6).setCellValue(
+                    e.getSalesCountryCode() != null
+                        ? salesCountryNameMap.getOrDefault(e.getSalesCountryCode(), e.getSalesCountryCode())
+                        : "");
                 row.createCell(7).setCellValue(nvl(e.getSalesPicName()));
                 row.createCell(8).setCellValue(nvl(e.getSalesOfficeName()));
                 row.createCell(9).setCellValue(nvl(e.getAssignedCnOffice()));

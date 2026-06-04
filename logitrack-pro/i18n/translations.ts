@@ -341,6 +341,293 @@ export interface Translations {
     edit: string;
     close: string;
   };
+
+  // Settings Page (SettingsLayout + UserManagement)
+  settings: {
+    title: string;
+    subtitle: string;
+    tabs: {
+      userManagement: string;
+      auditLog: string;
+      emailMonitor: string;
+    };
+    userManagement: {
+      title: string;
+      subtitle: string;
+      refresh: string;
+      createUser: string;
+      searchPlaceholder: string;
+      showInactive: string;
+      unassigned: string;
+      noData: string;
+      tableHeaders: {
+        username: string;
+        fullName: string;
+        email: string;
+        role: string;
+        cnOffice: string;
+        status: string;
+        actions: string;
+      };
+      statusActive: string;
+      statusInactive: string;
+      actions: {
+        edit: string;
+        disable: string;
+        enable: string;
+        resetPassword: string;
+      };
+      modal: {
+        createTitle: string;
+        editTitle: string;
+      };
+      form: {
+        username: string;
+        fullName: string;
+        email: string;
+        phone: string;
+        role: string;
+        rolePlaceholder: string;
+        cnOffice: string;
+        cnOfficePlaceholder: string;
+        password: string;
+        generatePassword: string;
+      };
+      confirm: {
+        disable: string;
+        resetPassword: string;
+      };
+      errors: {
+        requiredFields: string;
+        passwordRequired: string;
+        cnOfficeRequired: string;
+        saveFailed: string;
+        resetFailed: string;
+        disableFailed: string;
+        enableFailed: string;
+      };
+      passwordReveal: {
+        title: string;
+        usernameLabel: string;
+        passwordLabel: string;
+        warning: string;
+        confirm: string;
+      };
+    };
+  };
+
+  // Email Monitoring Dashboard (all tabs)
+  monitoring: {
+    tabs: {
+      service: string;
+      overview: string;
+      logs: string;
+      debug: string;
+      config: string;
+      training: string;
+      quality: string;
+    };
+    service: {
+      checkingStatus: string;
+      running: string;
+      stopped: string;
+      pid: string;
+      mode: string;
+      apiOffline: string;
+      apiOnline: string;
+      clickToStart: string;
+      launchConfig: string;
+      runMode: string;
+      testMailbox: string;
+      testMailboxPlaceholder: string;
+      auditBcc: string;
+      auditBccPlaceholder: string;
+      auditBccHint: string;
+      pollInterval: string;
+      pollIntervalHint: string;
+      logitrackMode: string;
+      logitrackDryRunLabel: string;
+      logitrackDryRunDesc: string;
+      logitrackTestForwardLabel: string;
+      logitrackTestForwardDesc: string;
+      logitrackLiveLabel: string;
+      logitrackLiveDesc: string;
+      modeDryRunDesc: string;
+      modeTestForwardDesc: string;
+      modeLiveDesc: string;
+      runtimeAdjust: string;
+      runtimeAdjustTitle: string;
+      applyChanges: string;
+      applying: string;
+      liveConfirmTitle: string;
+      liveConfirmBody: string;
+      liveConfirmCheck1: string;
+      liveConfirmCheck2: string;
+      liveConfirmCheck3: string;
+      liveConfirmBtn: string;
+      cancelBtn: string;
+      startService: string;
+      stopService: string;
+      starting: string;
+      stopping: string;
+      fillTestMailbox: string;
+      refreshStatus: string;
+      infoStart: string;
+      infoStop: string;
+      infoMode: string;
+      pyApiNotReady: string;
+    };
+    overview: {
+      loading: string;
+      running: string;
+      stopped: string;
+      pyApiUnavailable: string;
+      unknown: string;
+      normal: string;
+      error: string;
+      secondsAgo: string;
+      minutesAgo: string;
+      lastRefresh: string;
+      autoRefresh: string;
+      todayStats: string;
+      todayTotal: string;
+      todayProcessed: string;
+      todaySkipped: string;
+      todayErrors: string;
+      todayForwarded: string;
+      todayLogitrack: string;
+      runStatus: string;
+      pollInterval: string;
+      lastPoll: string;
+      uptime: string;
+      consecutiveFails: string;
+      failTimes: string;
+      serviceHealth: string;
+      healthSnapshot: string;
+      sessionStats: string;
+      totalProcessed: string;
+      totalSkipped: string;
+      totalErrors: string;
+      totalForwarded: string;
+      totalLogitrack: string;
+    };
+    logs: {
+      filterTitle: string;
+      startTime: string;
+      endTime: string;
+      folder: string;
+      allFolders: string;
+      processResult: string;
+      allResults: string;
+      emailType: string;
+      allTypes: string;
+      senderEmail: string;
+      senderPlaceholder: string;
+      keyword: string;
+      keywordPlaceholder: string;
+      search: string;
+      clear: string;
+      totalRecords: string;
+      page: string;
+      of: string;
+      refresh: string;
+      loading: string;
+      noData: string;
+      loadFailed: string;
+      justNow: string;
+      minutesAgo: string;
+      hoursAgo: string;
+      daysAgo: string;
+      colTime: string;
+      colFolder: string;
+      colSender: string;
+      colSubject: string;
+      colType: string;
+      colResult: string;
+      colEnquiry: string;
+      testRoute: string;
+      noSubject: string;
+      resultProcessed: string;
+      resultSkipped: string;
+      resultError: string;
+      resultForwarded: string;
+      replayTitle: string;
+      replaySkip: string;
+      replayCanCreate: string;
+      replayReason: string;
+      replayNoInstructions: string;
+      replayRouteDecision: string;
+      replayFallback: string;
+      replayCalculating: string;
+      replayServiceDown: string;
+    };
+    debug: {
+      tabs: {
+        mode: string;
+        replay: string;
+        tools: string;
+      };
+      logLevelControl: string;
+      logLevelChanged: string;
+      logLevelFailed: string;
+      pollNow: string;
+      pollNowTitle: string;
+      pollTriggered: string;
+      pollFailed: string;
+      polling: string;
+    };
+    config: {
+      tabRouting: string;
+      tabApi: string;
+      tabRules: string;
+      apiConnections: string;
+      apiKeyNote: string;
+      testConnection: string;
+      testing: string;
+      runtimeParams: string;
+      pollIntervalDesc: string;
+      logitrackEnabledDesc: string;
+      tempDirDesc: string;
+      testMailboxDesc: string;
+      enabled: string;
+      disabled: string;
+      skipRulesTitle: string;
+      undoChanges: string;
+      saving: string;
+      saveChanges: string;
+      saveSuccess: string;
+      saveFailed: string;
+      loadFailed: string;
+      loadingSkipRules: string;
+      skipRulesUnavailable: string;
+      noConfig: string;
+    };
+    training: {
+      tabs: {
+        cases: string;
+        simulator: string;
+        regression: string;
+      };
+    };
+    quality: {
+      cronPresets: {
+        daily9: string;
+        daily18: string;
+        every4h: string;
+        hourly: string;
+        custom: string;
+      };
+      tabs: {
+        results: string;
+        charts: string;
+        history: string;
+      };
+      configSaved: string;
+      saveFailed: string;
+      runComplete: string;
+      runFailed: string;
+    };
+  };
 }
 
 // Chinese Translations
@@ -679,7 +966,295 @@ export const zhTranslations: Translations = {
     viewDetail: '查看详情',
     edit: '编辑',
     close: '关闭',
-  },};
+  },
+
+  // Settings Page
+  settings: {
+    title: '系统设置',
+    subtitle: '管理系统配置、主数据和操作日志',
+    tabs: {
+      userManagement: '👥 用户管理',
+      auditLog: '📋 操作日志',
+      emailMonitor: '📊 邮件监控',
+    },
+    userManagement: {
+      title: '👥 用户管理',
+      subtitle: '创建、编辑用户并管理权限',
+      refresh: '刷新',
+      createUser: '新增用户',
+      searchPlaceholder: '搜索用户名/姓名/邮箱',
+      showInactive: '显示已禁用用户',
+      unassigned: '未分配',
+      noData: '暂无用户数据',
+      tableHeaders: {
+        username: '用户名',
+        fullName: '姓名',
+        email: '邮箱',
+        role: '角色',
+        cnOffice: '归属办公室',
+        status: '状态',
+        actions: '操作',
+      },
+      statusActive: '启用',
+      statusInactive: '禁用',
+      actions: {
+        edit: '编辑',
+        disable: '禁用',
+        enable: '启用',
+        resetPassword: '重置密码',
+      },
+      modal: {
+        createTitle: '新增用户',
+        editTitle: '编辑用户',
+      },
+      form: {
+        username: '用户名',
+        fullName: '姓名',
+        email: '邮箱',
+        phone: '电话',
+        role: '角色',
+        rolePlaceholder: '请选择角色',
+        cnOffice: '归属办公室 (Assigned CN Office)',
+        cnOfficePlaceholder: '请选择归属办公室（必填）',
+        password: '密码',
+        generatePassword: '生成随机密码',
+      },
+      confirm: {
+        disable: '确认禁用用户 {{username}} 吗？',
+        resetPassword: '确认重置 {{username}} 的密码吗？',
+      },
+      errors: {
+        requiredFields: '请填写用户名、姓名和角色',
+        passwordRequired: '请设置初始密码',
+        cnOfficeRequired: '请至少选择一个归属办公室',
+        saveFailed: '保存失败',
+        resetFailed: '重置失败',
+        disableFailed: '禁用失败',
+        enableFailed: '启用失败',
+      },
+      passwordReveal: {
+        title: '用户已创建 — 请记录初始密码',
+        usernameLabel: '用户名',
+        passwordLabel: '初始密码',
+        warning: '此密码仅显示一次，请立即记录',
+        confirm: '已记录，关闭',
+      },
+    },
+  },
+
+  // Email Monitoring Dashboard
+  monitoring: {
+    tabs: {
+      service: '🚀 服务管理',
+      overview: '📊 实时状态',
+      logs: '📋 处理日志',
+      debug: '🛠 调试控制',
+      config: '⚙️ 配置查看',
+      training: '🎯 AI 训练',
+      quality: '🔍 数据质检',
+    },
+    service: {
+      checkingStatus: '检查服务状态...',
+      running: '✅ 服务运行中',
+      stopped: '⛔ 服务未运行',
+      pid: 'PID:',
+      mode: '模式:',
+      apiOffline: '（监控 API 暂不可达）',
+      apiOnline: '监控 API 在线',
+      clickToStart: '点击下方按钮启动服务',
+      launchConfig: '启动参数配置',
+      runMode: '运行模式',
+      testMailbox: 'TEST_FORWARD 目标邮箱',
+      testMailboxPlaceholder: '转发到此邮箱进行测试，例如: your.name@zieglergroup.cn',
+      auditBcc: 'LIVE 审核 BCC 邮箱',
+      auditBccPlaceholder: '转发邮件同时 BCC 到此邮箱，留空则使用默认值',
+      auditBccHint: '每封转发邮件将同时 BCC 到该邮箱以供审核（默认: davian.liang@zieglergroup.cn）',
+      pollInterval: '轮询间隔（秒）',
+      pollIntervalHint: '每隔此秒数检查一次新邮件（最小 10 秒，推荐 60 秒）',
+      logitrackMode: 'CREATE_REF 建号模式',
+      logitrackDryRunLabel: '🖨 DRY-RUN 打印',
+      logitrackDryRunDesc: '构建建单 payload 但只打印日志，不实际写入 LogiTrack',
+      logitrackTestForwardLabel: '🧪 测试建号',
+      logitrackTestForwardDesc: '模拟建单并写入监控日志，但不真实调用 LogiTrack API',
+      logitrackLiveLabel: '📝 实际建单',
+      logitrackLiveDesc: '自动在 LogiTrack 中创建询价单（需 LOGITRACK_ENABLED=true）',
+      modeDryRunDesc: '分析并计算路由，但不发送转发邮件',
+      modeTestForwardDesc: '将邮件转发到测试邮箱，不影响真实客户',
+      modeLiveDesc: '真实转发至客户 PIC，标记邮件已读',
+      runtimeAdjust: '运行时调整',
+      runtimeAdjustTitle: '运行时参数调整（即时生效，无需重启）',
+      applyChanges: '✅ 应用更改',
+      applying: '应用中...',
+      liveConfirmTitle: '启动 LIVE 模式确认',
+      liveConfirmBody: '⚠️ LIVE 模式将真实转发邮件给客户 PIC，并标记原邮件为已读。',
+      liveConfirmCheck1: '路由规则已经过 TEST_FORWARD 验证',
+      liveConfirmCheck2: 'pic_routing.json 配置准确无误',
+      liveConfirmCheck3: '业务负责人已知悉并批准启用 LIVE 模式',
+      liveConfirmBtn: '确认启动 LIVE',
+      cancelBtn: '取消',
+      startService: '▶ 启动服务',
+      stopService: '■ 停止服务',
+      starting: '启动中...',
+      stopping: '停止中...',
+      fillTestMailbox: '请填写 TEST_FORWARD 目标邮箱',
+      refreshStatus: '刷新状态',
+      infoStart: '启动行为：Spring Boot 以 ProcessBuilder 调用 python main.py，日志追加到 logs/app.log',
+      infoStop: '停止行为：通过 PID 文件记录的进程 ID 执行 taskkill /F /PID {pid}',
+      infoMode: '模式说明：运行模式控制邮件转发；CREATE_REF_MODE 独立控制建号为仅记录 / 测试建号 / 实际建号；若全局运行模式是 DRY_RUN，则建号仍强制不落库。',
+      pyApiNotReady: '监控 API 暂不可达：服务进程已启动，但 FastAPI 监控端口 :5100 尚未就绪。通常在进程启动后约 3-5 秒可达。请稍后刷新。',
+    },
+    overview: {
+      loading: '加载中...',
+      running: '运行中',
+      stopped: '已停止',
+      pyApiUnavailable: 'Python API 不可用（展示历史数据）',
+      unknown: '未知',
+      normal: '正常',
+      error: '异常',
+      secondsAgo: '秒前',
+      minutesAgo: '分钟前',
+      lastRefresh: '最后刷新:',
+      autoRefresh: '（每30秒自动刷新）',
+      todayStats: '今日统计',
+      todayTotal: '今日总处理',
+      todayProcessed: '已处理',
+      todaySkipped: '已跳过',
+      todayErrors: '失败',
+      todayForwarded: '已转发',
+      todayLogitrack: '已建单',
+      runStatus: '运行状态',
+      pollInterval: '轮询间隔',
+      lastPoll: '上次轮询',
+      uptime: '持续运行',
+      consecutiveFails: '连续失败',
+      failTimes: '次',
+      serviceHealth: '服务健康',
+      healthSnapshot: '健康状态来自 DB 快照（实时 API 不可用）',
+      sessionStats: '本次启动累计',
+      totalProcessed: '累计处理',
+      totalSkipped: '累计跳过',
+      totalErrors: '累计失败',
+      totalForwarded: '累计转发',
+      totalLogitrack: '累计建单',
+    },
+    logs: {
+      filterTitle: '筛选条件',
+      startTime: '开始时间',
+      endTime: '结束时间',
+      folder: '文件夹',
+      allFolders: '全部',
+      processResult: '处理结果',
+      allResults: '全部',
+      emailType: '邮件类型',
+      allTypes: '全部',
+      senderEmail: '发件人',
+      senderPlaceholder: '邮箱地址（模糊匹配）',
+      keyword: '主题关键词',
+      keywordPlaceholder: '主题模糊搜索',
+      search: '查询',
+      clear: '清除',
+      totalRecords: '条记录',
+      page: '第',
+      of: '/',
+      refresh: '刷新',
+      loading: '加载中...',
+      noData: '暂无数据',
+      loadFailed: '加载日志失败，请检查后端服务是否运行',
+      justNow: '刚刚',
+      minutesAgo: '分钟前',
+      hoursAgo: '小时前',
+      daysAgo: '天前',
+      colTime: '时间',
+      colFolder: '文件夹',
+      colSender: '发件人',
+      colSubject: '主题',
+      colType: '类型',
+      colResult: '结果',
+      colEnquiry: '建单',
+      testRoute: '测试路由（重算 SkipChecker + 路由指令，不实际转发）',
+      noSubject: '(无主题)',
+      resultProcessed: '✅ 已处理',
+      resultSkipped: '⏭️ 跳过',
+      resultError: '❌ 失败',
+      resultForwarded: '📤 已转发',
+      replayTitle: '🧪 路由重算结果（不实际转发）',
+      replaySkip: '⏭ 跳过',
+      replayCanCreate: '✅ 可建单',
+      replayReason: '原因:',
+      replayNoInstructions: '无转发指令',
+      replayRouteDecision: '🧭 路由决策',
+      replayFallback: '⚠️ 使用了 fallback 路由',
+      replayCalculating: '计算中...',
+      replayServiceDown: 'Python 监控服务未运行，请先启动服务',
+    },
+    debug: {
+      tabs: {
+        mode: '🎛 运行控制',
+        replay: '🔁 邮件重放',
+        tools: '🔧 调试工具',
+      },
+      logLevelControl: '日志级别控制',
+      logLevelChanged: '日志级别已切换到',
+      logLevelFailed: '切换失败:',
+      pollNow: '🔄 立即轮询',
+      pollNowTitle: '立即触发轮询',
+      pollTriggered: '✅ 轮询已触发，稍后查看实时状态Tab的结果',
+      pollFailed: '触发失败:',
+      polling: '触发中...',
+    },
+    config: {
+      tabRouting: '路由配置',
+      tabApi: 'API 连接',
+      tabRules: '跳过规则',
+      apiConnections: '🔌 API 连接状态',
+      apiKeyNote: 'API 密钥仅展示后 4 位，不可编辑。',
+      testConnection: '测试连接',
+      testing: '测试中...',
+      runtimeParams: '⚙️ 运行参数（只读）',
+      pollIntervalDesc: '邮件轮询间隔（秒）',
+      logitrackEnabledDesc: '自动建询价单开关',
+      tempDirDesc: '附件临时目录',
+      testMailboxDesc: '测试转发收件箱',
+      enabled: '✅ 已启用',
+      disabled: '❌ 已禁用',
+      skipRulesTitle: '🚧 跳过规则编辑',
+      undoChanges: '撤销修改',
+      saving: '保存中...',
+      saveChanges: '保存',
+      saveSuccess: '✅ 跳过规则已保存，SkipChecker 缓存已热重载',
+      saveFailed: '保存失败:',
+      loadFailed: '加载失败:',
+      loadingSkipRules: '加载跳过规则...',
+      skipRulesUnavailable: '⚠️ 跳过规则加载失败，请确认 Python 监控服务是否运行',
+      noConfig: '无配置数据',
+    },
+    training: {
+      tabs: {
+        cases: '📚 案例库',
+        simulator: '🧪 路由模拟器',
+        regression: '🔁 回归测试',
+      },
+    },
+    quality: {
+      cronPresets: {
+        daily9: '每天 09:00',
+        daily18: '每天 18:00',
+        every4h: '每 4 小时',
+        hourly: '每小时',
+        custom: '自定义',
+      },
+      tabs: {
+        results: '质检结果',
+        charts: '趋势图表',
+        history: '历史记录',
+      },
+      configSaved: '配置已保存',
+      saveFailed: '保存失败',
+      runComplete: '质检完成：共 {{total}} 条，{{incomplete}} 条有缺失字段',
+      runFailed: '执行失败',
+    },
+  },
+};
 
 // English Translations
 export const enTranslations: Translations = {
@@ -1018,6 +1593,293 @@ export const enTranslations: Translations = {
     viewDetail: 'View Details',
     edit: 'Edit',
     close: 'Close',
+  },
+
+  // Settings Page
+  settings: {
+    title: 'System Settings',
+    subtitle: 'Manage system configuration, master data and audit logs',
+    tabs: {
+      userManagement: '👥 User Management',
+      auditLog: '📋 Audit Log',
+      emailMonitor: '📊 Email Monitor',
+    },
+    userManagement: {
+      title: '👥 User Management',
+      subtitle: 'Create and edit users, manage permissions',
+      refresh: 'Refresh',
+      createUser: 'Create User',
+      searchPlaceholder: 'Search username / name / email',
+      showInactive: 'Show disabled users',
+      unassigned: 'Unassigned',
+      noData: 'No user data',
+      tableHeaders: {
+        username: 'Username',
+        fullName: 'Full Name',
+        email: 'Email',
+        role: 'Role',
+        cnOffice: 'CN Office',
+        status: 'Status',
+        actions: 'Actions',
+      },
+      statusActive: 'Active',
+      statusInactive: 'Disabled',
+      actions: {
+        edit: 'Edit',
+        disable: 'Disable',
+        enable: 'Enable',
+        resetPassword: 'Reset Password',
+      },
+      modal: {
+        createTitle: 'Create User',
+        editTitle: 'Edit User',
+      },
+      form: {
+        username: 'Username',
+        fullName: 'Full Name',
+        email: 'Email',
+        phone: 'Phone',
+        role: 'Role',
+        rolePlaceholder: 'Select role',
+        cnOffice: 'Assigned CN Office',
+        cnOfficePlaceholder: 'Select CN office (required)',
+        password: 'Password',
+        generatePassword: 'Generate random password',
+      },
+      confirm: {
+        disable: 'Confirm disabling user {{username}}?',
+        resetPassword: 'Confirm resetting password for {{username}}?',
+      },
+      errors: {
+        requiredFields: 'Please fill in username, full name and role',
+        passwordRequired: 'Please set an initial password',
+        cnOfficeRequired: 'Please select at least one CN office',
+        saveFailed: 'Save failed',
+        resetFailed: 'Reset failed',
+        disableFailed: 'Disable failed',
+        enableFailed: 'Enable failed',
+      },
+      passwordReveal: {
+        title: 'User created — please record the initial password',
+        usernameLabel: 'Username',
+        passwordLabel: 'Initial Password',
+        warning: 'This password is only shown once. Please record it now.',
+        confirm: 'Recorded, close',
+      },
+    },
+  },
+
+  // Email Monitoring Dashboard
+  monitoring: {
+    tabs: {
+      service: '🚀 Service',
+      overview: '📊 Status',
+      logs: '📋 Logs',
+      debug: '🛠 Debug',
+      config: '⚙️ Config',
+      training: '🎯 AI Training',
+      quality: '🔍 Data Quality',
+    },
+    service: {
+      checkingStatus: 'Checking service status...',
+      running: '✅ Service Running',
+      stopped: '⛔ Service Stopped',
+      pid: 'PID:',
+      mode: 'Mode:',
+      apiOffline: '(Monitor API unreachable)',
+      apiOnline: 'Monitor API Online',
+      clickToStart: 'Click the button below to start the service',
+      launchConfig: 'Launch Configuration',
+      runMode: 'Run Mode',
+      testMailbox: 'TEST_FORWARD Target Mailbox',
+      testMailboxPlaceholder: 'Forward to this mailbox for testing, e.g.: your.name@zieglergroup.cn',
+      auditBcc: 'LIVE Audit BCC Mailbox',
+      auditBccPlaceholder: 'BCC forwarded emails to this mailbox, leave empty for default',
+      auditBccHint: 'Every forwarded email will be BCC\'d to this mailbox for audit (default: davian.liang@zieglergroup.cn)',
+      pollInterval: 'Poll Interval (seconds)',
+      pollIntervalHint: 'Check for new emails every N seconds (min 10s, recommend 60s)',
+      logitrackMode: 'CREATE_REF Mode',
+      logitrackDryRunLabel: '🖨 DRY-RUN Print',
+      logitrackDryRunDesc: 'Build enquiry payload and log only, no actual write to LogiTrack',
+      logitrackTestForwardLabel: '🧪 Test Create',
+      logitrackTestForwardDesc: 'Simulate creation and log, but do not call the real LogiTrack API',
+      logitrackLiveLabel: '📝 Live Create',
+      logitrackLiveDesc: 'Automatically create enquiries in LogiTrack (requires LOGITRACK_ENABLED=true)',
+      modeDryRunDesc: 'Analyze and calculate routing, but do not send forwarding emails',
+      modeTestForwardDesc: 'Forward emails to test mailbox, no impact on real customers',
+      modeLiveDesc: 'Forward to real customer PICs and mark emails as read',
+      runtimeAdjust: 'Runtime Adjust',
+      runtimeAdjustTitle: 'Runtime Parameter Adjustment (takes effect immediately, no restart needed)',
+      applyChanges: '✅ Apply Changes',
+      applying: 'Applying...',
+      liveConfirmTitle: 'Confirm LIVE Mode Activation',
+      liveConfirmBody: '⚠️ LIVE mode will forward emails to real customer PICs and mark originals as read.',
+      liveConfirmCheck1: 'Routing rules have been verified with TEST_FORWARD',
+      liveConfirmCheck2: 'pic_routing.json configuration is accurate',
+      liveConfirmCheck3: 'Business owner is aware and has approved LIVE mode',
+      liveConfirmBtn: 'Confirm Start LIVE',
+      cancelBtn: 'Cancel',
+      startService: '▶ Start Service',
+      stopService: '■ Stop Service',
+      starting: 'Starting...',
+      stopping: 'Stopping...',
+      fillTestMailbox: 'Please fill in TEST_FORWARD target mailbox',
+      refreshStatus: 'Refresh Status',
+      infoStart: 'Start behavior: Spring Boot calls python main.py via ProcessBuilder, logs appended to logs/app.log',
+      infoStop: 'Stop behavior: Execute taskkill /F /PID {pid} using PID from the PID file',
+      infoMode: 'Mode note: Run mode controls forwarding; CREATE_REF_MODE independently controls create-ref as log only / test create / live create; when global run mode is DRY_RUN, create-ref is still forced to stay non-persistent.',
+      pyApiNotReady: 'Monitor API unreachable: Service process started but FastAPI port :5100 is not ready yet. Usually available 3-5 seconds after startup. Please refresh later.',
+    },
+    overview: {
+      loading: 'Loading...',
+      running: 'Running',
+      stopped: 'Stopped',
+      pyApiUnavailable: 'Python API unavailable (showing historical data)',
+      unknown: 'Unknown',
+      normal: 'OK',
+      error: 'Error',
+      secondsAgo: 's ago',
+      minutesAgo: 'min ago',
+      lastRefresh: 'Last refresh:',
+      autoRefresh: '(auto-refresh every 30s)',
+      todayStats: 'Today\'s Statistics',
+      todayTotal: 'Total Processed',
+      todayProcessed: 'Processed',
+      todaySkipped: 'Skipped',
+      todayErrors: 'Failed',
+      todayForwarded: 'Forwarded',
+      todayLogitrack: 'Enquiries Created',
+      runStatus: 'Run Status',
+      pollInterval: 'Poll Interval',
+      lastPoll: 'Last Poll',
+      uptime: 'Uptime',
+      consecutiveFails: 'Consecutive Fails',
+      failTimes: '',
+      serviceHealth: 'Service Health',
+      healthSnapshot: 'Health status from DB snapshot (live API unavailable)',
+      sessionStats: 'Session Cumulative',
+      totalProcessed: 'Total Processed',
+      totalSkipped: 'Total Skipped',
+      totalErrors: 'Total Failed',
+      totalForwarded: 'Total Forwarded',
+      totalLogitrack: 'Total Enquiries',
+    },
+    logs: {
+      filterTitle: 'Filter Conditions',
+      startTime: 'Start Time',
+      endTime: 'End Time',
+      folder: 'Folder',
+      allFolders: 'All',
+      processResult: 'Result',
+      allResults: 'All',
+      emailType: 'Email Type',
+      allTypes: 'All',
+      senderEmail: 'Sender',
+      senderPlaceholder: 'Email address (fuzzy match)',
+      keyword: 'Subject Keyword',
+      keywordPlaceholder: 'Subject fuzzy search',
+      search: 'Search',
+      clear: 'Clear',
+      totalRecords: 'records',
+      page: 'Page',
+      of: '/',
+      refresh: 'Refresh',
+      loading: 'Loading...',
+      noData: 'No data',
+      loadFailed: 'Failed to load logs, please check if backend is running',
+      justNow: 'just now',
+      minutesAgo: 'min ago',
+      hoursAgo: 'hr ago',
+      daysAgo: 'd ago',
+      colTime: 'Time',
+      colFolder: 'Folder',
+      colSender: 'Sender',
+      colSubject: 'Subject',
+      colType: 'Type',
+      colResult: 'Result',
+      colEnquiry: 'Enquiry',
+      testRoute: 'Test routing (recalculate SkipChecker + routing, no actual forwarding)',
+      noSubject: '(no subject)',
+      resultProcessed: '✅ Processed',
+      resultSkipped: '⏭️ Skipped',
+      resultError: '❌ Failed',
+      resultForwarded: '📤 Forwarded',
+      replayTitle: '🧪 Route Recalculation (no forwarding)',
+      replaySkip: '⏭ Skip',
+      replayCanCreate: '✅ Can Create',
+      replayReason: 'Reason:',
+      replayNoInstructions: 'No routing instructions',
+      replayRouteDecision: '🧭 Routing Decision',
+      replayFallback: '⚠️ Fallback routing used',
+      replayCalculating: 'Calculating...',
+      replayServiceDown: 'Python monitor service not running, please start service first',
+    },
+    debug: {
+      tabs: {
+        mode: '🎛 Run Control',
+        replay: '🔁 Email Replay',
+        tools: '🔧 Debug Tools',
+      },
+      logLevelControl: 'Log Level Control',
+      logLevelChanged: 'Log level switched to',
+      logLevelFailed: 'Switch failed:',
+      pollNow: '🔄 Poll Now',
+      pollNowTitle: 'Trigger Immediate Poll',
+      pollTriggered: '✅ Poll triggered, check Status tab for results',
+      pollFailed: 'Trigger failed:',
+      polling: 'Triggering...',
+    },
+    config: {
+      tabRouting: 'Routing Config',
+      tabApi: 'API Connections',
+      tabRules: 'Skip Rules',
+      apiConnections: '🔌 API Connection Status',
+      apiKeyNote: 'API keys show last 4 characters only. Not editable.',
+      testConnection: 'Test Connection',
+      testing: 'Testing...',
+      runtimeParams: '⚙️ Runtime Parameters (Read-only)',
+      pollIntervalDesc: 'Email poll interval (seconds)',
+      logitrackEnabledDesc: 'Auto-create enquiry switch',
+      tempDirDesc: 'Attachment temp directory',
+      testMailboxDesc: 'Test forward mailbox',
+      enabled: '✅ Enabled',
+      disabled: '❌ Disabled',
+      skipRulesTitle: '🚧 Skip Rules Editor',
+      undoChanges: 'Undo Changes',
+      saving: 'Saving...',
+      saveChanges: 'Save',
+      saveSuccess: '✅ Skip rules saved, SkipChecker cache hot-reloaded',
+      saveFailed: 'Save failed:',
+      loadFailed: 'Load failed:',
+      loadingSkipRules: 'Loading skip rules...',
+      skipRulesUnavailable: '⚠️ Failed to load skip rules, please check if Python monitor service is running',
+      noConfig: 'No configuration data',
+    },
+    training: {
+      tabs: {
+        cases: '📚 Case Library',
+        simulator: '🧪 Route Simulator',
+        regression: '🔁 Regression Test',
+      },
+    },
+    quality: {
+      cronPresets: {
+        daily9: 'Daily 09:00',
+        daily18: 'Daily 18:00',
+        every4h: 'Every 4 hours',
+        hourly: 'Every hour',
+        custom: 'Custom',
+      },
+      tabs: {
+        results: 'Check Results',
+        charts: 'Trend Charts',
+        history: 'History',
+      },
+      configSaved: 'Configuration saved',
+      saveFailed: 'Save failed',
+      runComplete: 'Check complete: {{total}} total, {{incomplete}} with missing fields',
+      runFailed: 'Execution failed',
+    },
   },
 };
 

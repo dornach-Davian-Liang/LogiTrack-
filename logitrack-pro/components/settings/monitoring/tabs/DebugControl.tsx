@@ -3,6 +3,7 @@ import { monitorPyApi } from '../../../../services/monitorApi';
 import ModeSwitch from '../debug/ModeSwitch';
 import ReplayPanel from '../debug/ReplayPanel';
 import DebugTools from '../debug/DebugTools';
+import { useLanguage } from '../../../../i18n/LanguageContext';
 
 // ─── 日志级别控制 ─────────────────────────────────────────────────────────────
 
@@ -17,6 +18,8 @@ const LogLevelControl: React.FC = () => {
   const [currentLevel, setCurrentLevel] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const { translations: t } = useLanguage();
+  const dbg = t.monitoring.debug;
 
   const setLevel = async (level: string) => {
     setLoading(true);
@@ -24,9 +27,9 @@ const LogLevelControl: React.FC = () => {
     try {
       await monitorPyApi.setLogLevel(level);
       setCurrentLevel(level);
-      setMsg(`日志级别已切换到 ${level}`);
+      setMsg(dbg.logLevelChanged.replace('{level}', level));
     } catch (e: unknown) {
-      setMsg(`切换失败: ${e instanceof Error ? e.message : String(e)}`);
+      setMsg(`${dbg.logLevelFailed} ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setLoading(false);
     }
@@ -34,7 +37,7 @@ const LogLevelControl: React.FC = () => {
 
   return (
     <div className="space-y-3">
-      <div className="text-sm font-semibold text-gray-700">日志级别控制</div>
+      <div className="text-sm font-semibold text-gray-700">{dbg.logLevelControl}</div>
       <div className="flex flex-wrap gap-2">
         {LOG_LEVELS.map(({ level, cls, activeCls }) => (
           <button
@@ -50,7 +53,7 @@ const LogLevelControl: React.FC = () => {
       </div>
       {msg && (
         <div className={`text-xs rounded px-3 py-1.5 ${
-          msg.startsWith('切换失败')
+          msg.startsWith(dbg.logLevelFailed)
             ? 'bg-red-50 text-red-600 border border-red-200'
             : 'bg-green-50 text-green-700 border border-green-200'
         }`}>
@@ -66,15 +69,17 @@ const LogLevelControl: React.FC = () => {
 const PollNowButton: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const { translations: t } = useLanguage();
+  const dbg = t.monitoring.debug;
 
   const handlePoll = async () => {
     setLoading(true);
     setMsg(null);
     try {
       await monitorPyApi.pollNow();
-      setMsg('✅ 轮询已触发，稍后查看实时状态Tab的结果');
+      setMsg(dbg.pollTriggered);
     } catch (e: unknown) {
-      setMsg(`触发失败: ${e instanceof Error ? e.message : String(e)}`);
+      setMsg(`${dbg.pollFailed} ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setLoading(false);
     }
@@ -82,14 +87,14 @@ const PollNowButton: React.FC = () => {
 
   return (
     <div className="space-y-2">
-      <div className="text-sm font-semibold text-gray-700">立即触发轮询</div>
+      <div className="text-sm font-semibold text-gray-700">{dbg.pollNowTitle}</div>
       <div className="flex items-center gap-3">
         <button
           onClick={handlePoll}
           disabled={loading}
           className="px-4 py-2 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700 disabled:opacity-40"
         >
-          {loading ? '触发中...' : '🔄 立即轮询'}
+          {loading ? dbg.polling : dbg.pollNow}
         </button>
         {msg && <span className="text-xs text-gray-600">{msg}</span>}
       </div>
@@ -101,15 +106,17 @@ const PollNowButton: React.FC = () => {
 
 type DebugTab = 'mode' | 'replay' | 'tools';
 
-const DEBUG_TABS: { id: DebugTab; label: string }[] = [
-  { id: 'mode',   label: '🎛 运行控制' },
-  { id: 'replay', label: '🔁 邮件重放' },
-  { id: 'tools',  label: '🔧 调试工具' },
-];
-
 const DebugControl: React.FC = () => {
   const [tab, setTab] = useState<DebugTab>('mode');
   const [currentMode, setCurrentMode] = useState<string | null>(null);
+  const { translations: t } = useLanguage();
+  const dbg = t.monitoring.debug;
+
+  const DEBUG_TABS: { id: DebugTab; label: string }[] = [
+    { id: 'mode',   label: `🎛 ${dbg.tabs.mode}` },
+    { id: 'replay', label: `🔁 ${dbg.tabs.replay}` },
+    { id: 'tools',  label: `🔧 ${dbg.tabs.tools}` },
+  ];
 
   useEffect(() => {
     monitorPyApi.getStatus()

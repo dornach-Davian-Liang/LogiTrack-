@@ -469,7 +469,7 @@ export interface ReferencePreview {
 export interface EnquirySearchParams {
   keyword?: string;
   status?: EnquiryStatus | string;
-  productCode?: ProductCode;
+  productCode?: ProductCode | string;
   cargoTypeCode?: string;
   salesCountryCode?: string;
   assignedCnOffice?: string;

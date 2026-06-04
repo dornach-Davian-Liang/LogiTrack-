@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Search, Filter, ChevronDown, ChevronRight, RefreshCw, X, Play, AlertCircle, CheckCircle } from 'lucide-react';
 import { monitorApi, monitorPyApi, ProcessingLogDTO, LogSearchParams } from '../../../../services/monitorApi';
 import LogDetailPanel from '../detail/LogDetailPanel';
+import { useLanguage } from '../../../../i18n/LanguageContext';
 
 // ─── 常量 ────────────────────────────────────────────────────────────────────
 
@@ -9,11 +10,11 @@ const FOLDERS = ['Sea', 'Air', 'Rail', 'Inbox'];
 const RESULTS = ['PROCESSED', 'SKIPPED', 'ERROR', 'FORWARDED'];
 const EMAIL_TYPES = ['INQUIRY', 'BOOKING', 'FOLLOW_UP', 'COMPLAINT', 'OTHER'];
 
-const RESULT_STYLE: Record<string, { cls: string; label: string }> = {
-  PROCESSED:  { cls: 'bg-green-100 text-green-700',   label: '✅ 已处理' },
-  SKIPPED:    { cls: 'bg-gray-100 text-gray-500',     label: '⏭️ 跳过' },
-  ERROR:      { cls: 'bg-red-100 text-red-600',       label: '❌ 失败' },
-  FORWARDED:  { cls: 'bg-blue-100 text-blue-700',     label: '📤 已转发' },
+const RESULT_STYLE_CLS: Record<string, string> = {
+  PROCESSED:  'bg-green-100 text-green-700',
+  SKIPPED:    'bg-gray-100 text-gray-500',
+  ERROR:      'bg-red-100 text-red-600',
+  FORWARDED:  'bg-blue-100 text-blue-700',
 };
 
 const FOLDER_STYLE: Record<string, string> = {
@@ -36,14 +37,14 @@ function fmtTime(dt: string) {
   return dt.replace('T', ' ').substring(0, 16);
 }
 
-function relativeTime(dt: string): string {
+function relativeTime(dt: string, justNow: string, minsAgo: string, hrsAgo: string, daysAgo: string): string {
   const diff = Date.now() - new Date(dt).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return '刚刚';
-  if (mins < 60) return `${mins}分钟前`;
+  if (mins < 1) return justNow;
+  if (mins < 60) return `${mins}${minsAgo}`;
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}小时前`;
-  return `${Math.floor(hrs / 24)}天前`;
+  if (hrs < 24) return `${hrs}${hrsAgo}`;
+  return `${Math.floor(hrs / 24)}${daysAgo}`;
 }
 
 // ─── 初始筛选状态 ──────────────────────────────────────────────────────────────
@@ -72,6 +73,8 @@ interface FilterBarProps {
 
 const FilterBar: React.FC<FilterBarProps> = ({ filters, onChange, onSearch, onClear, loading }) => {
   const [open, setOpen] = useState(true);
+  const { translations: t } = useLanguage();
+  const lg = t.monitoring.logs;
 
   const set = (key: keyof LogSearchParams, val: string) =>
     onChange({ ...filters, [key]: val, page: 0 });
@@ -83,16 +86,16 @@ const FilterBar: React.FC<FilterBarProps> = ({ filters, onChange, onSearch, onCl
         className="w-full flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-800"
       >
         <Filter size={14} />
-        筛选条件
+        {lg.filterTitle}
         {open ? <ChevronDown size={14} className="ml-auto" /> : <ChevronRight size={14} className="ml-auto" />}
       </button>
 
       {open && (
         <div className="px-4 pb-4 space-y-3 border-t border-gray-200">
-          {/* 第一行 */}
+          {/* Row 1 */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3">
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-gray-500">开始时间</label>
+              <label className="text-xs text-gray-500">{lg.startTime}</label>
               <input
                 type="date"
                 value={filters.startTime?.substring(0, 10) ?? ''}
@@ -101,7 +104,7 @@ const FilterBar: React.FC<FilterBarProps> = ({ filters, onChange, onSearch, onCl
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-gray-500">结束时间</label>
+              <label className="text-xs text-gray-500">{lg.endTime}</label>
               <input
                 type="date"
                 value={filters.endTime?.substring(0, 10) ?? ''}
@@ -110,56 +113,56 @@ const FilterBar: React.FC<FilterBarProps> = ({ filters, onChange, onSearch, onCl
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-gray-500">文件夹</label>
+              <label className="text-xs text-gray-500">{lg.folder}</label>
               <select
                 value={filters.folderName ?? ''}
                 onChange={e => set('folderName', e.target.value)}
                 className="border border-gray-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 bg-white"
               >
-                <option value="">全部</option>
+                <option value="">{lg.allFolders}</option>
                 {FOLDERS.map(f => <option key={f} value={f}>{f}</option>)}
               </select>
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-gray-500">处理结果</label>
+              <label className="text-xs text-gray-500">{lg.processResult}</label>
               <select
                 value={filters.processResult ?? ''}
                 onChange={e => set('processResult', e.target.value)}
                 className="border border-gray-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 bg-white"
               >
-                <option value="">全部</option>
+                <option value="">{lg.allResults}</option>
                 {RESULTS.map(r => <option key={r} value={r}>{r}</option>)}
               </select>
             </div>
           </div>
-          {/* 第二行 */}
+          {/* Row 2 */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-gray-500">邮件类型</label>
+              <label className="text-xs text-gray-500">{lg.emailType}</label>
               <select
                 value={filters.emailType ?? ''}
                 onChange={e => set('emailType', e.target.value)}
                 className="border border-gray-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 bg-white"
               >
-                <option value="">全部</option>
+                <option value="">{lg.allTypes}</option>
                 {EMAIL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-gray-500">发件人</label>
+              <label className="text-xs text-gray-500">{lg.senderEmail}</label>
               <input
                 type="text"
-                placeholder="邮箱地址（模糊匹配）"
+                placeholder={lg.senderPlaceholder}
                 value={filters.senderEmail ?? ''}
                 onChange={e => set('senderEmail', e.target.value)}
                 className="border border-gray-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-400 bg-white"
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-gray-500">主题关键词</label>
+              <label className="text-xs text-gray-500">{lg.keyword}</label>
               <input
                 type="text"
-                placeholder="主题模糊搜索"
+                placeholder={lg.keywordPlaceholder}
                 value={filters.keyword ?? ''}
                 onChange={e => set('keyword', e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && onSearch()}
@@ -167,7 +170,7 @@ const FilterBar: React.FC<FilterBarProps> = ({ filters, onChange, onSearch, onCl
               />
             </div>
           </div>
-          {/* 操作按钮 */}
+          {/* Action buttons */}
           <div className="flex gap-2 pt-1">
             <button
               onClick={onSearch}
@@ -175,14 +178,14 @@ const FilterBar: React.FC<FilterBarProps> = ({ filters, onChange, onSearch, onCl
               className="flex items-center gap-1.5 px-4 py-1.5 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700 disabled:opacity-50"
             >
               <Search size={13} />
-              查询
+              {lg.search}
             </button>
             <button
               onClick={onClear}
               className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-600 rounded text-sm hover:bg-gray-100"
             >
               <X size={13} />
-              清除
+              {lg.clear}
             </button>
           </div>
         </div>
@@ -202,6 +205,8 @@ const InlineReplay: React.FC<InlineReplayProps> = ({ log, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<Record<string, unknown> | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { translations: t } = useLanguage();
+  const lg = t.monitoring.logs;
 
   useEffect(() => {
     setLoading(true);
@@ -219,15 +224,15 @@ const InlineReplay: React.FC<InlineReplayProps> = ({ log, onClose }) => {
   return (
     <div className="border-x border-b border-yellow-200 bg-yellow-50/40 px-4 py-3 space-y-3">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-yellow-700">🧪 路由重算结果（不实际转发）</span>
+        <span className="text-xs font-semibold text-yellow-700">{lg.replayTitle}</span>
         <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={14} /></button>
       </div>
 
-      {loading && <div className="text-xs text-gray-400 animate-pulse">计算中...</div>}
+      {loading && <div className="text-xs text-gray-400 animate-pulse">{lg.replayCalculating}</div>}
       {error && (
         <div className="flex items-center gap-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
           <AlertCircle size={13} />
-          {error.includes('Not Found') ? 'Python 监控服务未运行，请先启动服务' : error}
+          {error.includes('Not Found') ? lg.replayServiceDown : error}
         </div>
       )}
 
@@ -236,21 +241,21 @@ const InlineReplay: React.FC<InlineReplayProps> = ({ log, onClose }) => {
           {/* SkipChecker */}
           <div className="flex items-center gap-3">
             {(result.skip_result as Record<string, unknown>)?.skip ? (
-              <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-medium">⏭ 跳过</span>
+              <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-medium">{lg.replaySkip}</span>
             ) : (
               <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium flex items-center gap-1">
-                <CheckCircle size={11} /> 可建单
+                <CheckCircle size={11} /> {lg.replayCanCreate.replace('✅ ', '')}
               </span>
             )}
             {(result.skip_result as Record<string, unknown>)?.reason && (
-              <span className="text-gray-500">原因: {String((result.skip_result as Record<string, unknown>).reason)}</span>
+              <span className="text-gray-500">{lg.replayReason}: {String((result.skip_result as Record<string, unknown>).reason)}</span>
             )}
           </div>
 
           {/* 路由指令 */}
           {(() => {
             const instrs = ((result.routing as Record<string, unknown>)?.instructions ?? []) as Array<Record<string, unknown>>;
-            if (!instrs.length) return <div className="text-gray-400">无转发指令</div>;
+            if (!instrs.length) return <div className="text-gray-400">{lg.replayNoInstructions}</div>;
             return (
               <div className="space-y-1.5">
                 {instrs.map((instr, i) => (
@@ -270,13 +275,13 @@ const InlineReplay: React.FC<InlineReplayProps> = ({ log, onClose }) => {
             if (!reason) return null;
             return (
               <div className="bg-gray-50 border border-gray-200 rounded px-3 py-2 space-y-1">
-                <div className="text-gray-500 font-medium">🧭 路由决策</div>
+                <div className="text-gray-500 font-medium">🧭 {lg.replayRouteDecision}</div>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
                   {reason.rule_triggered && <div><span className="text-gray-400">规则: </span><span className="font-mono">{String(reason.rule_triggered)}</span></div>}
                   {reason.is_core !== undefined && <div><span className="text-gray-400">Core: </span>{reason.is_core ? '✅ Yes' : '⚪ No'}</div>}
                   {reason.core_basis && <div><span className="text-gray-400">依据: </span>{String(reason.core_basis)}</div>}
                   {reason.branch_resolved && <div><span className="text-gray-400">Branch: </span><strong>{String(reason.branch_resolved)}</strong></div>}
-                  {reason.fallback_used && <div className="col-span-2 text-yellow-600">⚠️ 使用了 fallback 路由</div>}
+                  {reason.fallback_used && <div className="col-span-2 text-yellow-600">{lg.replayFallback}</div>}
                 </div>
               </div>
             );
@@ -290,6 +295,8 @@ const InlineReplay: React.FC<InlineReplayProps> = ({ log, onClose }) => {
 // ─── 主组件 ───────────────────────────────────────────────────────────────────
 
 const ProcessingLogs: React.FC = () => {
+  const { translations: t } = useLanguage();
+  const lg = t.monitoring.logs;
   const [filters, setFilters] = useState<LogSearchParams>({ ...EMPTY_FILTERS });
   const [pendingFilters, setPendingFilters] = useState<LogSearchParams>({ ...EMPTY_FILTERS });
   const [logs, setLogs] = useState<ProcessingLogDTO[]>([]);
@@ -309,7 +316,7 @@ const ProcessingLogs: React.FC = () => {
       setTotalElements(res.totalElements);
       setTotalPages(res.totalPages);
     } catch (e) {
-      setError('加载日志失败，请检查后端服务是否运行');
+      setError(t.monitoring.logs.loadFailed);
     } finally {
       setLoading(false);
     }
@@ -369,8 +376,8 @@ const ProcessingLogs: React.FC = () => {
       {/* 汇总行 + 刷新 */}
       <div className="flex items-center justify-between text-sm text-gray-500">
         <span>
-          共 <span className="font-medium text-gray-700">{totalElements}</span> 条记录
-          {totalPages > 1 && <>，第 {currentPage + 1} / {totalPages} 页</>}
+          <span className="font-medium text-gray-700">{totalElements}</span>{lg.totalRecords}
+          {totalPages > 1 && <> · {lg.page} {currentPage + 1} {lg.of} {totalPages}</>}
         </span>
         <button
           onClick={() => fetchLogs(filters)}
@@ -378,7 +385,7 @@ const ProcessingLogs: React.FC = () => {
           className="flex items-center gap-1 text-indigo-600 hover:text-indigo-800 disabled:opacity-40"
         >
           <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
-          刷新
+          {lg.refresh}
         </button>
       </div>
 
@@ -393,22 +400,22 @@ const ProcessingLogs: React.FC = () => {
       <div className="border border-gray-200 rounded-lg overflow-hidden">
         {/* 表头 */}
         <div className="hidden md:grid grid-cols-[140px_70px_160px_1fr_80px_110px_70px_36px_36px] bg-gray-50 border-b border-gray-200 px-3 py-2 gap-2 text-xs font-medium text-gray-500 uppercase tracking-wide">
-          <span>时间</span>
-          <span>文件夹</span>
-          <span>发件人</span>
-          <span>主题</span>
-          <span>类型</span>
-          <span>结果</span>
-          <span>建单</span>
+          <span>{lg.colTime}</span>
+          <span>{lg.colFolder}</span>
+          <span>{lg.colSender}</span>
+          <span>{lg.colSubject}</span>
+          <span>{lg.colType}</span>
+          <span>{lg.colResult}</span>
+          <span>{lg.colEnquiry}</span>
           <span title="测试路由"><Play size={11} /></span>
           <span></span>
         </div>
 
         {/* 数据行 */}
         {loading && logs.length === 0 ? (
-          <div className="py-16 text-center text-gray-400 text-sm">加载中...</div>
+          <div className="py-16 text-center text-gray-400 text-sm">{lg.loading}</div>
         ) : logs.length === 0 ? (
-          <div className="py-16 text-center text-gray-400 text-sm">暂无数据</div>
+          <div className="py-16 text-center text-gray-400 text-sm">{lg.noData}</div>
         ) : (
           <div>
             {logs.map(log => (
@@ -422,7 +429,7 @@ const ProcessingLogs: React.FC = () => {
                   {/* 时间 */}
                   <div className="flex flex-col min-w-0">
                     <span className="font-mono text-xs text-gray-600">{fmtTime(log.processedAt)}</span>
-                    <span className="text-xs text-gray-400">{relativeTime(log.processedAt)}</span>
+                    <span className="text-xs text-gray-400">{relativeTime(log.processedAt, lg.justNow, lg.minutesAgo, lg.hoursAgo, lg.daysAgo)}</span>
                   </div>
 
                   {/* 文件夹 */}
@@ -441,7 +448,7 @@ const ProcessingLogs: React.FC = () => {
 
                   {/* 主题 */}
                   <div className="truncate text-xs text-gray-700 pt-0.5" title={log.subject ?? ''}>
-                    {log.subject || '(无主题)'}
+                    {log.subject || `(${lg.noSubject})`}
                   </div>
 
                   {/* 邮件类型 */}
@@ -456,9 +463,15 @@ const ProcessingLogs: React.FC = () => {
                   {/* 处理结果 */}
                   <div className="flex items-start pt-0.5">
                     {(() => {
-                      const s = RESULT_STYLE[log.processResult];
-                      return s ? (
-                        <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${s.cls}`}>{s.label}</span>
+                      const cls = RESULT_STYLE_CLS[log.processResult];
+                      const labelMap: Record<string, string> = {
+                        PROCESSED: lg.resultProcessed,
+                        SKIPPED:   lg.resultSkipped,
+                        ERROR:     lg.resultError,
+                        FORWARDED: lg.resultForwarded,
+                      };
+                      return cls ? (
+                        <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${cls}`}>{labelMap[log.processResult] ?? log.processResult}</span>
                       ) : (
                         <span className="text-gray-400 text-xs">{log.processResult}</span>
                       );

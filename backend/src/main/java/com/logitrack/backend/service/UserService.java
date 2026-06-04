@@ -1,8 +1,10 @@
 package com.logitrack.backend.service;
 
 import com.logitrack.backend.dto.UserDTO;
+import com.logitrack.backend.entity.CnOffice;
 import com.logitrack.backend.entity.Role;
 import com.logitrack.backend.entity.User;
+import com.logitrack.backend.repository.CnOfficeRepository;
 import com.logitrack.backend.repository.RoleRepository;
 import com.logitrack.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +27,7 @@ public class UserService {
     
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final CnOfficeRepository cnOfficeRepository;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     
     /**
@@ -77,9 +80,14 @@ public class UserService {
      * 创建用户
      */
     @Transactional
-    public UserDTO createUser(User user, Set<String> roleCodes) {
+    public UserDTO createUser(User user, Set<String> roleCodes, Set<String> cnOfficeCodes) {
         if (userRepository.existsByUsername(user.getUsername())) {
             throw new RuntimeException("用户名已存在");
+        }
+        
+        // 归属办公室必填
+        if (cnOfficeCodes == null || cnOfficeCodes.isEmpty()) {
+            throw new RuntimeException("归属办公室(Assigned CN Office)为必填项");
         }
         
         // 加密密码
@@ -94,6 +102,13 @@ public class UserService {
             user.setRoles(roles);
         }
         
+        // 分配归属办公室
+        Set<CnOffice> offices = cnOfficeCodes.stream()
+            .map(code -> cnOfficeRepository.findById(code)
+                .orElseThrow(() -> new RuntimeException("办公室不存在: " + code)))
+            .collect(Collectors.toSet());
+        user.setCnOffices(offices);
+        
         User savedUser = userRepository.save(user);
         return convertToDTO(savedUser);
     }
@@ -102,7 +117,8 @@ public class UserService {
      * 更新用户
      */
     @Transactional
-    public UserDTO updateUser(Integer id, User updateData, Set<String> roleCodes, boolean updateRoles) {
+    public UserDTO updateUser(Integer id, User updateData, Set<String> roleCodes, boolean updateRoles,
+                              Set<String> cnOfficeCodes, boolean updateCnOffices) {
         User user = userRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("用户不存在"));
         
@@ -137,6 +153,18 @@ public class UserService {
             user.setRoles(roles);
         }
         
+        // 更新归属办公室
+        if (updateCnOffices) {
+            if (cnOfficeCodes == null || cnOfficeCodes.isEmpty()) {
+                throw new RuntimeException("归属办公室(Assigned CN Office)为必填项");
+            }
+            Set<CnOffice> offices = cnOfficeCodes.stream()
+                .map(code -> cnOfficeRepository.findById(code)
+                    .orElseThrow(() -> new RuntimeException("办公室不存在: " + code)))
+                .collect(Collectors.toSet());
+            user.setCnOffices(offices);
+        }
+        
         User savedUser = userRepository.save(user);
         return convertToDTO(savedUser);
     }
@@ -164,6 +192,15 @@ public class UserService {
     }
     
     /**
+     * 获取用户允许访问的 CN Office 代码列表（Admin 返回 null 表示不限）
+     */
+    public Set<String> getUserAllowedOffices(Integer userId) {
+        User user = userRepository.findById(userId).orElse(null);
+        if (user == null) return java.util.Collections.emptySet();
+        return user.getCnOfficeCodes();
+    }
+
+    /**
      * 转换为DTO
      */
     private UserDTO convertToDTO(User user) {
@@ -185,6 +222,7 @@ public class UserService {
         dto.setRoleNames(user.getRoles().stream()
             .map(Role::getRoleName)
             .collect(Collectors.toSet()));
+        dto.setCnOfficeCodes(user.getCnOfficeCodes());
         return dto;
     }
 }

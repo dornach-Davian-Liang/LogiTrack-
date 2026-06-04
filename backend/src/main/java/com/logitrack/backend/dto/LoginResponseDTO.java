@@ -25,4 +25,5 @@ public class LoginResponseDTO {
     private Set<String> roles;
     private List<String> permissions;
     private LocalDateTime loginTime;
+    private Set<String> cnOffices;
 }

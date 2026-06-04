@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Play, Square, RefreshCw, AlertTriangle, CheckCircle, XCircle, Settings } from 'lucide-react';
-import { processApi, monitorPyApi, ProcessStatusDTO } from '../../../../services/monitorApi';
+import { processApi, monitorPyApi, ProcessStatusDTO, PyApiStatus } from '../../../../services/monitorApi';
+import { useLanguage } from '../../../../i18n/LanguageContext';
 
 // ─── 运行模式配置 ─────────────────────────────────────────────────────────────
 
@@ -8,21 +9,21 @@ const MODE_OPTIONS = [
   {
     value: 'DRY_RUN',
     label: '🟢 DRY-RUN',
-    desc: '分析并计算路由，但不发送转发邮件',
+    descKey: 'modeDryRunDesc' as const,
     color: 'border-green-400 bg-green-50 text-green-800',
     activeColor: 'border-green-600 bg-green-600 text-white',
   },
   {
     value: 'TEST_FORWARD',
     label: '🟡 TEST-FORWARD',
-    desc: '将邮件转发到测试邮箱，不影响真实客户',
+    descKey: 'modeTestForwardDesc' as const,
     color: 'border-yellow-400 bg-yellow-50 text-yellow-800',
     activeColor: 'border-yellow-500 bg-yellow-500 text-white',
   },
   {
     value: 'LIVE',
     label: '🔴 LIVE',
-    desc: '真实转发至客户 PIC，标记邮件已读',
+    descKey: 'modeLiveDesc' as const,
     color: 'border-red-400 bg-red-50 text-red-800',
     activeColor: 'border-red-600 bg-red-600 text-white',
   },
@@ -32,16 +33,19 @@ const MODE_OPTIONS = [
 
 interface StatusBannerProps {
   status: ProcessStatusDTO | null;
+  pyStatus: PyApiStatus | null;
   loading: boolean;
   pyApiOnline: boolean;
 }
 
-const StatusBanner: React.FC<StatusBannerProps> = ({ status, loading, pyApiOnline }) => {
+const StatusBanner: React.FC<StatusBannerProps> = ({ status, pyStatus, loading, pyApiOnline }) => {
+  const { translations: t } = useLanguage();
+  const svc = t.monitoring.service;
   if (loading) {
     return (
       <div className="flex items-center gap-3 p-4 rounded-xl border border-gray-200 bg-gray-50">
         <RefreshCw className="animate-spin text-gray-400" size={20} />
-        <span className="text-gray-500 text-sm">检查服务状态...</span>
+        <span className="text-gray-500 text-sm">{svc.checkingStatus}</span>
       </div>
     );
   }
@@ -58,23 +62,28 @@ const StatusBanner: React.FC<StatusBannerProps> = ({ status, loading, pyApiOnlin
         <span className={`w-4 h-4 rounded-full ${running ? 'bg-green-500 animate-pulse' : 'bg-red-400'}`} />
         <div>
           <div className={`font-semibold text-base ${running ? 'text-green-800' : 'text-red-800'}`}>
-            {running ? '✅ 服务运行中' : '⛔ 服务未运行'}
+            {running ? svc.running : svc.stopped}
           </div>
           <div className="text-xs text-gray-500 mt-0.5">
-            {running && status?.pid && <span>PID: {status.pid}　</span>}
+            {running && status?.pid && <span>{svc.pid} {status.pid}　</span>}
             {running && status?.runMode && (
               <span>
-                模式: <strong>{status.runMode}</strong>
-                {!pyApiOnline && <span className="ml-2 text-yellow-600">（监控 API 暂不可达）</span>}
+                {svc.mode} <strong>{status.runMode}</strong>
               </span>
             )}
-            {!running && '点击下方按钮启动服务'}
+            {running && pyApiOnline && pyStatus?.create_ref_mode && (
+              <span className="ml-2">
+                · {svc.logitrackMode} <strong>{pyStatus.create_ref_mode}</strong>
+              </span>
+            )}
+            {running && !pyApiOnline && <span className="ml-2 text-yellow-600">{svc.apiOffline}</span>}
+            {!running && svc.clickToStart}
           </div>
         </div>
       </div>
       {running && pyApiOnline && (
         <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full border border-green-300">
-          监控 API 在线
+          {svc.apiOnline}
         </span>
       )}
     </div>
@@ -88,8 +97,8 @@ interface LaunchConfigProps {
   setRunMode: (v: string) => void;
   pollInterval: number;
   setPollInterval: (v: number) => void;
-  logitrackDryRun: boolean;
-  setLogitrackDryRun: (v: boolean) => void;
+  createRefMode: string;
+  setCreateRefMode: (v: string) => void;
   testMailbox: string;
   setTestMailbox: (v: string) => void;
   auditBcc: string;
@@ -99,14 +108,17 @@ interface LaunchConfigProps {
 
 const LaunchConfig: React.FC<LaunchConfigProps> = ({
   runMode, setRunMode, pollInterval, setPollInterval,
-  logitrackDryRun, setLogitrackDryRun, testMailbox, setTestMailbox,
+  createRefMode, setCreateRefMode, testMailbox, setTestMailbox,
   auditBcc, setAuditBcc,
   disabled,
-}) => (
+}) => {
+  const { translations: t } = useLanguage();
+  const svc = t.monitoring.service;
+  return (
   <div className={`space-y-5 ${disabled ? 'opacity-50 pointer-events-none' : ''}`}>
     {/* 运行模式 */}
     <div className="space-y-2">
-      <label className="text-sm font-semibold text-gray-700">运行模式</label>
+      <label className="text-sm font-semibold text-gray-700">{svc.runMode}</label>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         {MODE_OPTIONS.map(opt => (
           <button
@@ -118,7 +130,7 @@ const LaunchConfig: React.FC<LaunchConfigProps> = ({
           >
             <div className="font-medium text-sm">{opt.label}</div>
             <div className={`text-xs mt-0.5 ${runMode === opt.value ? 'opacity-80' : 'opacity-60'}`}>
-              {opt.desc}
+              {svc[opt.descKey]}
             </div>
           </button>
         ))}
@@ -129,13 +141,13 @@ const LaunchConfig: React.FC<LaunchConfigProps> = ({
     {runMode === 'TEST_FORWARD' && (
       <div className="space-y-1">
         <label className="text-sm font-semibold text-gray-700">
-          TEST_FORWARD 目标邮箱 <span className="text-red-500">*</span>
+          {svc.testMailbox} <span className="text-red-500">*</span>
         </label>
         <input
           type="email"
           value={testMailbox}
           onChange={e => setTestMailbox(e.target.value)}
-          placeholder="转发到此邮箱进行测试，例如: your.name@zieglergroup.cn"
+          placeholder={svc.testMailboxPlaceholder}
           className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400"
         />
       </div>
@@ -145,22 +157,22 @@ const LaunchConfig: React.FC<LaunchConfigProps> = ({
     {runMode === 'LIVE' && (
       <div className="space-y-1">
         <label className="text-sm font-semibold text-gray-700">
-          LIVE 审核 BCC 邮箱
+          {svc.auditBcc}
         </label>
         <input
           type="email"
           value={auditBcc}
           onChange={e => setAuditBcc(e.target.value)}
-          placeholder="转发邮件同时 BCC 到此邮箱，留空则使用默认值"
+          placeholder={svc.auditBccPlaceholder}
           className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
         />
-        <p className="text-xs text-gray-400">每封转发邮件将同时 BCC 到该邮箱以供审核（默认: davian.liang@zieglergroup.cn）</p>
+        <p className="text-xs text-gray-400">{svc.auditBccHint}</p>
       </div>
     )}
 
     {/* 轮询间隔 */}
     <div className="space-y-1">
-      <label className="text-sm font-semibold text-gray-700">轮询间隔（秒）</label>
+      <label className="text-sm font-semibold text-gray-700">{svc.pollInterval}</label>
       <div className="flex items-center gap-3">
         <input
           type="number"
@@ -171,7 +183,7 @@ const LaunchConfig: React.FC<LaunchConfigProps> = ({
           className="w-28 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
         />
         <span className="text-xs text-gray-500">
-          每隔此秒数检查一次新邮件（最小 10 秒，推荐 60 秒）
+          {svc.pollIntervalHint}
         </span>
       </div>
       <div className="flex gap-2">
@@ -193,51 +205,80 @@ const LaunchConfig: React.FC<LaunchConfigProps> = ({
 
     {/* LogiTrack 建单模式 */}
     <div className="space-y-1">
-      <label className="text-sm font-semibold text-gray-700">LogiTrack 建单模式</label>
-      <div className="flex gap-3">
+      <label className="text-sm font-semibold text-gray-700">{svc.logitrackMode}</label>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         <button
-          onClick={() => setLogitrackDryRun(true)}
-          className={`flex-1 p-3 rounded-lg border-2 text-sm transition-all ${
-            logitrackDryRun
+          onClick={() => setCreateRefMode('DRY_RUN')}
+          className={`p-3 rounded-lg border-2 text-sm transition-all ${
+            createRefMode === 'DRY_RUN'
               ? 'border-blue-500 bg-blue-500 text-white'
               : 'border-gray-200 text-gray-600 hover:border-blue-300'
           }`}
         >
-          <div className="font-medium">🖨 DRY-RUN 打印</div>
-          <div className={`text-xs mt-0.5 ${logitrackDryRun ? 'opacity-80' : 'text-gray-400'}`}>
-            构建建单 payload 但只打印日志，不实际写入 LogiTrack
+          <div className="font-medium">{svc.logitrackDryRunLabel}</div>
+          <div className={`text-xs mt-0.5 ${createRefMode === 'DRY_RUN' ? 'opacity-80' : 'text-gray-400'}`}>
+            {svc.logitrackDryRunDesc}
           </div>
         </button>
         <button
-          onClick={() => setLogitrackDryRun(false)}
-          className={`flex-1 p-3 rounded-lg border-2 text-sm transition-all ${
-            !logitrackDryRun
+          onClick={() => setCreateRefMode('TEST_FORWARD')}
+          className={`p-3 rounded-lg border-2 text-sm transition-all ${
+            createRefMode === 'TEST_FORWARD'
+              ? 'border-yellow-500 bg-yellow-500 text-white'
+              : 'border-gray-200 text-gray-600 hover:border-yellow-300'
+          }`}
+        >
+          <div className="font-medium">{svc.logitrackTestForwardLabel}</div>
+          <div className={`text-xs mt-0.5 ${createRefMode === 'TEST_FORWARD' ? 'opacity-80' : 'text-gray-400'}`}>
+            {svc.logitrackTestForwardDesc}
+          </div>
+        </button>
+        <button
+          onClick={() => setCreateRefMode('LIVE')}
+          className={`p-3 rounded-lg border-2 text-sm transition-all ${
+            createRefMode === 'LIVE'
               ? 'border-purple-500 bg-purple-500 text-white'
               : 'border-gray-200 text-gray-600 hover:border-purple-300'
           }`}
         >
-          <div className="font-medium">📝 实际建单</div>
-          <div className={`text-xs mt-0.5 ${!logitrackDryRun ? 'opacity-80' : 'text-gray-400'}`}>
-            自动在 LogiTrack 中创建询价单（需 LOGITRACK_ENABLED=true）
+          <div className="font-medium">{svc.logitrackLiveLabel}</div>
+          <div className={`text-xs mt-0.5 ${createRefMode === 'LIVE' ? 'opacity-80' : 'text-gray-400'}`}>
+            {svc.logitrackLiveDesc}
           </div>
         </button>
       </div>
     </div>
   </div>
-);
+  );
+};
 
 // ─── 运行时参数调整（服务已运行时） ──────────────────────────────────────────
 
 interface RuntimeControlProps {
   currentPollInterval: number | null;
-  currentDryRun: boolean | null;
+  currentCreateRefMode: string | null;
+  onRefresh?: () => void;
 }
 
-const RuntimeControl: React.FC<RuntimeControlProps> = ({ currentPollInterval, currentDryRun }) => {
+const RuntimeControl: React.FC<RuntimeControlProps> = ({ currentPollInterval, currentCreateRefMode, onRefresh }) => {
   const [pollInterval, setPollInterval] = useState(currentPollInterval ?? 60);
-  const [dryRun, setDryRun] = useState(currentDryRun ?? true);
+  const [createRefMode, setCreateRefMode] = useState(currentCreateRefMode ?? 'DRY_RUN');
   const [msg, setMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
   const [loading, setLoading] = useState(false);
+  const { translations: t } = useLanguage();
+  const svc = t.monitoring.service;
+
+  useEffect(() => {
+    if (currentPollInterval != null) {
+      setPollInterval(currentPollInterval);
+    }
+  }, [currentPollInterval]);
+
+  useEffect(() => {
+    if (currentCreateRefMode) {
+      setCreateRefMode(currentCreateRefMode);
+    }
+  }, [currentCreateRefMode]);
 
   const apply = async () => {
     setLoading(true);
@@ -245,11 +286,13 @@ const RuntimeControl: React.FC<RuntimeControlProps> = ({ currentPollInterval, cu
     try {
       await Promise.all([
         monitorPyApi.setPollInterval(pollInterval),
-        monitorPyApi.setLogitrackDryRun(dryRun),
+        monitorPyApi.setCreateRefMode(createRefMode),
       ]);
-      setMsg({ type: 'ok', text: `✅ 已应用：轮询间隔 ${pollInterval}s，建单模式 ${dryRun ? 'DRY-RUN' : '实际建单'}` });
+      setMsg({ type: 'ok', text: `✅ ${pollInterval}s / CREATE_REF: ${createRefMode}` });
+      // 应用成功后立即刷新顶部状态横幅，不等 15 秒自动刷新
+      setTimeout(() => onRefresh?.(), 600);
     } catch (e: unknown) {
-      setMsg({ type: 'err', text: `失败: ${e instanceof Error ? e.message : String(e)}` });
+      setMsg({ type: 'err', text: `${e instanceof Error ? e.message : String(e)}` });
     } finally {
       setLoading(false);
     }
@@ -259,13 +302,13 @@ const RuntimeControl: React.FC<RuntimeControlProps> = ({ currentPollInterval, cu
     <div className="space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
       <div className="text-sm font-semibold text-gray-700 flex items-center gap-2">
         <Settings size={14} />
-        运行时参数调整（即时生效，无需重启）
+        {svc.runtimeAdjustTitle}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="space-y-3">
         {/* 轮询间隔 */}
         <div className="space-y-1">
-          <label className="text-xs font-medium text-gray-600">轮询间隔（秒）</label>
+          <label className="text-xs font-medium text-gray-600">{svc.pollInterval}</label>
           <div className="flex items-center gap-2">
             <input
               type="number" min={10} max={3600}
@@ -284,17 +327,21 @@ const RuntimeControl: React.FC<RuntimeControlProps> = ({ currentPollInterval, cu
           </div>
         </div>
 
-        {/* 建单模式 */}
+        {/* 建单模式（3-mode） */}
         <div className="space-y-1">
-          <label className="text-xs font-medium text-gray-600">LogiTrack 建单模式</label>
-          <div className="flex gap-2">
-            <button onClick={() => setDryRun(true)}
-              className={`px-3 py-1.5 text-xs rounded-lg border ${dryRun ? 'border-blue-500 bg-blue-500 text-white' : 'border-gray-300 text-gray-600 hover:border-blue-300'}`}>
-              🖨 DRY-RUN
+          <label className="text-xs font-medium text-gray-600">{svc.logitrackMode}</label>
+          <div className="flex gap-2 flex-wrap">
+            <button onClick={() => setCreateRefMode('DRY_RUN')}
+              className={`px-3 py-1.5 text-xs rounded-lg border ${createRefMode === 'DRY_RUN' ? 'border-blue-500 bg-blue-500 text-white' : 'border-gray-300 text-gray-600 hover:border-blue-300'}`}>
+              {svc.logitrackDryRunLabel}
             </button>
-            <button onClick={() => setDryRun(false)}
-              className={`px-3 py-1.5 text-xs rounded-lg border ${!dryRun ? 'border-purple-500 bg-purple-500 text-white' : 'border-gray-300 text-gray-600 hover:border-purple-300'}`}>
-              📝 实际建单
+            <button onClick={() => setCreateRefMode('TEST_FORWARD')}
+              className={`px-3 py-1.5 text-xs rounded-lg border ${createRefMode === 'TEST_FORWARD' ? 'border-yellow-500 bg-yellow-500 text-white' : 'border-gray-300 text-gray-600 hover:border-yellow-300'}`}>
+              {svc.logitrackTestForwardLabel}
+            </button>
+            <button onClick={() => setCreateRefMode('LIVE')}
+              className={`px-3 py-1.5 text-xs rounded-lg border ${createRefMode === 'LIVE' ? 'border-purple-500 bg-purple-500 text-white' : 'border-gray-300 text-gray-600 hover:border-purple-300'}`}>
+              {svc.logitrackLiveLabel}
             </button>
           </div>
         </div>
@@ -305,7 +352,7 @@ const RuntimeControl: React.FC<RuntimeControlProps> = ({ currentPollInterval, cu
         disabled={loading}
         className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 disabled:opacity-40 transition-all"
       >
-        {loading ? '应用中...' : '✅ 应用更改'}
+        {loading ? svc.applying : svc.applyChanges}
       </button>
 
       {msg && (
@@ -326,20 +373,23 @@ interface LiveConfirmModalProps {
   onCancel: () => void;
 }
 
-const LiveConfirmModal: React.FC<LiveConfirmModalProps> = ({ onConfirm, onCancel }) => (
+const LiveConfirmModal: React.FC<LiveConfirmModalProps> = ({ onConfirm, onCancel }) => {
+  const { translations: t } = useLanguage();
+  const svc = t.monitoring.service;
+  return (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
     <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6 space-y-4">
       <div className="flex items-start gap-3">
         <AlertTriangle className="text-red-500 mt-0.5 flex-shrink-0" size={24} />
         <div>
-          <div className="font-bold text-gray-900 text-base">启动 LIVE 模式确认</div>
+          <div className="font-bold text-gray-900 text-base">{svc.liveConfirmTitle}</div>
           <div className="text-sm text-gray-600 mt-2 space-y-1">
-            <p>⚠️ <strong>LIVE 模式将真实转发邮件给客户 PIC</strong>，并标记原邮件为已读。</p>
-            <p>请确认：</p>
+            <p>{svc.liveConfirmBody}</p>
+            <p>Please confirm:</p>
             <ul className="list-disc ml-5 space-y-1 text-sm">
-              <li>路由规则已经过 TEST_FORWARD 验证</li>
-              <li>pic_routing.json 配置准确无误</li>
-              <li>业务负责人已知悉并批准启用 LIVE 模式</li>
+              <li>{svc.liveConfirmCheck1}</li>
+              <li>{svc.liveConfirmCheck2}</li>
+              <li>{svc.liveConfirmCheck3}</li>
             </ul>
           </div>
         </div>
@@ -349,30 +399,34 @@ const LiveConfirmModal: React.FC<LiveConfirmModalProps> = ({ onConfirm, onCancel
           onClick={onCancel}
           className="px-4 py-2 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
         >
-          取消
+          {svc.cancelBtn}
         </button>
         <button
           onClick={onConfirm}
           className="px-4 py-2 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700 font-semibold"
         >
-          确认启动 LIVE
+          {svc.liveConfirmBtn}
         </button>
       </div>
     </div>
   </div>
-);
+  );
+};
 
 // ─── 主组件 ──────────────────────────────────────────────────────────────────
 
 const ServiceControl: React.FC = () => {
   const [status, setStatus] = useState<ProcessStatusDTO | null>(null);
+  const [pyStatus, setPyStatus] = useState<PyApiStatus | null>(null);
   const [pyApiOnline, setPyApiOnline] = useState(false);
   const [statusLoading, setStatusLoading] = useState(true);
+  const { translations: t } = useLanguage();
+  const svc = t.monitoring.service;
 
   // 启动参数
   const [runMode, setRunMode] = useState('TEST_FORWARD');
   const [pollInterval, setPollInterval] = useState(60);
-  const [logitrackDryRun, setLogitrackDryRun] = useState(true);
+  const [createRefMode, setCreateRefMode] = useState('DRY_RUN');
   const [testMailbox, setTestMailbox] = useState('');
   const [auditBcc, setAuditBcc] = useState('');
 
@@ -382,19 +436,26 @@ const ServiceControl: React.FC = () => {
   const [showLiveConfirm, setShowLiveConfirm] = useState(false);
 
   const refreshStatus = useCallback(async () => {
+    setStatusLoading(true);
     try {
       const s = await processApi.getStatus();
       setStatus(s);
     } catch {
-      setStatus({ running: false, pid: null, runMode: null, startedAt: null, message: '状态查询失败' });
+      setStatus({ running: false, pid: null, runMode: null, startedAt: null, message: 'Status query failed' });
     }
     try {
-      await monitorPyApi.getStatus();
+      const py = await monitorPyApi.getStatus();
+      setPyStatus(py);
       setPyApiOnline(true);
+      setRunMode(py.run_mode ?? 'DRY_RUN');
+      setPollInterval(py.poll_interval ?? 60);
+      setCreateRefMode(py.create_ref_mode ?? 'DRY_RUN');
     } catch {
+      setPyStatus(null);
       setPyApiOnline(false);
+    } finally {
+      setStatusLoading(false);
     }
-    setStatusLoading(false);
   }, []);
 
   useEffect(() => {
@@ -419,11 +480,11 @@ const ServiceControl: React.FC = () => {
       const result = await processApi.start({
         runMode,
         pollInterval,
-        logitrackDryRun,
+        createRefMode,
         testMailbox: runMode === 'TEST_FORWARD' ? testMailbox : undefined,
         auditBcc: runMode === 'LIVE' && auditBcc.trim() ? auditBcc.trim() : undefined,
       });
-      setActionMsg({ type: 'ok', text: `✅ 服务已启动 (PID: ${result.pid ?? '?'})，模式: ${runMode}` });
+      setActionMsg({ type: 'ok', text: `✅ 服务已启动 (PID: ${result.pid ?? '?'})，运行模式: ${runMode}，CREATE_REF: ${createRefMode}` });
       setTimeout(refreshStatus, 3000);
     } catch (e: unknown) {
       setActionMsg({ type: 'err', text: `启动失败: ${e instanceof Error ? e.message : String(e)}` });
@@ -461,13 +522,13 @@ const ServiceControl: React.FC = () => {
       {/* 服务状态卡片 */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
-          <StatusBanner status={status} loading={statusLoading} pyApiOnline={pyApiOnline} />
+          <StatusBanner status={status} pyStatus={pyStatus} loading={statusLoading} pyApiOnline={pyApiOnline} />
         </div>
         <button
           onClick={refreshStatus}
           disabled={statusLoading}
           className="p-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40 mt-0"
-          title="刷新状态"
+        title={svc.refreshStatus}
         >
           <RefreshCw size={16} className={statusLoading ? 'animate-spin' : ''} />
         </button>
@@ -478,7 +539,7 @@ const ServiceControl: React.FC = () => {
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <div className="h-px flex-1 bg-gray-200" />
-            <span className="text-xs text-gray-400 font-medium">启动参数配置</span>
+            <span className="text-xs text-gray-400 font-medium">{svc.launchConfig}</span>
             <div className="h-px flex-1 bg-gray-200" />
           </div>
           <LaunchConfig
@@ -486,8 +547,8 @@ const ServiceControl: React.FC = () => {
             setRunMode={setRunMode}
             pollInterval={pollInterval}
             setPollInterval={setPollInterval}
-            logitrackDryRun={logitrackDryRun}
-            setLogitrackDryRun={setLogitrackDryRun}
+            createRefMode={createRefMode}
+            setCreateRefMode={setCreateRefMode}
             testMailbox={testMailbox}
             setTestMailbox={setTestMailbox}
             auditBcc={auditBcc}
@@ -505,7 +566,7 @@ const ServiceControl: React.FC = () => {
             className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl text-sm font-semibold hover:bg-green-700 disabled:opacity-40 transition-all shadow-sm"
           >
             <Play size={16} />
-            {actionLoading ? '启动中...' : '▶ 启动服务'}
+            {actionLoading ? svc.starting : svc.startService}
           </button>
         ) : (
           <button
@@ -514,15 +575,15 @@ const ServiceControl: React.FC = () => {
             className="flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 disabled:opacity-40 transition-all shadow-sm"
           >
             <Square size={16} />
-            {actionLoading ? '停止中...' : '■ 停止服务'}
+            {actionLoading ? svc.stopping : svc.stopService}
           </button>
         )}
 
         {runMode === 'TEST_FORWARD' && !testMailbox.trim() && !running && (
-          <span className="flex items-center gap-1 text-xs text-yellow-600 self-center">
-            <AlertTriangle size={12} />
-            请填写 TEST_FORWARD 目标邮箱
-          </span>
+            <span className="flex items-center gap-1 text-xs text-yellow-600 self-center">
+              <AlertTriangle size={12} />
+              {svc.fillTestMailbox}
+            </span>
         )}
       </div>
 
@@ -545,12 +606,13 @@ const ServiceControl: React.FC = () => {
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <div className="h-px flex-1 bg-gray-200" />
-            <span className="text-xs text-gray-400 font-medium">运行时调整</span>
+            <span className="text-xs text-gray-400 font-medium">{svc.runtimeAdjust}</span>
             <div className="h-px flex-1 bg-gray-200" />
           </div>
           <RuntimeControl
-            currentPollInterval={null}
-            currentDryRun={null}
+            currentPollInterval={pyStatus?.poll_interval ?? null}
+            currentCreateRefMode={pyStatus?.create_ref_mode ?? null}
+            onRefresh={refreshStatus}
           />
         </div>
       )}
@@ -558,16 +620,15 @@ const ServiceControl: React.FC = () => {
       {/* 服务运行中但 PyAPI 不可用时的提示 */}
       {running && !pyApiOnline && (
         <div className="text-xs text-yellow-700 bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-3">
-          <strong>⚠️ 监控 API 暂不可达</strong>：服务进程已启动（PID: {status?.pid}），但 FastAPI 监控端口 :5100 尚未就绪。
-          通常在进程启动后约 3-5 秒可达。请稍后刷新。
+          <strong>⚠️ {svc.apiOffline}</strong>: {svc.pyApiNotReady}
         </div>
       )}
 
       {/* 说明 */}
       <div className="text-xs text-gray-400 bg-gray-50 rounded-lg p-3 space-y-1 border border-gray-100">
-        <div><strong>启动行为</strong>：Spring Boot 以 ProcessBuilder 调用 <code>C:\Python314\python.exe main.py</code>，日志追加到 <code>logs/app.log</code></div>
-        <div><strong>停止行为</strong>：通过 PID 文件记录的进程 ID 执行 <code>taskkill /F /PID {'{pid}'}</code></div>
-        <div><strong>模式说明</strong>：LOGITRACK_DRY_RUN 与运行模式相互独立 — TEST_FORWARD 控制邮件转发目标，DRY-RUN 建单控制是否实际写入 LogiTrack</div>
+        <div><strong>Start</strong>: {svc.infoStart}</div>
+        <div><strong>Stop</strong>: {svc.infoStop}</div>
+        <div><strong>Mode</strong>: {svc.infoMode}</div>
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { RefreshCw, Link, ChevronDown, ChevronRight, Plus, X, Save, AlertTriangle } from 'lucide-react';
 import { monitorPyApi } from '../../../../services/monitorApi';
+import { useLanguage } from '../../../../i18n/LanguageContext';
 
 // ─── 工具函数 ─────────────────────────────────────────────────────────────────
 
@@ -22,6 +23,8 @@ interface ServiceCardProps {
 const ServiceCard: React.FC<ServiceCardProps> = ({ serviceKey, fields }) => {
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; latency_ms: number; detail: string } | null>(null);
+  const { translations: t } = useLanguage();
+  const cfg = t.monitoring.config;
 
   const handleTest = async () => {
     setTesting(true);
@@ -46,7 +49,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ serviceKey, fields }) => {
           className="flex items-center gap-1 px-3 py-1 text-xs border border-indigo-200 text-indigo-600 rounded hover:bg-indigo-50 disabled:opacity-40"
         >
           <Link size={11} />
-          {testing ? '测试中...' : '测试连接'}
+          {testing ? cfg.testing : cfg.testConnection}
         </button>
       </div>
 
@@ -78,15 +81,17 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ serviceKey, fields }) => {
 };
 
 const ApiConnectionPanel: React.FC<{ config: Record<string, unknown> }> = ({ config }) => {
+  const { translations: t } = useLanguage();
+  const cfg = t.monitoring.config;
   const services = config.services as Record<string, Record<string, unknown>> | undefined;
-  if (!services) return <div className="text-sm text-gray-400">无配置数据</div>;
+  if (!services) return <div className="text-sm text-gray-400">{cfg.noConfig}</div>;
 
   const SERVICE_KEYS = ['graph', 'llm', 'vlm', 'vlm_fallback', 'logitrack'];
 
   return (
     <div className="space-y-3">
-      <div className="text-sm font-semibold text-gray-700">🔌 API 连接状态</div>
-      <p className="text-xs text-gray-500">API 密钥仅展示后 4 位，不可编辑。</p>
+      <div className="text-sm font-semibold text-gray-700">{cfg.apiConnections}</div>
+      <p className="text-xs text-gray-500">{cfg.apiKeyNote}</p>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {SERVICE_KEYS.map(key => {
           const svc = services[key] as Record<string, string | boolean | null> | undefined;
@@ -106,19 +111,21 @@ const ApiConnectionPanel: React.FC<{ config: Record<string, unknown> }> = ({ con
 // ─── D2：运行参数 ─────────────────────────────────────────────────────────────
 
 const RuntimeParamsPanel: React.FC<{ config: Record<string, unknown> }> = ({ config }) => {
+  const { translations: t } = useLanguage();
+  const cfg = t.monitoring.config;
   const rt = config.runtime as Record<string, unknown> | undefined;
   if (!rt) return null;
 
   const PARAM_LABELS: Record<string, { label: string; desc: string }> = {
-    poll_interval:       { label: 'POLL_INTERVAL',       desc: '邮件轮询间隔（秒）' },
-    logitrack_enabled:   { label: 'LOGITRACK_ENABLED',   desc: '自动建询价单开关' },
-    temp_attachments_dir:{ label: 'TEMP_ATTACHMENTS_DIR',desc: '附件临时目录' },
-    test_forward_mailbox:{ label: 'TEST_FORWARD_MAILBOX',desc: '测试转发收件箱' },
+    poll_interval:       { label: 'POLL_INTERVAL',       desc: cfg.pollIntervalDesc },
+    logitrack_enabled:   { label: 'LOGITRACK_ENABLED',   desc: cfg.logitrackEnabledDesc },
+    temp_attachments_dir:{ label: 'TEMP_ATTACHMENTS_DIR',desc: cfg.tempDirDesc },
+    test_forward_mailbox:{ label: 'TEST_FORWARD_MAILBOX',desc: cfg.testMailboxDesc },
   };
 
   return (
     <div className="space-y-3">
-      <div className="text-sm font-semibold text-gray-700">⚙️ 运行参数（只读）</div>
+      <div className="text-sm font-semibold text-gray-700">{cfg.runtimeParams}</div>
       <div className="border border-gray-200 rounded-lg overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-200">
@@ -136,7 +143,7 @@ const RuntimeParamsPanel: React.FC<{ config: Record<string, unknown> }> = ({ con
                   {key === 'poll_interval'
                     ? `${rt[key]}s`
                     : key === 'logitrack_enabled'
-                      ? (rt[key] ? '✅ 已启用' : '❌ 已禁用')
+                      ? (rt[key] ? cfg.enabled : cfg.disabled)
                       : String(rt[key] ?? '—')}
                 </td>
                 <td className="px-4 py-2.5 text-xs text-gray-400">{meta.desc}</td>
@@ -227,6 +234,8 @@ const SkipRulesEditor: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+  const { translations: t } = useLanguage();
+  const cfg = t.monitoring.config;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -235,7 +244,7 @@ const SkipRulesEditor: React.FC = () => {
       setSkipRules(r);
       setEdited(JSON.parse(JSON.stringify(r)));
     } catch (e: unknown) {
-      setSaveMsg({ type: 'err', text: `加载失败: ${e instanceof Error ? e.message : String(e)}` });
+      setSaveMsg({ type: 'err', text: `${cfg.loadFailed} ${e instanceof Error ? e.message : String(e)}` });
     } finally {
       setLoading(false);
     }
@@ -249,10 +258,10 @@ const SkipRulesEditor: React.FC = () => {
     setSaveMsg(null);
     try {
       await monitorPyApi.saveSkipRules(edited);
-      setSaveMsg({ type: 'ok', text: '✅ 跳过规则已保存，SkipChecker 缓存已热重载' });
+      setSaveMsg({ type: 'ok', text: cfg.saveSuccess });
       setSkipRules(JSON.parse(JSON.stringify(edited)));
     } catch (e: unknown) {
-      setSaveMsg({ type: 'err', text: `保存失败: ${e instanceof Error ? e.message : String(e)}` });
+      setSaveMsg({ type: 'err', text: `${cfg.saveFailed} ${e instanceof Error ? e.message : String(e)}` });
     } finally {
       setSaving(false);
     }
@@ -279,17 +288,17 @@ const SkipRulesEditor: React.FC = () => {
     return Array.isArray(val) ? (val as string[]) : [];
   };
 
-  if (loading) return <div className="text-sm text-gray-400 py-8 text-center">加载跳过规则...</div>;
-  if (!edited) return <div className="text-sm text-yellow-700 bg-yellow-50 rounded px-4 py-3">⚠️ 跳过规则加载失败，请确认 Python 监控服务是否运行</div>;
+  if (loading) return <div className="text-sm text-gray-400 py-8 text-center">{cfg.loadingSkipRules}</div>;
+  if (!edited) return <div className="text-sm text-yellow-700 bg-yellow-50 rounded px-4 py-3">{cfg.skipRulesUnavailable}</div>;
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div className="text-sm font-semibold text-gray-700">🚧 跳过规则编辑</div>
+        <div className="text-sm font-semibold text-gray-700">{cfg.skipRulesTitle}</div>
         <div className="flex gap-2">
           {isDirty && (
             <button onClick={resetEdits} className="px-3 py-1.5 text-xs border border-gray-200 text-gray-600 rounded hover:bg-gray-50">
-              撤销修改
+              {cfg.undoChanges}
             </button>
           )}
           <button
@@ -300,7 +309,7 @@ const SkipRulesEditor: React.FC = () => {
             }`}
           >
             <Save size={12} />
-            {saving ? '保存中...' : isDirty ? '💾 保存规则' : '已是最新'}
+            {saving ? cfg.saving : isDirty ? `💾 ${cfg.saveChanges}` : cfg.saveChanges}
           </button>
         </div>
       </div>
@@ -473,7 +482,7 @@ const BranchEditor: React.FC<{
             <div className="space-y-3">
               <div className="text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-1 rounded">Core（核心国家）</div>
               {hasDestRules && (
-                <p className="text-xs text-gray-400">⚠️ SHA/NGB 默认 Core TO 为空是合法配置，国家命中走下方「国家级路由规则」，未命中时回退到 Managers。</p>
+                <p className="text-xs text-gray-400">⚠️ SHA/NGB 默认 Core TO 为空是合法配置，国家命中走下方「国家级 To PIC 规则」，未命中时回退到 Managers；国家级规则的 CC 始终共用这里的 Core CC。</p>
               )}
               <EmailListEditor label="TO" emails={getEmails('core','to')} onChange={e => setEmails('core','to',e)} />
               <EmailListEditor label="CC" emails={getEmails('core','cc')} onChange={e => setEmails('core','cc',e)} />
@@ -491,6 +500,7 @@ const BranchEditor: React.FC<{
               <div className="text-xs font-semibold text-purple-700 bg-purple-50 px-2 py-1 rounded">
                 🗺 国家级 To PIC 规则（Core destination_rules）
               </div>
+              <p className="text-xs text-gray-400">说明：这里的国家级规则只维护 TO / TO(FCL) / TO(LCL)；CC 不单独配置，统一继承上方 Core（核心国家）里的 CC。</p>
               {destRules.length === 0 && (
                 <p className="text-xs text-gray-400 italic">暂无国家级规则</p>
               )}
@@ -606,6 +616,8 @@ const RoutingEditor: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
   const [activeMode, setActiveMode] = useState<'SEA' | 'AIR' | 'RAIL'>('SEA');
+  const { translations: t } = useLanguage();
+  const cfg = t.monitoring.config;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -628,10 +640,10 @@ const RoutingEditor: React.FC = () => {
     setSaveMsg(null);
     try {
       await monitorPyApi.saveRouting(edited);
-      setSaveMsg({ type: 'ok', text: '✅ 配置已保存，路由器已热重载' });
+      setSaveMsg({ type: 'ok', text: `✅ ${cfg.saveChanges}` });
       setRouting(JSON.parse(JSON.stringify(edited)));
     } catch (e: unknown) {
-      setSaveMsg({ type: 'err', text: `保存失败: ${e instanceof Error ? e.message : String(e)}` });
+      setSaveMsg({ type: 'err', text: `${cfg.saveFailed} ${e instanceof Error ? e.message : String(e)}` });
     } finally {
       setSaving(false);
     }
@@ -643,8 +655,8 @@ const RoutingEditor: React.FC = () => {
 
   const isDirty = JSON.stringify(edited) !== JSON.stringify(routing);
 
-  if (loading) return <div className="text-sm text-gray-400 py-8 text-center">加载路由配置...</div>;
-  if (!edited) return <div className="text-sm text-yellow-700 bg-yellow-50 rounded px-4 py-3">⚠️ 路由配置加载失败，请确认 Python 监控服务是否运行</div>;
+  if (loading) return <div className="text-sm text-gray-400 py-8 text-center">{cfg.loadingSkipRules}</div>;
+  if (!edited) return <div className="text-sm text-yellow-700 bg-yellow-50 rounded px-4 py-3">{cfg.skipRulesUnavailable}</div>;
 
   const coreCountries = (edited.core_countries ?? []) as string[];
   const managers = (edited.managers ?? {}) as Record<string, string[]>;
@@ -657,7 +669,7 @@ const RoutingEditor: React.FC = () => {
         <div className="flex gap-2">
           {isDirty && (
             <button onClick={resetEdits} className="px-3 py-1.5 text-xs border border-gray-200 text-gray-600 rounded hover:bg-gray-50">
-              撤销修改
+              {cfg.undoChanges}
             </button>
           )}
           <button
@@ -668,7 +680,7 @@ const RoutingEditor: React.FC = () => {
             }`}
           >
             <Save size={12} />
-            {saving ? '保存中...' : isDirty ? '💾 保存配置' : '已是最新'}
+            {saving ? cfg.saving : isDirty ? `💾 ${cfg.saveChanges}` : cfg.saveChanges}
           </button>
         </div>
       </div>
@@ -756,26 +768,28 @@ const RoutingEditor: React.FC = () => {
 
 type ConfigTab = 'api' | 'rules' | 'routing';
 
-const CONFIG_TABS: { id: ConfigTab; label: string }[] = [
-  { id: 'routing', label: '📌 路由配置' },
-  { id: 'api',     label: '🔌 API 连接' },
-  { id: 'rules',   label: '📋 跳过规则' },
-];
-
 const ConfigViewer: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ConfigTab>('routing');
   const [config, setConfig] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { translations: t } = useLanguage();
+  const cfg = t.monitoring.config;
+
+  const CONFIG_TABS: { id: ConfigTab; label: string }[] = [
+    { id: 'routing', label: `📌 ${cfg.tabRouting}` },
+    { id: 'api',     label: `🔌 ${cfg.tabApi}` },
+    { id: 'rules',   label: `📋 ${cfg.tabRules}` },
+  ];
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const cfg = await monitorPyApi.getConfig();
-      setConfig(cfg);
+      const result = await monitorPyApi.getConfig();
+      setConfig(result);
     } catch (e: unknown) {
-      setError('无法加载配置（Python 监控服务未运行？）');
+      setError(cfg.noConfig);
     } finally {
       setLoading(false);
     }
@@ -819,7 +833,7 @@ const ConfigViewer: React.FC = () => {
       {/* API 连接 Tab */}
       {activeTab === 'api' && (
         loading && !config
-          ? <div className="text-sm text-gray-400 py-8 text-center">加载中...</div>
+          ? <div className="text-sm text-gray-400 py-8 text-center">{t.loading}</div>
           : config ? <ApiConnectionPanel config={config} /> : null
       )}
 

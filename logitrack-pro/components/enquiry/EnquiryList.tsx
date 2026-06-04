@@ -22,6 +22,7 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<EnquiryStatus[]>([]);
+  const [productTypeFilter, setProductTypeFilter] = useState<string[]>([]);
   const [cargoTypeFilter, setCargoTypeFilter] = useState<string[]>([]);
   const [officeFilter, setOfficeFilter] = useState<string[]>([]);
   const [polFilter, setPolFilter] = useState<number | null>(null);
@@ -38,6 +39,9 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
   // Office options
   const [officeOptions, setOfficeOptions] = useState<SelectOption[]>([]);
 
+  // Product type options
+  const [productOptions, setProductOptions] = useState<SelectOption[]>([]);
+
   // Port search state for POL/POD filters
   const [polSearchTerm, setPolSearchTerm] = useState('');
   const [podSearchTerm, setPodSearchTerm] = useState('');
@@ -48,11 +52,13 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
   const [showOfficeDropdown, setShowOfficeDropdown] = useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [showCargoDropdown, setShowCargoDropdown] = useState(false);
+  const [showProductDropdown, setShowProductDropdown] = useState(false);
   const polRef = useRef<HTMLDivElement>(null);
   const podRef = useRef<HTMLDivElement>(null);
   const officeRef = useRef<HTMLDivElement>(null);
   const statusRef = useRef<HTMLDivElement>(null);
   const cargoRef = useRef<HTMLDivElement>(null);
+  const productRef = useRef<HTMLDivElement>(null);
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -62,6 +68,9 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
   // Load office options on mount
   useEffect(() => {
     masterDataApi.getCnOffices().then(setOfficeOptions).catch(() => {});
+    masterDataApi.getProducts().then((prods) =>
+      setProductOptions(prods.map((p) => ({ value: p.code, label: p.name || p.code })))
+    ).catch(() => {});
   }, []);
 
   // Close dropdowns on outside click
@@ -72,6 +81,7 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
       if (officeRef.current && !officeRef.current.contains(e.target as Node)) setShowOfficeDropdown(false);
       if (statusRef.current && !statusRef.current.contains(e.target as Node)) setShowStatusDropdown(false);
       if (cargoRef.current && !cargoRef.current.contains(e.target as Node)) setShowCargoDropdown(false);
+      if (productRef.current && !productRef.current.contains(e.target as Node)) setShowProductDropdown(false);
     };
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
@@ -105,7 +115,7 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
 
   useEffect(() => {
     fetchEnquiries();
-  }, [currentPage, pageSize, searchTerm, statusFilter, cargoTypeFilter, officeFilter, polFilter, podFilter, createdDateFrom, createdDateTo, autoFillOnly]);
+  }, [currentPage, pageSize, searchTerm, statusFilter, productTypeFilter, cargoTypeFilter, officeFilter, polFilter, podFilter, createdDateFrom, createdDateTo, autoFillOnly]);
 
   const fetchEnquiries = async () => {
     setIsLoading(true);
@@ -116,6 +126,7 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
         pageSize,
         search: searchTerm || undefined,
         status: statusFilter.length > 0 ? statusFilter : undefined,
+        productCode: productTypeFilter.length > 0 ? productTypeFilter : undefined,
         cargoType: cargoTypeFilter.length > 0 ? cargoTypeFilter : undefined,
         assignedCnOffice: officeFilter.length > 0 ? officeFilter.join(',') : undefined,
         polPortId: polFilter || undefined,
@@ -246,6 +257,7 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
       const params = new URLSearchParams();
       if (searchTerm) params.set('keyword', searchTerm);
       if (statusFilter.length > 0) params.set('status', statusFilter.join(','));
+      if (productTypeFilter.length > 0) params.set('productCode', productTypeFilter.join(','));
       if (cargoTypeFilter.length > 0) params.set('cargoTypeCode', cargoTypeFilter.join(','));
       if (officeFilter.length > 0) params.set('assignedCnOffice', officeFilter.join(','));
       if (polFilter) params.set('polPortId', String(polFilter));
@@ -322,8 +334,8 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
 
       {/* Filters */}
       <div className="bg-white shadow rounded-lg p-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {/* Row 1: Search, Status, CargoType, PageSize */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          {/* Row 1: Search, Status, ProductType, CargoType, PageSize */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
             <input
@@ -361,6 +373,40 @@ export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, 
                       className="mr-2 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                     />
                     {s}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Product Type multi-select */}
+          <div ref={productRef} className="relative">
+            <button
+              type="button"
+              onClick={() => setShowProductDropdown(!showProductDropdown)}
+              className={`w-full text-left rounded-md border shadow-sm px-3 py-2 text-sm focus:border-indigo-500 focus:ring-indigo-500 ${productTypeFilter.length > 0 ? 'bg-indigo-50 border-indigo-300' : 'border-gray-300'}`}
+            >
+              {productTypeFilter.length === 0 ? 'All Product Types' : `${productTypeFilter.length} type(s) selected`}
+            </button>
+            {showProductDropdown && (
+              <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                {productOptions.map(p => (
+                  <label key={String(p.value)} className="flex items-center px-3 py-2 text-sm hover:bg-indigo-50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={productTypeFilter.includes(String(p.value))}
+                      onChange={(ev) => {
+                        const val = String(p.value);
+                        if (ev.target.checked) {
+                          setProductTypeFilter([...productTypeFilter, val]);
+                        } else {
+                          setProductTypeFilter(productTypeFilter.filter(v => v !== val));
+                        }
+                        setCurrentPage(1);
+                      }}
+                      className="mr-2 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    {p.label}
                   </label>
                 ))}
               </div>

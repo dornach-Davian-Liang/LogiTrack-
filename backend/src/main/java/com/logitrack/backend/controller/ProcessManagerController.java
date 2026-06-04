@@ -47,15 +47,15 @@ public class ProcessManagerController {
      * {
      *   "runMode": "TEST_FORWARD",   // DRY_RUN / TEST_FORWARD / LIVE
      *   "pollInterval": 60,          // 轮询间隔秒数（可选）
-     *   "logitrackDryRun": true,     // true=打印建单不实际创建（可选）
+     *   "createRefMode": "DRY_RUN",  // CREATE_REF 建单模式（可选）
      *   "testMailbox": "xx@yy.com"  // TEST_FORWARD 目标邮箱（可选）
      * }
      */
     @PostMapping("/start")
     public ResponseEntity<Map<String, Object>> start(@RequestBody StartRequestDTO req) {
         try {
-            log.info("[ProcessManager] 启动请求: mode={} pollInterval={} dryRun={} testMailbox={}",
-                    req.runMode(), req.pollInterval(), req.logitrackDryRun(), req.testMailbox());
+            log.info("[ProcessManager] 启动请求: mode={} pollInterval={} createRefMode={} testMailbox={}",
+                    req.runMode(), req.pollInterval(), req.createRefMode(), req.testMailbox());
             Map<String, Object> result = processManagerService.startProcess(req);
             boolean ok = Boolean.TRUE.equals(result.get("ok"));
             return ok ? ResponseEntity.ok(result) : ResponseEntity.badRequest().body(result);

@@ -50,4 +50,13 @@ public interface EmailProcessingLogRepository extends JpaRepository<EmailProcess
 
     // 最近 N 条记录
     List<EmailProcessingLog> findTop20ByOrderByProcessedAtDesc();
+
+    // 数据质检：查询 AI 自动建单的所有日志（logitrack_created=true，时间倒序）
+    @Query("SELECT e FROM EmailProcessingLog e WHERE e.logitrackCreated = true " +
+           "AND e.processedAt >= :since ORDER BY e.processedAt DESC")
+    List<EmailProcessingLog> findAiCreatedSince(@Param("since") LocalDateTime since);
+
+    // 数据质检：通过 logitrack_id 批量查询日志（补全无日志链接的 AI 建单邮件信息）
+    @Query("SELECT e FROM EmailProcessingLog e WHERE e.logitrackId IN :ids AND e.logitrackCreated = true")
+    List<EmailProcessingLog> findByLogitrackIdIn(@Param("ids") List<Integer> ids);
 }

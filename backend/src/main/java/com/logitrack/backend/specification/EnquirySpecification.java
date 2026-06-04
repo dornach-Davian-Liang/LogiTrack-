@@ -73,9 +73,15 @@ public class EnquirySpecification {
                 }
             }
 
-            // Product code filter
+            // Product code filter — supports comma-separated multiple values
             if (productCode != null && !productCode.isBlank()) {
-                predicates.add(cb.equal(root.get("productCode"), productCode));
+                if (productCode.contains(",")) {
+                    List<String> productList = Arrays.stream(productCode.split(","))
+                            .map(String::trim).filter(s -> !s.isEmpty()).toList();
+                    predicates.add(root.get("productCode").in(productList));
+                } else {
+                    predicates.add(cb.equal(root.get("productCode"), productCode));
+                }
             }
 
             // Cargo type filter — supports comma-separated multiple values
@@ -95,8 +101,11 @@ public class EnquirySpecification {
             }
 
             // CN Office filter — supports comma-separated multiple values
+            // "__NONE__" is a sentinel meaning the user has no allowed office → return nothing
             if (assignedCnOffice != null && !assignedCnOffice.isBlank()) {
-                if (assignedCnOffice.contains(",")) {
+                if ("__NONE__".equals(assignedCnOffice)) {
+                    predicates.add(cb.disjunction()); // always false
+                } else if (assignedCnOffice.contains(",")) {
                     List<String> offices = Arrays.stream(assignedCnOffice.split(","))
                             .map(String::trim).filter(s -> !s.isEmpty()).toList();
                     predicates.add(root.get("assignedCnOffice").in(offices));

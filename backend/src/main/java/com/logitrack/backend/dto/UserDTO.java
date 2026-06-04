@@ -27,4 +27,5 @@ public class UserDTO {
     private String updatedBy;
     private Set<String> roleCodes;
     private Set<String> roleNames;
+    private Set<String> cnOfficeCodes;
 }

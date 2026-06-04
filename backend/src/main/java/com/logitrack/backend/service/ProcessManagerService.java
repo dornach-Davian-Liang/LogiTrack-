@@ -54,7 +54,8 @@ public class ProcessManagerService {
     public record StartRequestDTO(
         String runMode,           // DRY_RUN / TEST_FORWARD / LIVE
         Integer pollInterval,     // 秒，null 则使用默认
-        Boolean logitrackDryRun,  // true=打印建单不实际创建
+        String createRefMode,     // DRY_RUN / TEST_FORWARD / LIVE（独立建单模式）
+        Boolean logitrackDryRun,  // 兼容旧前端：true=DRY_RUN，false=LIVE
         String testMailbox,       // TEST_FORWARD 模式目标邮箱
         String auditBcc           // LIVE 模式审核 BCC 邮箱
     ) {}
@@ -147,9 +148,16 @@ public class ProcessManagerService {
         if (req.pollInterval() != null && req.pollInterval() > 0) {
             env.put("POLL_INTERVAL", String.valueOf(req.pollInterval()));
         }
-        // LOGITRACK_DRY_RUN
-        if (req.logitrackDryRun() != null) {
-            env.put("LOGITRACK_DRY_RUN", req.logitrackDryRun() ? "true" : "false");
+        // CREATE_REF_MODE 独立建单模式（兼容旧版 logitrackDryRun 布尔字段）
+        String effectiveCreateRefMode = null;
+        if (req.createRefMode() != null && !req.createRefMode().isBlank()) {
+            effectiveCreateRefMode = req.createRefMode().trim();
+        } else if (req.logitrackDryRun() != null) {
+            effectiveCreateRefMode = req.logitrackDryRun() ? "DRY_RUN" : "LIVE";
+        }
+        if (effectiveCreateRefMode != null && !effectiveCreateRefMode.isBlank()) {
+            env.put("CREATE_REF_MODE", effectiveCreateRefMode);
+            env.put("LOGITRACK_DRY_RUN", "LIVE".equalsIgnoreCase(effectiveCreateRefMode) ? "false" : "true");
         }
         // TEST_FORWARD 邮箱
         if (req.testMailbox() != null && !req.testMailbox().isBlank()) {
@@ -172,8 +180,8 @@ public class ProcessManagerService {
         // 写 PID 文件
         writePidFile(pid);
 
-        log.info("[ProcessManager] 启动 email-ai-automation: PID={} mode={} pollInterval={} dryRun={}",
-                pid, mode, req.pollInterval(), req.logitrackDryRun());
+        log.info("[ProcessManager] 启动 email-ai-automation: PID={} mode={} pollInterval={} createRefMode={}",
+            pid, mode, req.pollInterval(), effectiveCreateRefMode);
 
         return Map.of(
             "ok", true,

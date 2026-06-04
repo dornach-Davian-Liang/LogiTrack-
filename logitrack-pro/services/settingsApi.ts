@@ -43,6 +43,7 @@ export interface UserItem {
   isActive: boolean;
   roleCodes?: string[];
   roleNames?: string[];
+  cnOfficeCodes?: string[];
   createdAt?: string;
   updatedAt?: string;
 }

@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Plus, RefreshCw, ShieldCheck, ShieldOff, KeyRound, Pencil, X, Eye, EyeOff } from 'lucide-react';
 import { settingsApi, UserItem, RoleOption } from '../../services/settingsApi';
+import { masterDataApi } from '../../services/api';
+import type { SelectOption } from '../../types';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 interface PasswordRevealState {
   username: string;
@@ -15,15 +18,20 @@ const DEFAULT_FORM = {
   roleCode: '',
   password: '',
   isActive: true,
+  cnOfficeCodes: [] as string[],
 };
 
 const UserManagement: React.FC = () => {
+  const { translations: t } = useLanguage();
+  const um = t.settings.userManagement;
   const [users, setUsers] = useState<UserItem[]>([]);
   const [roles, setRoles] = useState<RoleOption[]>([]);
+  const [cnOfficeOptions, setCnOfficeOptions] = useState<SelectOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [includeInactive, setIncludeInactive] = useState(false);
   const [search, setSearch] = useState('');
+  const [showOfficeDropdown, setShowOfficeDropdown] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserItem | null>(null);
@@ -53,9 +61,19 @@ const UserManagement: React.FC = () => {
     }
   };
 
+  const fetchCnOffices = async () => {
+    try {
+      const response = await masterDataApi.getCnOffices();
+      setCnOfficeOptions(response || []);
+    } catch (err) {
+      console.warn('[UserManagement] Failed to load CN offices', err);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
     fetchRoles();
+    fetchCnOffices();
   }, [includeInactive]);
 
   const filteredUsers = useMemo(() => {
@@ -75,6 +93,7 @@ const UserManagement: React.FC = () => {
   const openCreateModal = () => {
     setEditingUser(null);
     setForm({ ...DEFAULT_FORM, roleCode: roles[0]?.roleCode || '' });
+    setShowOfficeDropdown(false);
     setShowPassword(false);
     setIsModalOpen(true);
   };
@@ -90,7 +109,9 @@ const UserManagement: React.FC = () => {
       roleCode,
       password: '',
       isActive: user.isActive,
+      cnOfficeCodes: user.cnOfficeCodes ? [...user.cnOfficeCodes] : [],
     });
+    setShowOfficeDropdown(false);
     setShowPassword(false);
     setIsModalOpen(true);
   };
@@ -98,16 +119,21 @@ const UserManagement: React.FC = () => {
   const closeModal = () => {
     setIsModalOpen(false);
     setEditingUser(null);
+    setShowOfficeDropdown(false);
     setForm(DEFAULT_FORM);
   };
 
   const handleSave = async () => {
     if (!form.username || !form.fullName || !form.roleCode) {
-      setError('请填写用户名、姓名和角色');
+      setError(um.errors.requiredFields);
       return;
     }
     if (!editingUser && !form.password) {
-      setError('请设置初始密码');
+      setError(um.errors.passwordRequired);
+      return;
+    }
+    if (form.cnOfficeCodes.length === 0) {
+      setError(um.errors.cnOfficeRequired);
       return;
     }
 
@@ -120,6 +146,7 @@ const UserManagement: React.FC = () => {
         phone: form.phone || null,
         isActive: form.isActive,
         roleCodes: [form.roleCode],
+        cnOfficeCodes: form.cnOfficeCodes,
       };
 
       if (!editingUser) {
@@ -136,14 +163,14 @@ const UserManagement: React.FC = () => {
       closeModal();
       fetchUsers();
     } catch (err: any) {
-      setError(err?.message || '保存失败');
+      setError(err?.message || um.errors.saveFailed);
     } finally {
       setLoading(false);
     }
   };
 
   const handleDeactivate = async (user: UserItem) => {
-    if (!window.confirm(`确认禁用用户 ${user.username} 吗？`)) {
+    if (!window.confirm(um.confirm.disable.replace('{{username}}', user.username))) {
       return;
     }
     setLoading(true);
@@ -152,7 +179,7 @@ const UserManagement: React.FC = () => {
       await settingsApi.deleteUser(user.id);
       fetchUsers();
     } catch (err: any) {
-      setError(err?.message || '禁用失败');
+      setError(err?.message || um.errors.disableFailed);
     } finally {
       setLoading(false);
     }
@@ -165,14 +192,14 @@ const UserManagement: React.FC = () => {
       await settingsApi.updateUser(user.id, { isActive: true });
       fetchUsers();
     } catch (err: any) {
-      setError(err?.message || '启用失败');
+      setError(err?.message || um.errors.enableFailed);
     } finally {
       setLoading(false);
     }
   };
 
   const handleResetPassword = async (user: UserItem) => {
-    if (!window.confirm(`确认重置 ${user.username} 的密码吗？`)) {
+    if (!window.confirm(um.confirm.resetPassword.replace('{{username}}', user.username))) {
       return;
     }
     setLoading(true);
@@ -184,7 +211,7 @@ const UserManagement: React.FC = () => {
         password: response.temporaryPassword,
       });
     } catch (err: any) {
-      setError(err?.message || '重置失败');
+      setError(err?.message || um.errors.resetFailed);
     } finally {
       setLoading(false);
     }
@@ -204,8 +231,8 @@ const UserManagement: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">👥 用户管理</h1>
-          <p className="text-gray-500 mt-1">创建、编辑用户并管理权限</p>
+          <h1 className="text-2xl font-bold text-gray-900">{um.title}</h1>
+          <p className="text-gray-500 mt-1">{um.subtitle}</p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -214,14 +241,14 @@ const UserManagement: React.FC = () => {
             className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
           >
             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-            <span className="ml-2">刷新</span>
+            <span className="ml-2">{um.refresh}</span>
           </button>
           <button
             onClick={openCreateModal}
             className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
           >
             <Plus size={16} />
-            <span className="ml-2">新增用户</span>
+            <span className="ml-2">{um.createUser}</span>
           </button>
         </div>
       </div>
@@ -236,7 +263,7 @@ const UserManagement: React.FC = () => {
         <input
           type="text"
           className="w-64 rounded-md border border-gray-300 px-3 py-2 text-sm"
-          placeholder="搜索用户名/姓名/邮箱"
+          placeholder={um.searchPlaceholder}
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
@@ -246,7 +273,7 @@ const UserManagement: React.FC = () => {
             checked={includeInactive}
             onChange={(event) => setIncludeInactive(event.target.checked)}
           />
-          显示已禁用用户
+          {um.showInactive}
         </label>
       </div>
 
@@ -254,12 +281,13 @@ const UserManagement: React.FC = () => {
         <table className="min-w-full divide-y divide-gray-200 text-sm">
           <thead className="bg-gray-50 text-gray-600">
             <tr>
-              <th className="px-4 py-3 text-left font-semibold">用户名</th>
-              <th className="px-4 py-3 text-left font-semibold">姓名</th>
-              <th className="px-4 py-3 text-left font-semibold">邮箱</th>
-              <th className="px-4 py-3 text-left font-semibold">角色</th>
-              <th className="px-4 py-3 text-left font-semibold">状态</th>
-              <th className="px-4 py-3 text-left font-semibold">操作</th>
+              <th className="px-4 py-3 text-left font-semibold">{um.tableHeaders.username}</th>
+              <th className="px-4 py-3 text-left font-semibold">{um.tableHeaders.fullName}</th>
+              <th className="px-4 py-3 text-left font-semibold">{um.tableHeaders.email}</th>
+              <th className="px-4 py-3 text-left font-semibold">{um.tableHeaders.role}</th>
+              <th className="px-4 py-3 text-left font-semibold">{um.tableHeaders.cnOffice}</th>
+              <th className="px-4 py-3 text-left font-semibold">{um.tableHeaders.status}</th>
+              <th className="px-4 py-3 text-left font-semibold">{um.tableHeaders.actions}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
@@ -273,6 +301,11 @@ const UserManagement: React.FC = () => {
                     (user.roleCodes && user.roleCodes.join(', ')) ||
                     '-'}
                 </td>
+                <td className="px-4 py-3 text-gray-600 max-w-xs">
+                  {user.cnOfficeCodes && user.cnOfficeCodes.length > 0
+                    ? user.cnOfficeCodes.join(', ')
+                    : <span className="text-amber-500 text-xs">{um.unassigned}</span>}
+                </td>
                 <td className="px-4 py-3">
                   <span
                     className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${
@@ -281,7 +314,7 @@ const UserManagement: React.FC = () => {
                         : 'bg-gray-100 text-gray-500'
                     }`}
                   >
-                    {user.isActive ? '启用' : '禁用'}
+                    {user.isActive ? um.statusActive : um.statusInactive}
                   </span>
                 </td>
                 <td className="px-4 py-3">
@@ -291,7 +324,7 @@ const UserManagement: React.FC = () => {
                       className="inline-flex items-center gap-1 rounded-md border border-gray-200 px-2 py-1 text-xs text-gray-700 hover:bg-gray-50"
                     >
                       <Pencil size={14} />
-                      编辑
+                      {um.actions.edit}
                     </button>
                     {user.isActive ? (
                       <button
@@ -299,7 +332,7 @@ const UserManagement: React.FC = () => {
                         className="inline-flex items-center gap-1 rounded-md border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50"
                       >
                         <ShieldOff size={14} />
-                        禁用
+                        {um.actions.disable}
                       </button>
                     ) : (
                       <button
@@ -307,7 +340,7 @@ const UserManagement: React.FC = () => {
                         className="inline-flex items-center gap-1 rounded-md border border-green-200 px-2 py-1 text-xs text-green-700 hover:bg-green-50"
                       >
                         <ShieldCheck size={14} />
-                        启用
+                        {um.actions.enable}
                       </button>
                     )}
                     <button
@@ -315,7 +348,7 @@ const UserManagement: React.FC = () => {
                       className="inline-flex items-center gap-1 rounded-md border border-indigo-200 px-2 py-1 text-xs text-indigo-600 hover:bg-indigo-50"
                     >
                       <KeyRound size={14} />
-                      重置密码
+                      {um.actions.resetPassword}
                     </button>
                   </div>
                 </td>
@@ -323,8 +356,8 @@ const UserManagement: React.FC = () => {
             ))}
             {!filteredUsers.length && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-gray-500">
-                  暂无用户数据
+                <td colSpan={7} className="px-4 py-6 text-center text-gray-500">
+                  {um.noData}
                 </td>
               </tr>
             )}
@@ -337,7 +370,7 @@ const UserManagement: React.FC = () => {
           <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-gray-900">
-                {editingUser ? '编辑用户' : '新增用户'}
+                {editingUser ? um.modal.editTitle : um.modal.createTitle}
               </h2>
               <button onClick={closeModal} className="text-gray-500 hover:text-gray-700">
                 <X size={18} />
@@ -346,7 +379,7 @@ const UserManagement: React.FC = () => {
 
             <div className="mt-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">用户名</label>
+                <label className="block text-sm font-medium text-gray-700">{um.form.username}</label>
                 <input
                   type="text"
                   disabled={!!editingUser}
@@ -357,7 +390,7 @@ const UserManagement: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">姓名</label>
+                <label className="block text-sm font-medium text-gray-700">{um.form.fullName}</label>
                 <input
                   type="text"
                   className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
@@ -367,7 +400,7 @@ const UserManagement: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">邮箱</label>
+                <label className="block text-sm font-medium text-gray-700">{um.form.email}</label>
                 <input
                   type="email"
                   className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
@@ -377,7 +410,7 @@ const UserManagement: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">电话</label>
+                <label className="block text-sm font-medium text-gray-700">{um.form.phone}</label>
                 <input
                   type="text"
                   className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
@@ -387,13 +420,13 @@ const UserManagement: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">角色</label>
+                <label className="block text-sm font-medium text-gray-700">{um.form.role}</label>
                 <select
                   className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
                   value={form.roleCode}
                   onChange={(event) => setForm({ ...form, roleCode: event.target.value })}
                 >
-                  <option value="">请选择角色</option>
+                  <option value="">{um.form.rolePlaceholder}</option>
                   {roles.map((role) => (
                     <option key={role.roleCode} value={role.roleCode}>
                       {role.roleName}
@@ -402,8 +435,52 @@ const UserManagement: React.FC = () => {
                 </select>
               </div>
 
+              <div className="relative">
+                <label className="block text-sm font-medium text-gray-700">
+                  {um.form.cnOffice} <span className="text-red-500">*</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowOfficeDropdown(!showOfficeDropdown)}
+                  className={`mt-1 w-full text-left rounded-md border px-3 py-2 text-sm ${
+                    form.cnOfficeCodes.length > 0 ? 'bg-indigo-50 border-indigo-300' : 'border-gray-300'
+                  }`}
+                >
+                  {form.cnOfficeCodes.length === 0
+                    ? um.form.cnOfficePlaceholder
+                    : form.cnOfficeCodes.join(', ')}
+                </button>
+                {showOfficeDropdown && (
+                  <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                    {cnOfficeOptions.map((o) => {
+                      const val = String(o.value);
+                      return (
+                        <label
+                          key={val}
+                          className="flex items-center px-3 py-2 text-sm hover:bg-indigo-50 cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={form.cnOfficeCodes.includes(val)}
+                            onChange={(ev) => {
+                              if (ev.target.checked) {
+                                setForm({ ...form, cnOfficeCodes: [...form.cnOfficeCodes, val] });
+                              } else {
+                                setForm({ ...form, cnOfficeCodes: form.cnOfficeCodes.filter((c) => c !== val) });
+                              }
+                            }}
+                            className="mr-2 rounded border-gray-300 text-indigo-600"
+                          />
+                          {o.label}
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700">密码</label>
+                <label className="block text-sm font-medium text-gray-700">{um.form.password}</label>
                 <div className="mt-1 flex items-center gap-2">
                   <div className="relative flex-1">
                     <input
@@ -425,10 +502,10 @@ const UserManagement: React.FC = () => {
                     onClick={generatePassword}
                     className="rounded-md border border-indigo-200 px-3 py-2 text-xs text-indigo-600 hover:bg-indigo-50"
                   >
-                    生成密码
+                    {um.form.generatePassword}
                   </button>
                 </div>
-                <p className="mt-1 text-xs text-gray-500">重置或新增时可以生成临时密码，并在此处查看。</p>
+                <p className="mt-1 text-xs text-gray-500">{um.passwordReveal.warning}</p>
               </div>
 
               <label className="flex items-center gap-2 text-sm text-gray-700">
@@ -437,7 +514,7 @@ const UserManagement: React.FC = () => {
                   checked={form.isActive}
                   onChange={(event) => setForm({ ...form, isActive: event.target.checked })}
                 />
-                启用账号
+                {um.statusActive}
               </label>
             </div>
 
@@ -446,14 +523,14 @@ const UserManagement: React.FC = () => {
                 onClick={closeModal}
                 className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
               >
-                取消
+                {t.cancel}
               </button>
               <button
                 onClick={handleSave}
                 disabled={loading}
                 className="rounded-md bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700 disabled:opacity-50"
               >
-                保存
+                {t.save}
               </button>
             </div>
           </div>
@@ -464,7 +541,7 @@ const UserManagement: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">临时密码</h2>
+              <h2 className="text-lg font-semibold text-gray-900">{um.passwordReveal.title}</h2>
               <button
                 onClick={() => setPasswordReveal(null)}
                 className="text-gray-500 hover:text-gray-700"
@@ -473,7 +550,7 @@ const UserManagement: React.FC = () => {
               </button>
             </div>
             <p className="mt-3 text-sm text-gray-600">
-              用户 {passwordReveal.username} 的新密码如下，请立即保存并告知用户。
+              {um.passwordReveal.usernameLabel}: {passwordReveal.username}<br/>{um.passwordReveal.warning}
             </p>
             <div className="mt-4 rounded-md border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-700">
               {passwordReveal.password}
@@ -483,7 +560,7 @@ const UserManagement: React.FC = () => {
                 onClick={() => setPasswordReveal(null)}
                 className="rounded-md bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700"
               >
-                确定
+                {um.passwordReveal.confirm}
               </button>
             </div>
           </div>

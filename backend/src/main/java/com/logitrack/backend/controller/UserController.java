@@ -150,8 +150,9 @@ public class UserController {
             user.setUpdatedBy(String.valueOf(adminUserId));
             
             Set<String> roleCodes = parseRoleCodes(body.get("roleCodes"));
+            Set<String> cnOfficeCodes = parseRoleCodes(body.get("cnOfficeCodes"));
             
-            UserDTO created = userService.createUser(user, roleCodes);
+            UserDTO created = userService.createUser(user, roleCodes, cnOfficeCodes);
             return ResponseEntity.ok(created);
         } catch (Exception e) {
             log.error("创建用户失败: {}", e.getMessage());
@@ -195,9 +196,11 @@ public class UserController {
             
             boolean updateRoles = body.containsKey("roleCodes");
             Set<String> roleCodes = updateRoles ? parseRoleCodes(body.get("roleCodes")) : new HashSet<>();
+            boolean updateCnOffices = body.containsKey("cnOfficeCodes");
+            Set<String> cnOfficeCodes = updateCnOffices ? parseRoleCodes(body.get("cnOfficeCodes")) : new HashSet<>();
             
             updateData.setUpdatedBy(String.valueOf(adminUserId));
-            UserDTO updated = userService.updateUser(id, updateData, roleCodes, updateRoles);
+            UserDTO updated = userService.updateUser(id, updateData, roleCodes, updateRoles, cnOfficeCodes, updateCnOffices);
             return ResponseEntity.ok(updated);
         } catch (Exception e) {
             log.error("更新用户失败: {}", e.getMessage());

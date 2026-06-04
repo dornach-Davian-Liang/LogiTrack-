@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Activity, CheckCircle, XCircle, AlertTriangle, Clock, BarChart2, Bot, ArrowUpCircle } from 'lucide-react';
 import { monitorApi, monitorPyApi, MonitorStatsDTO, PyApiStatus } from '../../../../services/monitorApi';
+import { useLanguage } from '../../../../i18n/LanguageContext';
 
 // ─── 小工具组件 ──────────────────────────────────────────────────────────────
 
@@ -25,13 +26,16 @@ const StatCard: React.FC<StatCardProps> = ({ label, value, color = 'text-gray-80
 interface HealthDotProps {
   label: string;
   status: boolean | null | string;
+  textUnknown: string;
+  textNormal: string;
+  textError: string;
 }
 
-const HealthDot: React.FC<HealthDotProps> = ({ label, status }) => {
+const HealthDot: React.FC<HealthDotProps> = ({ label, status, textUnknown, textNormal, textError }) => {
   let color = 'bg-gray-300';
-  let text = '未知';
-  if (status === true || status === 'ok') { color = 'bg-green-500'; text = '正常'; }
-  else if (status === false || status === 'error') { color = 'bg-red-500'; text = '异常'; }
+  let text = textUnknown;
+  if (status === true || status === 'ok') { color = 'bg-green-500'; text = textNormal; }
+  else if (status === false || status === 'error') { color = 'bg-red-500'; text = textError; }
 
   return (
     <div className="flex items-center gap-2 text-sm">
@@ -63,14 +67,14 @@ function fmtUptime(seconds: number | null | undefined): string {
   return `${s}s`;
 }
 
-function fmtTime(iso: string | null | undefined): string {
+function fmtTime(iso: string | null | undefined, secondsAgo: string, minutesAgo: string): string {
   if (!iso) return '—';
   try {
     const d = new Date(iso.includes('T') ? iso : iso.replace(' ', 'T'));
     const diff = Math.floor((Date.now() - d.getTime()) / 1000);
-    if (diff < 60) return `${diff}秒前`;
-    if (diff < 3600) return `${Math.floor(diff / 60)}分钟前`;
-    return d.toLocaleString('zh-CN');
+    if (diff < 60) return `${diff}${secondsAgo}`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}${minutesAgo}`;
+    return d.toLocaleString();
   } catch { return iso; }
 }
 
@@ -82,6 +86,8 @@ const StatusOverview: React.FC = () => {
   const [pyError, setPyError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+  const { translations: t } = useLanguage();
+  const ov = t.monitoring.overview;
 
   const refresh = useCallback(async () => {
     try {
@@ -122,7 +128,7 @@ const StatusOverview: React.FC = () => {
     return (
       <div className="flex items-center justify-center py-20 text-gray-400">
         <Activity className="animate-spin mr-2" size={20} />
-        加载中...
+        {ov.loading}
       </div>
     );
   }
@@ -136,32 +142,32 @@ const StatusOverview: React.FC = () => {
           {isRunning !== null && (
             <span className={`flex items-center gap-1 text-sm font-medium ${isRunning ? 'text-green-600' : 'text-gray-400'}`}>
               <span className={`w-2 h-2 rounded-full ${isRunning ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`} />
-              {isRunning ? '运行中' : '已停止'}
+              {isRunning ? ov.running : ov.stopped}
             </span>
           )}
           {pyError && (
-            <span className="text-xs text-yellow-600 flex items-center gap-1">
+              <span className="text-xs text-yellow-600 flex items-center gap-1">
               <AlertTriangle size={12} />
-              Python API 不可用（展示历史数据）
+              {ov.pyApiUnavailable}
             </span>
           )}
         </div>
         <span className="text-xs text-gray-400">
-          {lastRefresh ? `最后刷新: ${fmtTime(lastRefresh.toISOString())}` : ''}
-          <span className="ml-2 text-gray-300">（每30秒自动刷新）</span>
+          {lastRefresh ? `${ov.lastRefresh} ${fmtTime(lastRefresh.toISOString(), ov.secondsAgo, ov.minutesAgo)}` : ''}
+          <span className="ml-2 text-gray-300">{ov.autoRefresh}</span>
         </span>
       </div>
 
       {/* 今日统计卡片 */}
       <div>
-        <h3 className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wide">今日统计</h3>
+        <h3 className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wide">{ov.todayStats}</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          <StatCard label="今日总处理" value={stats?.todayTotal} color="text-blue-700" icon={<BarChart2 size={14} />} />
-          <StatCard label="已处理" value={stats?.todayProcessed} color="text-green-700" icon={<CheckCircle size={14} />} />
-          <StatCard label="已跳过" value={stats?.todaySkipped} color="text-gray-600" />
-          <StatCard label="失败" value={stats?.todayErrors} color="text-red-700" highlight={(stats?.todayErrors ?? 0) > 0} icon={<XCircle size={14} />} />
-          <StatCard label="已转发" value={stats?.todayForwarded} color="text-indigo-700" icon={<ArrowUpCircle size={14} />} />
-          <StatCard label="已建单" value={stats?.todayLogitrack} color="text-purple-700" icon={<Bot size={14} />} />
+          <StatCard label={ov.todayTotal}     value={stats?.todayTotal}     color="text-blue-700"   icon={<BarChart2 size={14} />} />
+          <StatCard label={ov.todayProcessed} value={stats?.todayProcessed} color="text-green-700"  icon={<CheckCircle size={14} />} />
+          <StatCard label={ov.todaySkipped}   value={stats?.todaySkipped}   color="text-gray-600" />
+          <StatCard label={ov.todayErrors}    value={stats?.todayErrors}    color="text-red-700"   highlight={(stats?.todayErrors ?? 0) > 0} icon={<XCircle size={14} />} />
+          <StatCard label={ov.todayForwarded} value={stats?.todayForwarded} color="text-indigo-700" icon={<ArrowUpCircle size={14} />} />
+          <StatCard label={ov.todayLogitrack} value={stats?.todayLogitrack} color="text-purple-700" icon={<Bot size={14} />} />
         </div>
       </div>
 
@@ -171,25 +177,25 @@ const StatusOverview: React.FC = () => {
         <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-3 shadow-sm">
           <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
             <Clock size={15} />
-            运行状态
+            {ov.runStatus}
           </h3>
           <div className="space-y-2 text-sm text-gray-600">
             <div className="flex justify-between">
-              <span>轮询间隔</span>
+              <span>{ov.pollInterval}</span>
               <span className="font-medium">{pollInterval ? `${pollInterval}s` : '—'}</span>
             </div>
             <div className="flex justify-between">
-              <span>上次轮询</span>
-              <span className="font-medium">{fmtTime(lastPoll)}</span>
+              <span>{ov.lastPoll}</span>
+              <span className="font-medium">{fmtTime(lastPoll, ov.secondsAgo, ov.minutesAgo)}</span>
             </div>
             <div className="flex justify-between">
-              <span>持续运行</span>
+              <span>{ov.uptime}</span>
               <span className="font-medium">{fmtUptime(uptime)}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span>连续失败</span>
+              <span>{ov.consecutiveFails}</span>
               <span className={`font-semibold ${consFail === 0 ? 'text-green-600' : consFail < 3 ? 'text-yellow-600' : 'text-red-600'}`}>
-                {consFail}次
+                {consFail}{ov.failTimes}
               </span>
             </div>
           </div>
@@ -199,16 +205,16 @@ const StatusOverview: React.FC = () => {
         <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-3 shadow-sm">
           <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
             <Activity size={15} />
-            服务健康
+            {ov.serviceHealth}
           </h3>
           <div className="space-y-2">
-            <HealthDot label="Microsoft Graph API" status={health?.graph_api ?? stats?.graphApiOk ?? null} />
-            <HealthDot label="DeepSeek LLM"        status={health?.llm_api   ?? stats?.llmApiOk    ?? null} />
-            <HealthDot label="VLM 图片提取"         status={health?.vlm_api   ?? stats?.vlmApiOk    ?? null} />
-            <HealthDot label="LogiTrack API"        status={health?.logitrack ?? stats?.logitrackOk ?? null} />
+            <HealthDot label="Microsoft Graph API" status={health?.graph_api ?? stats?.graphApiOk ?? null} textUnknown={ov.unknown} textNormal={ov.normal} textError={ov.error} />
+            <HealthDot label="DeepSeek LLM"        status={health?.llm_api   ?? stats?.llmApiOk    ?? null} textUnknown={ov.unknown} textNormal={ov.normal} textError={ov.error} />
+            <HealthDot label="VLM"                 status={health?.vlm_api   ?? stats?.vlmApiOk    ?? null} textUnknown={ov.unknown} textNormal={ov.normal} textError={ov.error} />
+            <HealthDot label="LogiTrack API"        status={health?.logitrack ?? stats?.logitrackOk ?? null} textUnknown={ov.unknown} textNormal={ov.normal} textError={ov.error} />
           </div>
           {pyError && (
-            <p className="text-xs text-gray-400 pt-1">健康状态来自 DB 快照（实时 API 不可用）</p>
+            <p className="text-xs text-gray-400 pt-1">{ov.healthSnapshot}</p>
           )}
         </div>
       </div>
@@ -216,13 +222,13 @@ const StatusOverview: React.FC = () => {
       {/* 累计统计（仅在 Python 进程在线时显示） */}
       {pyStatus && (
         <div>
-          <h3 className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wide">本次启动累计</h3>
+          <h3 className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wide">{ov.sessionStats}</h3>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            <StatCard label="累计处理" value={pyStatus.total_processed} color="text-blue-700" />
-            <StatCard label="累计跳过" value={pyStatus.total_skipped} color="text-gray-600" />
-            <StatCard label="累计失败" value={pyStatus.total_errors} color="text-red-600" highlight={pyStatus.total_errors > 0} />
-            <StatCard label="累计转发" value={pyStatus.total_forwarded} color="text-indigo-700" />
-            <StatCard label="累计建单" value={pyStatus.total_logitrack} color="text-purple-700" />
+            <StatCard label={ov.totalProcessed} value={pyStatus.total_processed} color="text-blue-700" />
+            <StatCard label={ov.totalSkipped}   value={pyStatus.total_skipped}   color="text-gray-600" />
+            <StatCard label={ov.totalErrors}    value={pyStatus.total_errors}    color="text-red-600" highlight={pyStatus.total_errors > 0} />
+            <StatCard label={ov.totalForwarded} value={pyStatus.total_forwarded} color="text-indigo-700" />
+            <StatCard label={ov.totalLogitrack} value={pyStatus.total_logitrack} color="text-purple-700" />
           </div>
         </div>
       )}

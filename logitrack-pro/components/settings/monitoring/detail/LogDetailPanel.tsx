@@ -106,6 +106,44 @@ const DryRunPayloadPanel: React.FC<DryRunPayloadProps> = ({ payload }) => {
   );
 };
 
+// ─── SkipChecker 跳过原因解析 ────────────────────────────────────────────────
+
+const SKIP_CATEGORY_STYLE: Record<string, { badge: string; badgeCls: string; note: string }> = {
+  dg_goods:          { badge: '⚠️ 危险品',     badgeCls: 'bg-orange-50 text-orange-700 border border-orange-200', note: '危险品邮件路由正常转发，但不自动建号，请人工评估后手动创建询价单。' },
+  mixed_transport:   { badge: '🔀 混合运输',   badgeCls: 'bg-purple-50 text-purple-700 border border-purple-200', note: '运输方式为多式联运（SEA+AIR 等），需人工确认后建号。' },
+  no_specific_cargo: { badge: '📦 无货物信息', badgeCls: 'bg-yellow-50 text-yellow-700 border border-yellow-200', note: 'AI 未能提取到有效货量/箱量/重量，等待客户补充货物细节后再建号。' },
+  non_core_biz:      { badge: '🌍 非核心地区', badgeCls: 'bg-gray-100 text-gray-500 border border-gray-200',     note: '目的地属于非核心承接区域（如 India/Pakistan/Bangladesh/Kenya），不接此业务，不建号也不转发。' },
+  agent_enquiry:     { badge: '🤝 代理询价',   badgeCls: 'bg-blue-50 text-blue-600 border border-blue-200',     note: '发件人或主题命中代理公司规则（屏蔽名单），无需创建询价单。' },
+  regular_customer:  { badge: '👤 常客',       badgeCls: 'bg-blue-50 text-blue-600 border border-blue-200',     note: '常客订单，该客户有固定报价或直接合作，无需通过标准流程自动建号。' },
+};
+
+/** 解析 Python 写入的 "[category] reason_text" 格式 */
+function parseSkipReason(raw: string | null | undefined): { category: string | null; text: string } {
+  if (!raw) return { category: null, text: '' };
+  const m = raw.match(/^\[([^\]]+)\]\s*(.*)/s);
+  if (m) return { category: m[1].trim(), text: m[2].trim() };
+  return { category: null, text: raw };
+}
+
+interface SkipReasonPanelProps { skipReason: string | null | undefined; }
+const SkipReasonPanel: React.FC<SkipReasonPanelProps> = ({ skipReason }) => {
+  const { category, text } = parseSkipReason(skipReason);
+  const style = category ? SKIP_CATEGORY_STYLE[category] : null;
+  if (!skipReason) return null;
+  return (
+    <div className="mt-2 space-y-1.5">
+      {style && (
+        <div className="text-xs text-gray-600 bg-gray-50 rounded px-2 py-1.5 leading-relaxed">
+          {style.note}
+        </div>
+      )}
+      {text && (
+        <div className="text-xs text-gray-400 font-mono">{text}</div>
+      )}
+    </div>
+  );
+};
+
 // ─── 主组件 ──────────────────────────────────────────────────────────────────
 
 const LogDetailPanel: React.FC<Props> = ({ log, onClose, inline = true }) => {
@@ -113,6 +151,11 @@ const LogDetailPanel: React.FC<Props> = ({ log, onClose, inline = true }) => {
   let routingJson: Record<string, unknown> = {};
   try { if (log.routingJson) routingJson = JSON.parse(log.routingJson); } catch { /* ignore */ }
   const dryRunPayload = routingJson.dry_run_payload as Record<string, unknown> | undefined;
+  const createRefPayloadMode = typeof routingJson.create_ref_payload_mode === 'string'
+    ? routingJson.create_ref_payload_mode
+    : typeof dryRunPayload?.create_ref_mode === 'string'
+      ? dryRunPayload.create_ref_mode
+      : 'DRY_RUN';
 
   const [showWizard, setShowWizard] = useState(false);
 
@@ -154,10 +197,15 @@ const LogDetailPanel: React.FC<Props> = ({ log, onClose, inline = true }) => {
             {log.logitrackCreated
               ? <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">✅ 已建单</span>
               : dryRunPayload
-                ? <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-600">🖨 DRY-RUN 提取信息</span>
-                : log.skipReason
-                  ? <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-400">⏭ 已跳过（不触发建单）</span>
-                  : <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">— 未建单</span>
+                ? <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-600">{createRefPayloadMode === 'TEST_FORWARD' ? '🧪 TEST_FORWARD 提取信息' : '🖨 DRY-RUN 提取信息'}</span>
+                : (() => {
+                    if (!log.skipReason) return <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">— 未建单</span>;
+                    const { category } = parseSkipReason(log.skipReason);
+                    const style = category ? SKIP_CATEGORY_STYLE[category] : null;
+                    return style
+                      ? <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${style.badgeCls}`}>{style.badge} — 不自动建号</span>
+                      : <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-400">⏭ 已跳过（不触发建单）</span>;
+                  })()
             }
           </div>
 
@@ -174,7 +222,9 @@ const LogDetailPanel: React.FC<Props> = ({ log, onClose, inline = true }) => {
             </div>
           ) : dryRunPayload ? (
             <DryRunPayloadPanel payload={dryRunPayload} />
-          ) : log.logitrackError && !log.logitrackError.startsWith('[DRY-RUN]') ? (
+          ) : log.skipReason ? (
+            <SkipReasonPanel skipReason={log.skipReason} />
+          ) : log.logitrackError && !log.logitrackError.startsWith('[DRY-RUN]') && !log.logitrackError.startsWith('[TEST_FORWARD]') ? (
             <div className="text-xs text-red-500 mt-1">{log.logitrackError}</div>
           ) : null}
         </div>
