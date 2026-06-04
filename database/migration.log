@@ -1,0 +1,66 @@
+2026-02-28 12:02:37,792 [INFO] 开始迁移 - CSV: c:\logitrack\LogiTrack--update-status-report-20260126023903\database\..\China Pricing - Enquiry Record-working(Rate Enquiry Summary).csv
+2026-02-28 12:02:37,792 [INFO] Dry Run: True, Limit: 20
+2026-02-28 12:02:37,844 [INFO] CSV 解析完成: 20 条记录
+2026-02-28 12:02:37,844 [INFO] 
+=== DRY RUN: 前 5 条 SQL 示例 ===
+2026-02-28 12:02:37,844 [INFO] 
+--- Record 1: CN2401006-A ---
+2026-02-28 12:02:37,845 [INFO]   INSERT INTO enquiry (reference_number, enquiry_received_date, issue_date, reference_month, monthly_sequence, serial_number, product_code, product_abbr, status, cn_pricing_admin, sales_country_code, sales_office_id, sales_pic_id, assigned_cn_office_code, cargo_type_code, volume_cbm, volume_raw_text, quantity, quantity_raw_text, quantity_uom_code, quantity_uom_raw_text, quantity_teu, quantity_teu_raw_text, commodity, haz_special_equipment, pod_country_code, core_flag, category_code, cargo_ready_date, cargo_ready_date_raw_text, additional_requirement, booking_confirmed, remark, rejected_reason, actual_reason, enquiry_offer_type) VALUES ('CN2401006-A', '2024-01-02', '2024-01-02', '2401', 6, 0, 'AIR', 'A', 'Quoted', 'Susana Wong', 'CN', NULL, NULL, 'HONG KONG', 'AIR', 0.27, NULL, 116.0, NULL, 'KG', 'KG', NULL, NULL, 'RFID Sticker', NULL, 'PAKISTAN', 'NON_CORE', 'ORIGIN_CHARGES_EXW', '2024-01-02', NULL, NULL, 'Yes', 'SO#750-12140009', NULL, NULL, 'AIR');
+2026-02-28 12:02:37,846 [INFO]   INSERT INTO enquiry_pol (enquiry_id, port_id, sequence) VALUES (@enquiry_id, (SELECT id FROM port WHERE port_code='HKG' LIMIT 1), 1);
+2026-02-28 12:02:37,846 [INFO]   INSERT INTO enquiry_pod (enquiry_id, port_id, sequence) VALUES (@enquiry_id, (SELECT id FROM port WHERE port_code='KHI' LIMIT 1), 1);
+2026-02-28 12:02:37,846 [INFO]   INSERT INTO offer (enquiry_id, offer_type, sequence_no, is_latest, sent_date, sent_date_raw_text, price, price_text) VALUES (@enquiry_id, 'AIR', 1, 1, '2024-01-02', NULL, 3.35, 'USD3.35 ALL IN');
+2026-02-28 12:02:37,847 [INFO] 
+--- Record 2: CN2401007-A ---
+2026-02-28 12:02:37,847 [INFO]   INSERT INTO enquiry (reference_number, enquiry_received_date, issue_date, reference_month, monthly_sequence, serial_number, product_code, product_abbr, status, cn_pricing_admin, sales_country_code, sales_office_id, sales_pic_id, assigned_cn_office_code, cargo_type_code, volume_cbm, volume_raw_text, quantity, quantity_raw_text, quantity_uom_code, quantity_uom_raw_text, quantity_teu, quantity_teu_raw_text, commodity, haz_special_equipment, pod_country_code, core_flag, category_code, cargo_ready_date, cargo_ready_date_raw_text, additional_requirement, booking_confirmed, remark, rejected_reason, actual_reason, enquiry_offer_type) VALUES ('CN2401007-A', '2024-01-02', '2024-01-02', '2401', 7, 0, 'AIR', 'A', 'Quoted', 'Susana Wong', 'CN', NULL, NULL, 'HONG KONG', 'AIR', 2.76, NULL, 408.0, NULL, 'KG', 'KG', NULL, NULL, 'Plastic Hangers', NULL, 'PAKISTAN', 'NON_CORE', 'ORIGIN_CHARGES_EXW', '2024-01-02', NULL, NULL, 'Yes', 'SO#750-12140007', NULL, NULL, 'AIR');
+2026-02-28 12:02:37,848 [INFO]   INSERT INTO enquiry_pol (enquiry_id, port_id, sequence) VALUES (@enquiry_id, (SELECT id FROM port WHERE port_code='HKG' LIMIT 1), 1);
+2026-02-28 12:02:37,850 [INFO]   INSERT INTO enquiry_pod (enquiry_id, port_id, sequence) VALUES (@enquiry_id, (SELECT id FROM port WHERE port_code='LHE' LIMIT 1), 1);
+2026-02-28 12:02:37,851 [INFO]   INSERT INTO offer (enquiry_id, offer_type, sequence_no, is_latest, sent_date, sent_date_raw_text, price, price_text) VALUES (@enquiry_id, 'AIR', 1, 1, '2024-01-02', NULL, 3.35, 'USD3.35 ALL IN');
+2026-02-28 12:02:37,852 [INFO] 
+--- Record 3: CN2401008-A ---
+2026-02-28 12:02:37,852 [INFO]   INSERT INTO enquiry (reference_number, enquiry_received_date, issue_date, reference_month, monthly_sequence, serial_number, product_code, product_abbr, status, cn_pricing_admin, sales_country_code, sales_office_id, sales_pic_id, assigned_cn_office_code, cargo_type_code, volume_cbm, volume_raw_text, quantity, quantity_raw_text, quantity_uom_code, quantity_uom_raw_text, quantity_teu, quantity_teu_raw_text, commodity, haz_special_equipment, pod_country_code, core_flag, category_code, cargo_ready_date, cargo_ready_date_raw_text, additional_requirement, booking_confirmed, remark, rejected_reason, actual_reason, enquiry_offer_type) VALUES ('CN2401008-A', '2024-01-02', '2024-01-02', '2401', 8, 0, 'AIR', 'A', 'Quoted', 'Susana Wong', 'GB', NULL, NULL, 'HONG KONG', 'AIR', 17.203, NULL, 2131.5, NULL, 'KG', 'KG', NULL, NULL, 'LED Masks', NULL, 'PAKISTAN', 'NON_CORE', 'ORIGIN_CHARGES_EXW', '2024-01-03', NULL, NULL, 'Yes', NULL, NULL, NULL, 'AIR');
+2026-02-28 12:02:37,854 [INFO]   INSERT INTO enquiry_pol (enquiry_id, port_id, sequence) VALUES (@enquiry_id, (SELECT id FROM port WHERE port_code='HKG' LIMIT 1), 1);
+2026-02-28 12:02:37,854 [INFO]   INSERT INTO enquiry_pod (enquiry_id, port_id, sequence) VALUES (@enquiry_id, (SELECT id FROM port WHERE port_code='LHE' LIMIT 1), 1);
+2026-02-28 12:02:37,854 [INFO]   INSERT INTO offer (enquiry_id, offer_type, sequence_no, is_latest, sent_date, sent_date_raw_text, price, price_text) VALUES (@enquiry_id, 'AIR', 1, 1, '2024-01-02', NULL, 4.57, 'USD4.57');
+2026-02-28 12:02:37,855 [INFO] 
+--- Record 4: CN2401009-A ---
+2026-02-28 12:02:37,855 [INFO]   INSERT INTO enquiry (reference_number, enquiry_received_date, issue_date, reference_month, monthly_sequence, serial_number, product_code, product_abbr, status, cn_pricing_admin, sales_country_code, sales_office_id, sales_pic_id, assigned_cn_office_code, cargo_type_code, volume_cbm, volume_raw_text, quantity, quantity_raw_text, quantity_uom_code, quantity_uom_raw_text, quantity_teu, quantity_teu_raw_text, commodity, haz_special_equipment, pod_country_code, core_flag, category_code, cargo_ready_date, cargo_ready_date_raw_text, additional_requirement, booking_confirmed, remark, rejected_reason, actual_reason, enquiry_offer_type) VALUES ('CN2401009-A', '2024-01-02', '2024-01-02', '2401', 9, 0, 'AIR', 'A', 'Quoted', 'Susana Wong', 'FR', NULL, NULL, 'HONG KONG', 'AIR', 0.219, NULL, 69.5, NULL, 'KG', 'KG', NULL, NULL, 'Brand Reminder', NULL, 'FRANCE', 'CORE', 'ORIGIN_CHARGES_EXW', '2024-01-02', NULL, NULL, 'Yes', NULL, NULL, NULL, 'AIR');
+2026-02-28 12:02:37,856 [INFO]   INSERT INTO enquiry_pol (enquiry_id, port_id, sequence) VALUES (@enquiry_id, (SELECT id FROM port WHERE port_code='HKG' LIMIT 1), 1);
+2026-02-28 12:02:37,857 [INFO]   INSERT INTO enquiry_pod (enquiry_id, port_id, sequence) VALUES (@enquiry_id, (SELECT id FROM port WHERE port_code='NTE' LIMIT 1), 1);
+2026-02-28 12:02:37,857 [INFO]   INSERT INTO offer (enquiry_id, offer_type, sequence_no, is_latest, sent_date, sent_date_raw_text, price, price_text) VALUES (@enquiry_id, 'AIR', 1, 1, '2024-01-02', NULL, 44.52, 'HKD44.52');
+2026-02-28 12:02:37,857 [INFO] 
+--- Record 5: CN2401010-A ---
+2026-02-28 12:02:37,857 [INFO]   INSERT INTO enquiry (reference_number, enquiry_received_date, issue_date, reference_month, monthly_sequence, serial_number, product_code, product_abbr, status, cn_pricing_admin, sales_country_code, sales_office_id, sales_pic_id, assigned_cn_office_code, cargo_type_code, volume_cbm, volume_raw_text, quantity, quantity_raw_text, quantity_uom_code, quantity_uom_raw_text, quantity_teu, quantity_teu_raw_text, commodity, haz_special_equipment, pod_country_code, core_flag, category_code, cargo_ready_date, cargo_ready_date_raw_text, additional_requirement, booking_confirmed, remark, rejected_reason, actual_reason, enquiry_offer_type) VALUES ('CN2401010-A', '2024-01-02', '2024-01-02', '2401', 10, 0, 'AIR', 'A', 'Quoted', 'Susana Wong', 'NL', NULL, NULL, 'SHANGHAI', 'AIR', 0.49, NULL, 39.0, NULL, 'KG', 'KG', NULL, NULL, 'TBA', NULL, 'NETHERLANDS', 'CORE', 'AIR_FREIGHT', NULL, 'TBA', NULL, 'Yes', NULL, NULL, NULL, 'AIR');
+2026-02-28 12:02:37,858 [INFO]   INSERT INTO enquiry_pol (enquiry_id, port_id, sequence) VALUES (@enquiry_id, (SELECT id FROM port WHERE port_code='PVG' LIMIT 1), 1);
+2026-02-28 12:02:37,859 [INFO]   INSERT INTO enquiry_pod (enquiry_id, port_id, sequence) VALUES (@enquiry_id, (SELECT id FROM port WHERE port_code='AMS' LIMIT 1), 1);
+2026-02-28 12:02:37,859 [INFO]   INSERT INTO offer (enquiry_id, offer_type, sequence_no, is_latest, sent_date, sent_date_raw_text, price, price_text) VALUES (@enquiry_id, 'AIR', 1, 1, '2024-01-02', NULL, 3.38, 'USD3.38');
+2026-02-28 12:02:37,862 [INFO] ============================================================
+2026-02-28 12:02:37,863 [INFO] 迁移摘要
+2026-02-28 12:02:37,863 [INFO] ============================================================
+2026-02-28 12:02:37,864 [INFO]   container_lines: 3
+2026-02-28 12:02:37,865 [INFO]   errors: 19
+2026-02-28 12:02:37,866 [INFO]   offers_1st: 20
+2026-02-28 12:02:37,866 [INFO]   offers_latest: 1
+2026-02-28 12:02:37,867 [INFO]   total_processed: 20
+2026-02-28 12:02:37,867 [INFO]   total_rows: 20
+2026-02-28 12:02:37,867 [INFO]   错误总数: 19
+2026-02-28 12:02:37,868 [INFO] 
+前 20 条错误:
+2026-02-28 12:02:37,868 [INFO]   Row 3 [CN2401006-A] sales_office: 未找到办公室: ZIEGLER HONG KONG
+2026-02-28 12:02:37,868 [INFO]   Row 4 [CN2401007-A] sales_office: 未找到办公室: ZIEGLER HONG KONG
+2026-02-28 12:02:37,869 [INFO]   Row 5 [CN2401008-A] sales_office: 未找到办公室: ZIEGLER COLNBROOK
+2026-02-28 12:02:37,869 [INFO]   Row 6 [CN2401009-A] sales_office: 未找到办公室: ZIEGLER FRANCE
+2026-02-28 12:02:37,869 [INFO]   Row 7 [CN2401010-A] sales_office: 未找到办公室: ZIEGLER NETHERLANDS
+2026-02-28 12:02:37,870 [INFO]   Row 8 [CN2401011-A] sales_office: 未找到办公室: ZIEGLER FRANCE
+2026-02-28 12:02:37,870 [INFO]   Row 9 [CN2401012-A] sales_office: 未找到办公室: ZIEGLER FRANCE
+2026-02-28 12:02:37,870 [INFO]   Row 10 [CN2401013-A] sales_office: 未找到办公室: ZIEGLER FRANCE
+2026-02-28 12:02:37,870 [INFO]   Row 12 [CN2401015-A] sales_office: 未找到办公室: ZIEGLER BELGIUM
+2026-02-28 12:02:37,871 [INFO]   Row 13 [CN2401016-A] sales_office: 未找到办公室: ZIEGLER FRANCE
+2026-02-28 12:02:37,871 [INFO]   Row 14 [CN2401017-S] sales_office: 未找到办公室: ZIEGLER HONG KONG
+2026-02-28 12:02:37,871 [INFO]   Row 15 [CN2401017-S1] sales_office: 未找到办公室: ZIEGLER BELGIUM
+2026-02-28 12:02:37,872 [INFO]   Row 16 [CN2401018-A] sales_office: 未找到办公室: ZIEGLER NETHERLANDS
+2026-02-28 12:02:37,872 [INFO]   Row 17 [CN2401018-S] sales_office: 未找到办公室: ZIEGLER BELGIUM
+2026-02-28 12:02:37,872 [INFO]   Row 18 [CN2401019-A] sales_office: 未找到办公室: ZIEGLER FRANCE
+2026-02-28 12:02:37,873 [INFO]   Row 19 [CN2401020-A] sales_office: 未找到办公室: ZIEGLER BELGIUM
+2026-02-28 12:02:37,873 [INFO]   Row 20 [CN2401021-A] sales_office: 未找到办公室: ZIEGLER WARRINGTON
+2026-02-28 12:02:37,873 [INFO]   Row 21 [CN2401022-A] sales_office: 未找到办公室: ZIEGLER FRANCE
+2026-02-28 12:02:37,874 [INFO]   Row 22 [CN2401023-A] sales_office: 未找到办公室: ZIEGLER NETHERLANDS

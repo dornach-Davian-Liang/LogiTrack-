@@ -1,0 +1,97 @@
+﻿id	country_code	country_name_en
+1	AL	Albania
+2	DZ	Algeria
+3	AG	Antigua
+4	AR	Argentina
+5	AU	Australia
+6	AT	Austria
+7	BS	Bahamas
+8	BH	Bahrain
+9	BD	Bangladesh
+10	BB	Barbados
+11	BE	Belgium
+12	BJ	Benin
+13	BO	Bolivia
+14	BR	Brazil
+15	BN	Brunei
+16	BG	Bulgaria
+17	BF	Burkina Faso
+18	KH	Cambodia
+19	CM	Cameroon
+20	CA	Canada
+21	CL	Chile
+22	CN	China
+23	CO	Colombia
+24	CD	Congo
+25	CR	Costa Rica
+30	CI	C?te D’Ivoire
+26	HR	Croatia
+27	CU	Cuba
+28	CY	Cyprus
+29	CZ	Czech Republic
+31	DK	Denmark
+32	DJ	Djibouti
+33	DO	Dominican
+34	EC	Ecuador
+35	EG	Egypt
+36	SV	El Salvador
+37	EE	Estonia
+38	FJ	Fiji
+39	FI	Finland
+40	FR	France
+41	GA	Gabon
+42	DE	Germany
+43	GH	Ghana
+44	GR	Greece
+45	IN	India
+46	ID	Indonesia
+47	IT	Italy
+48	JP	Japan
+49	KZ	Kazakhstan
+50	KE	Kenya
+51	KR	Korea
+52	XK	Kosovo
+53	KW	Kuwait
+54	LV	Latvia
+55	LB	Lebanon
+56	LY	Libya
+57	MO	Macau
+58	MX	Mexico
+59	MN	Mongolia
+60	MA	Morocco
+61	NL	Netherlands
+62	NZ	New Zealand
+63	NG	Nigeria
+64	NO	Norway
+65	PK	Pakistan
+66	PA	Panama
+67	PG	Papua New Guinea
+68	PE	Peru
+69	PL	Poland
+70	PT	Portugal
+71	QA	Qatar
+72	RE	Reunion
+73	SA	Saudi Arabia
+74	SN	Senegal
+75	SC	Seychelles
+76	SI	Slovenia
+77	SO	Somalia
+78	ZA	South Africa
+79	SS	South Sudan
+80	ES	Spain
+81	LK	Sri Lanka
+82	SE	Sweden
+83	CH	Switzerland
+84	TW	Taiwan
+85	TZ	Tanzania
+86	TH	Thailand
+87	TG	Togo
+88	TT	Trinidad and Tobago
+89	TN	Tunisia
+90	TR	Turkey
+93	UG	Uganda
+91	GB	UK
+94	AE	United Arab Emirates
+92	US	USA
+95	VE	Venezuela
+96	VN	Vietnam

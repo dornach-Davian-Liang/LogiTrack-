@@ -1,0 +1,177 @@
+﻿CSV原始值,出现次数,对应Reference Number（前5个）,建议操作
+Xingang,268,CN2501023-S; CN2501028-R; CN2501084-S; CN2501099-S; CN2501120-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Jiangmen,21,CN2502362-S; CN2502375-S; CN2502376-S; CN2504347-S; CN2504535-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+CMP,20,CN2505521-S; CN2505523-S; CN2505534-S; CN2505617-S; CN2506007-A,请提供正确的港口代码（如CNSHA）以便系统匹配
+Tianjin,18,CN2501354-S; CN2502037-R; CN2502058-S; CN2502100-S; CN2502212-S7,请提供正确的港口代码（如CNSHA）以便系统匹配
+Fuzhou,17,CN2501225-S; CN2501236-S; CN2504209-S; CN2504291-S; CN2505343-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Lianyungang,11,CN2505018-S; CN2506288-S; CN2507606-S; CN2508196-S; CN2508197-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Jiujiang,7,CN2502005-S; CN2504195-S; CN2505322-S; CN2505333-S; CN2507109-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+China main port,6,CN2503001-S; CN2503050-S; CN2503224-S; CN2504453-S; CN2505132-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Germany,6,CN2503456-S; CN2505493-R; CN2506254-S; CN2507423-S; CN2602111-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Shunde,5,CN2502026-S; CN2507036-S; CN2507048-S; CN2510166-S; CN2601339-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+China Main Port,4,CN2503203-S; CN2503331-S; CN2503361-S; CN2503663-A,请提供正确的港口代码（如CNSHA）以便系统匹配
+Beijiao,4,CN2508578-S; CN2509365-S; CN2510663-S; CN2511047-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Wuhu,3,CN2501149-R; CN2510086-S; CN2511452-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+France,3,CN2501487-S; CN2505579-A; CN2508010-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Jiangsu,3,CN2503244-R; CN2509684-S; CN2602212-S2,请提供正确的港口代码（如CNSHA）以便系统匹配
+Nanchang,3,CN2504518-S; CN2507027-S; CN2507597-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Guangdong,3,CN2505630-S; CN2510054-S; CN2602173-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+YTN,3,CN2506538-S; CN2507263-S; CN2507265-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Tianjing,3,CN2507500-AS1; CN2510602-S; CN2601633-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Qingzhou,3,CN2508004-AS1; CN2510006-S; CN2510674-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Zhangjiagang,3,CN2510489-S; CN2511048-S; CN2601702-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Fos,3,CN2512519-S; CN2601236-S; CN2601405-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Taiwan,2,CN2503359-S; CN2510072-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+"Shunde District, Foshan City",2,CN2504305-S; CN2504307-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+FOS,2,CN2504538-S; CN2509216-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Qingdap,2,CN2504584-S; CN2505026-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Shijiazhuang,2,CN2506004-AS1; CN2512318-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Heibei,2,CN2507229-S; CN2601324-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Anhui,2,CN2507525-S; CN2509611-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Sichuan,2,CN2507536-S; CN2601277-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Yiwu city 322000,2,CN2508070-S; CN2508550-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Haimen City,2,CN2508089-S; CN2508129-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Yiwu,2,CN2508449-S; CN2509503-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Longgang District,2,CN2509523-S; CN2511094-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+"Kunshan City, Jiangsu Province",2,CN2509710-S; CN2509711-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Yiwu city,2,CN2511382-S; CN2512596-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Switzerland,2,CN2511456-S; CN2512462-R,请提供正确的港口代码（如CNSHA）以便系统匹配
+Jiaxing,2,CN2512230-S; CN2601437-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Jiangmen city,2,CN2601717-S; CN2602018-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Bordeaux,1,CN2501257-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Latvia,1,CN2501328-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Wujiang,1,CN2501430-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Chedunzhen,1,CN2501488-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Lianyuangang,1,CN2502032-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Qinzhou,1,CN2502035-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+US,1,CN2502242-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Zhibo,1,CN2503147-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+"Zhangzhou city, Fujian province",1,CN2503345-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Fuzhou City,1,CN2503465-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Jinan city 250102,1,CN2504244-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Jiangxi,1,CN2504286-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+"Jiangyin, Jiangsu, China",1,CN2504417-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+"KOWLOON, HONGKONG",1,CN2504581-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+jiangsu,1,CN2504582-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+xingang,1,CN2504611-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+"Hengshui City, Hebei",1,CN2505210-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+China main ports,1,CN2505277-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Lanxi,1,CN2505535-AS1,请提供正确的港口代码（如CNSHA）以便系统匹配
+"Lai Chi Kok, Kowloon",1,CN2505549-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Jiaxin City,1,CN2505624-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Hongkong area,1,CN2506142-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+"Changzhou city, Jiangsu",1,CN2506293-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Tokyo,1,CN2506308-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Donguan,1,CN2506322-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+JIAXING,1,CN2506411-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+KWAI CHUNG,1,CN2506420-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+QINGDAO FREE TRADE ZONE,1,CN2506526-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Yichun,1,CN2507003-AS1,请提供正确的港口代码（如CNSHA）以便系统匹配
+KOWLOON,1,CN2507004-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+"Anping Development Area, Fujian Province",1,CN2507093-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Dezhou City,1,CN2507146-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+"pudong new district
+Shanghai 200125",1,CN2507181-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Yancheng city,1,CN2507356-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+jinhua city,1,CN2507368-S1,请提供正确的港口代码（如CNSHA）以便系统匹配
+Shishi city,1,CN2507368-S2,请提供正确的港口代码（如CNSHA）以便系统匹配
+Suzhou 215126,1,CN2507393-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Zhumadian City,1,CN2507472-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Shanwei City,1,CN2507485-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+"Anhui 
+zip code 243102",1,CN2507517-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+"Yuen Long, HK",1,CN2507519-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+"WWUN TONG,KOWLOON",1,CN2507585-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Wenzhou 325025,1,CN2507605-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+"Yueqing, 325603",1,CN2507636-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Longhua Shenzhen City,1,CN2507680-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Yuyao City,1,CN2508055-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+"Dongguan City, 528000",1,CN2508069-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Gaungzhou city,1,CN2508194-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Surabaya,1,CN2508275-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Xinagang,1,CN2508472-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+"Guzhen Town, Zhongshan City 528421",1,CN2508479-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Huangjiang City,1,CN2508480-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Spain,1,CN2508505-R,请提供正确的港口代码（如CNSHA）以便系统匹配
+Yiwu port,1,CN2508519-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+HAINING,1,CN2508580-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Netherlands,1,CN2509092-R,请提供正确的港口代码（如CNSHA）以便系统匹配
+Zhenhai District,1,CN2509093-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Longgang district,1,CN2509124-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Jinhua city,1,CN2509137-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+"Longgang District, 518115,",1,CN2509187-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+jiangmen,1,CN2509304-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+"Guangzhou City, Guangdong, 510440",1,CN2509327-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Baoding hebei,1,CN2509446-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Xianning,1,CN2509524-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Qiqihar,1,CN2509721-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Wan Chai,1,CN2510014-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Heyauan,1,CN2510016-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Huanggan,1,CN2510017-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Shaoxing city,1,CN2510106-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+PORT KELANG,1,CN2510312-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+PENANG,1,CN2510312-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+"Huangshan,Anhui",1,CN2510493-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+"Guangzhou City,510897",1,CN2510530-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+"LANGFANG CITY, 065700",1,CN2510546-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+"West Zone, TEDA",1,CN2510658-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Zhangqiu City,1,CN2510689-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Pudong New District 201210,1,CN2511053-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+SHANGHAI 201107,1,CN2511056-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Huadu District Guangzhou,1,CN2511144-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Guangxi,1,CN2511194-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+HUANGDAO DISTRICT QINGDAO,1,CN2511201-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+518103 Shenzhen,1,CN2511243-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Ximen,1,CN2511269-S2,请提供正确的港口代码（如CNSHA）以便系统匹配
+361001 Xiamen,1,CN2511346-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Jiangyin city,1,CN2511371-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+999077,1,CN2511374-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Bao an district,1,CN2511376-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+"YUZHOU, HENAN",1,CN2511380-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+JInhua city,1,CN2511404-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Quanzhou 362013,1,CN2511411-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Xinggang,1,CN2511454-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+"Longgang District, 518115",1,CN2511580-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Doumen.zhuhai,1,CN2511585-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+DONGGUAN CITY 523571,1,CN2511590-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Shaoxing City,1,CN2511613-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Gaomi city,1,CN2512034-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+TIANJIN,1,CN2512058-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Longhua District,1,CN2512094-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Nantong City 226236,1,CN2512099-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Shangluo,1,CN2512105-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Jining,1,CN2512158-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Yancheng,1,CN2512182-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+PVGXMN,1,CN2512193-AS,请提供正确的港口代码（如CNSHA）以便系统匹配
+"Tianjin, 300380",1,CN2512199-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Xiamen 361026,1,CN2512247-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Shanghai City 201815,1,CN2512277-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+MENGCHENG ANHUI 233500,1,CN2512292-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+LATVIA,1,CN2512309-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+"XIAOLANTOWN, ZHONGSHAN CITY",1,CN2512333-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Dongguan 523810,1,CN2512365-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Weihai City 264200,1,CN2512381-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Zhongshan 528467,1,CN2512446-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Jiaxing city,1,CN2512481-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Shenzhen 518115,1,CN2512490-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Wujiang city 215221,1,CN2512500-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Shenzhen 518108,1,CN2512502-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Nanping City,1,CN2512512-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Pinghu City,1,CN2512600-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Israel,1,CN2512693-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+"DezhouCity,253000",1,CN2512700-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Xiangang,1,CN2512719-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Luoyang,1,CN2601327-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+"Cao County,Heze city",1,CN2601345-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+CHAOZHOU 515647,1,CN2601492-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Heshan City,1,CN2601510-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+beijiao,1,CN2601526-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Jiaxing City,1,CN2601566-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Shanghai 201612,1,CN2601674-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Zhanjiang,1,CN2601683-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Chaozhou city,1,CN2601756-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+jiangxi,1,CN2601758-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Chaozhou,1,CN2601767-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Panyu district,1,CN2601808-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+"Zigong, Sichuan",1,CN2602112-S,请提供正确的港口代码（如CNSHA）以便系统匹配
+Xiaolan,1,CN2602186-S,请提供正确的港口代码（如CNSHA）以便系统匹配

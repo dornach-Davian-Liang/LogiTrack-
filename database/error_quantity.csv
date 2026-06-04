@@ -1,0 +1,135 @@
+﻿row_num,reference,cargo_type,quantity,quantity_unit,quantity_teu,issue,suggestion
+114,CN2401107-AS,AIR,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+115,CN2401107-AS1,LCL,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+133,CN2401125-S,LCL,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+257,CN2401242-S,LCL,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+259,CN2401244-S,LCL,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+340,CN2401322-S,LCL,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+511,CN2401479-S,LCL,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+846,CN2402134-AS,AIR,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+854,CN2402141-S1,LCL,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+855,CN2402141-S2,LCL,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+856,CN2402141-S3,LCL,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+858,CN2402143-S,LCL,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+928,CN2402207-S1,LCL,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+929,CN2402208-A,AIR,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+1009,CN2402281-S,LCL,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+1143,CN2402393-S,LCL,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+1264,CN2403112-S1,LCL,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+1265,CN2403112-S2,LCL,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+1266,CN2403112-S3,LCL,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+1383,CN2403212-S,LCL,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+1561,CN2403374-AS,AIR,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+1562,CN2403374-AS1,FCL,TBA,TBA,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+1832,CN2403614-R1,LCL,800/1000,KG,,"Quantity列含非数字值: ""800/1000""",非法数量值，建议置为 NULL
+1881,CN2404044-S,LCL,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+1977,CN2404126-S,LCL,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+2199,CN2404327-S,LCL,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+2200,CN2404328-R,LCL,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+2315,CN2404432-S,FCL,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+2327,CN2404442-AS,AIR,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+2429,CN2404542-R,LCL,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+2628,CN2405047-S,LCL,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+2645,CN2405058-R,LCL,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+2698,CN2405111-S,LCL,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+2873,CN2405269-S,LCL,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+3073,CN2405558-S,LCL,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+3090,CN2405574-S,LCL,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+3330,CN2406048-A,AIR,1.54.5,KG,,"Quantity列含非数字值: ""1.54.5""",非法数量值，建议置为 NULL
+3551,CN2406250-S,LCL,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+3705,CN2406388-S,LCL,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+4221,CN2407293-S,LCL,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+4684,CN2408209-AS3,LCL,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+5306,CN2409275-S,LCL,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+5460,CN2409418-S,LCL,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+5726,CN2410175-S,LCL,TBA,KG,,"Quantity列含非数字值: ""TBA""",非法数量值，建议置为 NULL
+6372,CN2411225-A,AIR,163.2/263.2,KG,,"Quantity列含非数字值: ""163.2/263.2""",非法数量值，建议置为 NULL
+6377,CN2411230-S,FCL,20'GP,1,,"Quantity列含非数字值: ""20'GP""",可能是箱型代码，应移至 Quantity(Unit) 列
+6378,CN2411231-S1,FCL,20'GP/40'GP/40'HQ,5,,"Quantity列含非数字值: ""20'GP/40'GP/40'HQ""",非法数量值，建议置为 NULL
+6379,CN2411231-S2,FCL,20'GP/40'GP/40'HQ,5,,"Quantity列含非数字值: ""20'GP/40'GP/40'HQ""",非法数量值，建议置为 NULL
+6380,CN2411231-S3,FCL,20'GP/40'GP/40'HQ,5,,"Quantity列含非数字值: ""20'GP/40'GP/40'HQ""",非法数量值，建议置为 NULL
+7427,CN2501059-S,FCL,40HQ,6,,"Quantity列含非数字值: ""40HQ""",非法数量值，建议置为 NULL
+7478,CN2501109-S,FCL,20'GP,1,,"Quantity列含非数字值: ""20'GP""",可能是箱型代码，应移至 Quantity(Unit) 列
+7573,CN2501197-S,FCL,20'GP,1.0,,"Quantity列含非数字值: ""20'GP""",可能是箱型代码，应移至 Quantity(Unit) 列
+7574,CN2501198-S,FCL,20'GP,1.0,,"Quantity列含非数字值: ""20'GP""",可能是箱型代码，应移至 Quantity(Unit) 列
+7661,CN2501270-A,AIR,"3,136?",KG,,"Quantity列含非数字值: ""3,136?""",非法数量值，建议置为 NULL
+7691,CN2501297-A,AIR,127.52?,KG,,"Quantity列含非数字值: ""127.52?""",非法数量值，建议置为 NULL
+7907,CN2501494-A,AIR,6000 to 12000,KG,,"Quantity列含非数字值: ""6000 to 12000""",非法数量值，建议置为 NULL
+7987,CN2502062-S1,LCL,-,KG,,"Quantity列含非数字值: ""-""",非法数量值，建议置为 NULL
+7988,CN2502062-S2,LCL,-,KG,,"Quantity列含非数字值: ""-""",非法数量值，建议置为 NULL
+7989,CN2502062-S3,LCL,-,KG,,"Quantity列含非数字值: ""-""",非法数量值，建议置为 NULL
+7990,CN2502062-S4,LCL,-,KG,,"Quantity列含非数字值: ""-""",非法数量值，建议置为 NULL
+7991,CN2502062-S5,LCL,-,KG,,"Quantity列含非数字值: ""-""",非法数量值，建议置为 NULL
+7992,CN2502062-S6,LCL,-,KG,,"Quantity列含非数字值: ""-""",非法数量值，建议置为 NULL
+7993,CN2502062-S7,LCL,-,KG,,"Quantity列含非数字值: ""-""",非法数量值，建议置为 NULL
+7994,CN2502062-S8,LCL,-,KG,,"Quantity列含非数字值: ""-""",非法数量值，建议置为 NULL
+7995,CN2502062-S9,LCL,-,KG,,"Quantity列含非数字值: ""-""",非法数量值，建议置为 NULL
+7996,CN2502062-S10,LCL,-,KG,,"Quantity列含非数字值: ""-""",非法数量值，建议置为 NULL
+8161,CN2502212-S1,FCL,20'GP/40'GP/40'HQ,5,,"Quantity列含非数字值: ""20'GP/40'GP/40'HQ""",非法数量值，建议置为 NULL
+8162,CN2502212-S2,FCL,20'GP/40'GP/40'HQ,5,,"Quantity列含非数字值: ""20'GP/40'GP/40'HQ""",非法数量值，建议置为 NULL
+8163,CN2502212-S3,FCL,20'GP/40'GP/40'HQ,5,,"Quantity列含非数字值: ""20'GP/40'GP/40'HQ""",非法数量值，建议置为 NULL
+8164,CN2502212-S4,FCL,20'GP/40'GP/40'HQ,5,,"Quantity列含非数字值: ""20'GP/40'GP/40'HQ""",非法数量值，建议置为 NULL
+8165,CN2502212-S5,FCL,20'GP/40'GP/40'HQ,5,,"Quantity列含非数字值: ""20'GP/40'GP/40'HQ""",非法数量值，建议置为 NULL
+8166,CN2502212-S6,FCL,20'GP/40'GP/40'HQ,5,,"Quantity列含非数字值: ""20'GP/40'GP/40'HQ""",非法数量值，建议置为 NULL
+8167,CN2502212-S7,FCL,20'GP/40'GP/40'HQ,5,,"Quantity列含非数字值: ""20'GP/40'GP/40'HQ""",非法数量值，建议置为 NULL
+8223,CN2502263-S,FCL,40'HQ,2,,"Quantity列含非数字值: ""40'HQ""",可能是箱型代码，应移至 Quantity(Unit) 列
+8227,CN2502267-S,FCL,20'GP,1,,"Quantity列含非数字值: ""20'GP""",可能是箱型代码，应移至 Quantity(Unit) 列
+8228,CN2502268-S,FCL,20'GP,1,,"Quantity列含非数字值: ""20'GP""",可能是箱型代码，应移至 Quantity(Unit) 列
+8231,CN2502271-S,FCL,40'GP,1,2,"Quantity列含非数字值: ""40'GP""",可能是箱型代码，应移至 Quantity(Unit) 列
+8232,CN2502272-S,FCL,40'HQ,1,2,"Quantity列含非数字值: ""40'HQ""",可能是箱型代码，应移至 Quantity(Unit) 列
+8549,CN2503064-A,AIR,-,KG,,"Quantity列含非数字值: ""-""",非法数量值，建议置为 NULL
+8567,CN2503081-A,AIR,-,KG,,"Quantity列含非数字值: ""-""",非法数量值，建议置为 NULL
+9040,CN2503532-S,LCL,-,KG,,"Quantity列含非数字值: ""-""",非法数量值，建议置为 NULL
+9219,CN2504015-AS,FCL,15~20,20'GP/40'GP/40'JQ,,"Quantity列含非数字值: ""15~20""",非法数量值，建议置为 NULL
+9224,CN2504020-A,AIR,-,KG,,"Quantity列含非数字值: ""-""",非法数量值，建议置为 NULL
+9299,CN2504093-S,LCL,287KG/2075KG,KG,,"Quantity列含非数字值: ""287KG/2075KG""",非法数量值，建议置为 NULL
+9604,CN2504391-AS,AIR,-,KG,,"Quantity列含非数字值: ""-""",非法数量值，建议置为 NULL
+9605,CN2504391-AS1,LCL,-,KG,,"Quantity列含非数字值: ""-""",非法数量值，建议置为 NULL
+9907,CN2505050-A,AIR,-,KG,,"Quantity列含非数字值: ""-""",非法数量值，建议置为 NULL
+9989,CN2505131-A,AIR,2505 / 5010,KG,,"Quantity列含非数字值: ""2505 / 5010""",非法数量值，建议置为 NULL
+10070,CN2505212-A,AIR,1110 / 2220,KG,,"Quantity列含非数字值: ""1110 / 2220""",非法数量值，建议置为 NULL
+10212,CN2505349-AS,AIR,250 / 154,KG,,"Quantity列含非数字值: ""250 / 154""",非法数量值，建议置为 NULL
+10213,CN2505349-AS1,LCL,260 / 170,KG,,"Quantity列含非数字值: ""260 / 170""",非法数量值，建议置为 NULL
+10281,CN2505416-S1,FCL,20'GP/40'HQ,,,"Quantity列含非数字值: ""20'GP/40'HQ""",非法数量值，建议置为 NULL
+10282,CN2505416-S2,FCL,20'GP/40'HQ,,,"Quantity列含非数字值: ""20'GP/40'HQ""",非法数量值，建议置为 NULL
+10283,CN2505416-S3,FCL,20'GP/40'HQ,,,"Quantity列含非数字值: ""20'GP/40'HQ""",非法数量值，建议置为 NULL
+10286,CN2505419-S1,FCL,20'GP,,,"Quantity列含非数字值: ""20'GP""",可能是箱型代码，应移至 Quantity(Unit) 列
+10287,CN2505419-S2,FCL,20'GP,,,"Quantity列含非数字值: ""20'GP""",可能是箱型代码，应移至 Quantity(Unit) 列
+10400,CN2505531-S,LCL,330KG/640KG,KG,,"Quantity列含非数字值: ""330KG/640KG""",非法数量值，建议置为 NULL
+10439,CN2505569-AS,AIR,410 / 1360,KG,,"Quantity列含非数字值: ""410 / 1360""",非法数量值，建议置为 NULL
+10440,CN2505569-AS1,LCL,410 / 1360,KG,,"Quantity列含非数字值: ""410 / 1360""",非法数量值，建议置为 NULL
+10512,CN2506007-A,AIR,100 ~ 500,KG,,"Quantity列含非数字值: ""100 ~ 500""",非法数量值，建议置为 NULL
+10616,CN2506107-A,AIR,75 / 435,KG,,"Quantity列含非数字值: ""75 / 435""",非法数量值，建议置为 NULL
+10622,CN2506113-A,AIR,280 / 210,KG,,"Quantity列含非数字值: ""280 / 210""",非法数量值，建议置为 NULL
+10737,CN2506224-A,AIR,160 / 230,KG,,"Quantity列含非数字值: ""160 / 230""",非法数量值，建议置为 NULL
+10738,CN2506224-A1,AIR,160 / 230,KG,,"Quantity列含非数字值: ""160 / 230""",非法数量值，建议置为 NULL
+10960,CN2506436-A,AIR,"502 / 15,060 / 28,614",KG,,"Quantity列含非数字值: ""502 / 15,060 / 28,614""",非法数量值，建议置为 NULL
+10961,CN2506436-A1,AIR,"502 / 15,060 / 28,614",KG,,"Quantity列含非数字值: ""502 / 15,060 / 28,614""",非法数量值，建议置为 NULL
+10984,CN2506457-A,AIR,715 / 2138,KG,,"Quantity列含非数字值: ""715 / 2138""",非法数量值，建议置为 NULL
+11157,CN2506627-A,AIR,1595 / 1635,KG,,"Quantity列含非数字值: ""1595 / 1635""",非法数量值，建议置为 NULL
+11203,CN2507013-A,AIR,5920 / 11840,KG,,"Quantity列含非数字值: ""5920 / 11840""",非法数量值，建议置为 NULL
+11329,CN2507136-A,AIR,1150 / 1437.5,KG,,"Quantity列含非数字值: ""1150 / 1437.5""",非法数量值，建议置为 NULL
+11399,CN2507204-A,AIR,2060 / 1485 / 495,KG,,"Quantity列含非数字值: ""2060 / 1485 / 495""",非法数量值，建议置为 NULL
+11541,CN2507342-A,AIR,65 / 150,KG,,"Quantity列含非数字值: ""65 / 150""",非法数量值，建议置为 NULL
+11735,CN2507523-AS1,LCL,-,KG,,"Quantity列含非数字值: ""-""",非法数量值，建议置为 NULL
+11880,CN2507664-S,LCL,4156.08/1817.36,KG,,"Quantity列含非数字值: ""4156.08/1817.36""",非法数量值，建议置为 NULL
+12069,CN2508147-A,AIR,200 / 500,KG,,"Quantity列含非数字值: ""200 / 500""",非法数量值，建议置为 NULL
+12229,CN2508298-A,AIR,563.4 / 96.8,KG,,"Quantity列含非数字值: ""563.4 / 96.8""",非法数量值，建议置为 NULL
+12236,CN2508304-S,FCL,20GP,1.0,,"Quantity列含非数字值: ""20GP""",非法数量值，建议置为 NULL
+12468,CN2508528-AS,AIR,"348/696/1,044/1,392",KG,,"Quantity列含非数字值: ""348/696/1,044/1,392""",非法数量值，建议置为 NULL
+12469,CN2508528-AS1,LCL,"348/696/1,044/1,392",KG,,"Quantity列含非数字值: ""348/696/1,044/1,392""",非法数量值，建议置为 NULL
+12480,CN2508539-S,LCL,-,KG,,"Quantity列含非数字值: ""-""",非法数量值，建议置为 NULL
+12515,CN2508572-A,AIR,45/100/300/500/1000,KG,,"Quantity列含非数字值: ""45/100/300/500/1000""",非法数量值，建议置为 NULL
+12532,CN2509004-AS,FCL,20'GP/40'GP/40'HQ,KG,,"Quantity列含非数字值: ""20'GP/40'GP/40'HQ""",非法数量值，建议置为 NULL
+12533,CN2509004-AS1,LCL,-,KG,,"Quantity列含非数字值: ""-""",非法数量值，建议置为 NULL
+12534,CN2509004-AS2,AIR,<10 / <25 / >=25,KG,,"Quantity列含非数字值: ""<10 / <25 / >=25""",非法数量值，建议置为 NULL
+12802,CN2509269-S,FCL,40'HQ,2,,"Quantity列含非数字值: ""40'HQ""",可能是箱型代码，应移至 Quantity(Unit) 列
+12856,CN2509322-A,AIR,250 / 499,KG,,"Quantity列含非数字值: ""250 / 499""",非法数量值，建议置为 NULL
+12881,CN2509345-A,AIR,-,KG,,"Quantity列含非数字值: ""-""",非法数量值，建议置为 NULL
+12959,CN2509421-A,AIR,190 / 200,KG,,"Quantity列含非数字值: ""190 / 200""",非法数量值，建议置为 NULL
+12977,CN2509439-A,AIR,388 / 1940,KG,,"Quantity列含非数字值: ""388 / 1940""",非法数量值，建议置为 NULL
+13520,CN2510248-A,AIR,467/ 932.4,KG,,"Quantity列含非数字值: ""467/ 932.4""",非法数量值，建议置为 NULL
+13590,CN2510312-S,FCL,20'RF/40'RF /40'HCRF,,,"Quantity列含非数字值: ""20'RF/40'RF /40'HCRF""",非法数量值，建议置为 NULL
+13623,CN2510342-A,AIR,1350 / 1300,KG,,"Quantity列含非数字值: ""1350 / 1300""",非法数量值，建议置为 NULL
+13901,CN2510611-S,FCL,20'GP,1.0,,"Quantity列含非数字值: ""20'GP""",可能是箱型代码，应移至 Quantity(Unit) 列
+13990,CN2510694-A,AIR,-,KG,,"Quantity列含非数字值: ""-""",非法数量值，建议置为 NULL

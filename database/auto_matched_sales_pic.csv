@@ -1,0 +1,11 @@
+﻿CSV原始姓名,数据库匹配值,差异原因,出现次数,处理方式
+STEVE SEWARD,STEVE SEWARD,空格位置差异,79,技术团队可自动修复（忽略大小写/空格即可匹配）
+CARYS SHEARS,CARYS SHEARS,空格位置差异,7,技术团队可自动修复（忽略大小写/空格即可匹配）
+JON CLAY,JON CLAY,空格位置差异,6,技术团队可自动修复（忽略大小写/空格即可匹配）
+JACQUELINE CABRERA,JACQUELINE CABRERA,空格位置差异,2,技术团队可自动修复（忽略大小写/空格即可匹配）
+WALTER COSTA,WALTER  COSTA,大小写/空格/不可见字符差异,2,技术团队可自动修复（忽略大小写/空格即可匹配）
+ELMEHDI BELALIA,ELMEHDI BELALIA,空格位置差异,1,技术团队可自动修复（忽略大小写/空格即可匹配）
+KARINA BORGES,KARINA BORGES,空格位置差异,1,技术团队可自动修复（忽略大小写/空格即可匹配）
+WOLF KUSSÉ,WOLF KUSSÉ,空格位置差异,1,技术团队可自动修复（忽略大小写/空格即可匹配）
+ANDY  DOMVILLE,ANDY DOMVILLE,大小写/空格/不可见字符差异,1,技术团队可自动修复（忽略大小写/空格即可匹配）
+GARY  MURRAY,GARY  MURRAY,大小写/空格/不可见字符差异,1,技术团队可自动修复（忽略大小写/空格即可匹配）

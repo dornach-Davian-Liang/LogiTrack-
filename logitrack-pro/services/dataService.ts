@@ -14,15 +14,14 @@ let MOCK_DB: EnquiryRecord[] = [
   {
     id: '1',
     enquiryReceivedDate: '2024-01-02',
-    issueDate: '2024-01-02',
+    enquiryCreatedDate: '2024-01-02',
     referenceNumber: 'CN2401006-A',
     product: 'AIR',
-    status: 'Quoted',
-    cnPricingAdmin: 'Susana Wong',
+    status: 'Quoted & Pending',
     salesCountry: 'CHINA',
     salesOffice: 'ZIEGLER HONG KONG',
     salesPic: 'PHILIP WONG',
-    assignedCnOffices: 'HONG KONG',
+    assignedCnOffice: 'HONG KONG',
     cargoType: 'AIR',
     volumeCbm: 0.27,
     quantity: 116.0,
@@ -36,21 +35,19 @@ let MOCK_DB: EnquiryRecord[] = [
     cargoReadyDate: '2024-01-02',
     firstQuotationSent: '2024-01-02',
     firstOfferAirFrgKg: 'USD3.35 ALL IN',
-    bookingConfirmed: 'Yes',
     remark: 'SO#750-12140009'
   },
   {
     id: '2',
     enquiryReceivedDate: '2024-01-02',
-    issueDate: '2024-01-02',
+    enquiryCreatedDate: '2024-01-02',
     referenceNumber: 'CN2401007-A',
     product: 'AIR',
-    status: 'Quoted',
-    cnPricingAdmin: 'Susana Wong',
+    status: 'Quoted & Pending',
     salesCountry: 'CHINA',
     salesOffice: 'ZIEGLER HONG KONG',
     salesPic: 'PHILIP WONG',
-    assignedCnOffices: 'HONG KONG',
+    assignedCnOffice: 'HONG KONG',
     cargoType: 'AIR',
     volumeCbm: 2.76,
     quantity: 408.0,
@@ -64,21 +61,19 @@ let MOCK_DB: EnquiryRecord[] = [
     cargoReadyDate: '2024-01-02',
     firstQuotationSent: '2024-01-02',
     firstOfferAirFrgKg: 'USD3.35 ALL IN',
-    bookingConfirmed: 'Yes',
     remark: 'SO#750-12140007'
   },
   {
     id: '3',
     enquiryReceivedDate: '2024-01-02',
-    issueDate: '2024-01-02',
+    enquiryCreatedDate: '2024-01-02',
     referenceNumber: 'CN2401008-A',
     product: 'AIR',
-    status: 'Quoted',
-    cnPricingAdmin: 'Susana Wong',
+    status: 'Quoted & Pending',
     salesCountry: 'UK',
     salesOffice: 'ZIEGLER COLNBROOK',
     salesPic: 'STEWART BROOK',
-    assignedCnOffices: 'HONG KONG',
+    assignedCnOffice: 'HONG KONG',
     cargoType: 'AIR',
     volumeCbm: 17.203,
     quantity: 2131.5,
@@ -91,21 +86,19 @@ let MOCK_DB: EnquiryRecord[] = [
     category: '4. Origin Charges/EXW',
     cargoReadyDate: '2024-01-03',
     firstQuotationSent: '2024-01-02',
-    firstOfferAirFrgKg: 'USD4.57',
-    bookingConfirmed: 'Yes'
+    firstOfferAirFrgKg: 'USD4.57'
   },
   {
     id: '4',
     enquiryReceivedDate: '2024-01-02',
-    issueDate: '2024-01-02',
+    enquiryCreatedDate: '2024-01-02',
     referenceNumber: 'CN2401009-A',
     product: 'AIR',
-    status: 'Quoted',
-    cnPricingAdmin: 'Susana Wong',
+    status: 'Quoted & Pending',
     salesCountry: 'FRANCE',
     salesOffice: 'ZIEGLER FRANCE',
     salesPic: 'SANDRINE JUILLIEN',
-    assignedCnOffices: 'HONG KONG',
+    assignedCnOffice: 'HONG KONG',
     cargoType: 'AIR',
     volumeCbm: 0.219,
     quantity: 69.5,
@@ -118,21 +111,19 @@ let MOCK_DB: EnquiryRecord[] = [
     category: '4. Origin Charges/EXW',
     cargoReadyDate: '2024-01-02',
     firstQuotationSent: '2024-01-02',
-    firstOfferAirFrgKg: 'HKD44.52',
-    bookingConfirmed: 'Yes'
+    firstOfferAirFrgKg: 'HKD44.52'
   },
   {
     id: '5',
     enquiryReceivedDate: '2024-01-02',
-    issueDate: '2024-01-02',
+    enquiryCreatedDate: '2024-01-02',
     referenceNumber: 'CN2401010-A',
     product: 'AIR',
-    status: 'Quoted',
-    cnPricingAdmin: 'Susana Wong',
+    status: 'Quoted & Pending',
     salesCountry: 'NETHERLANDS',
     salesOffice: 'ZIEGLER NETHERLANDS',
     salesPic: 'JACO VAN DIJK',
-    assignedCnOffices: 'SHANGHAI',
+    assignedCnOffice: 'SHANGHAI',
     cargoType: 'AIR',
     volumeCbm: 0.49,
     quantity: 39.0,
@@ -145,8 +136,7 @@ let MOCK_DB: EnquiryRecord[] = [
     category: '1. Freight',
     cargoReadyDate: 'TBA',
     firstQuotationSent: '2024-01-02',
-    firstOfferAirFrgKg: 'USD3.38',
-    bookingConfirmed: 'Yes'
+    firstOfferAirFrgKg: 'USD3.38'
   }
 ];
 
@@ -177,7 +167,6 @@ export const api = {
       });
       
       console.log('[dataService] Response status:', response.status);
-      console.log('[dataService] Response headers:', response.headers);
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -186,8 +175,46 @@ export const api = {
       }
       
       const data = await response.json();
-      console.log('[dataService] Data received:', data.length, 'records');
-      return data;
+      console.log('[dataService] Raw data received:', data);
+      
+      // Handle paginated response from Spring Boot backend
+      const records = data.content || data;
+      console.log('[dataService] Extracted records:', records.length, 'items');
+      
+      // Map backend entity fields to frontend EnquiryRecord format
+      const mappedRecords: EnquiryRecord[] = records.map((item: any) => ({
+        id: String(item.id),
+        enquiryReceivedDate: item.enquiryReceivedDate || '',
+        issueDate: item.issueDate || '',
+        referenceNumber: item.referenceNumber || '',
+        product: item.productCode || item.productAbbr || 'SEA',
+        status: item.status || 'New',
+        cnPricingAdmin: item.cnPricingAdmin || '',
+        salesCountry: item.salesCountryCode || '',
+        salesOffice: item.salesOfficeCode || String(item.salesOfficeId || ''),
+        salesPic: item.salesPicName || String(item.salesPicId || ''),
+        assignedCnOffices: item.assignedCnOfficeCode || '',
+        cargoType: item.cargoTypeCode || '',
+        volumeCbm: item.volumeCbm || 0,
+        quantity: item.quantity || 0,
+        quantityUnit: item.uom || '',
+        quantityTeu: item.quantityTeu,
+        commodity: item.commodity || '',
+        hazSpecialEquipment: item.hazSpecialEquipment,
+        cargoReadyDateDetails: item.cargoReadyDateDetails,
+        pol: item.polCode || String(item.polId || ''),
+        pod: item.podCode || String(item.podId || ''),
+        podCountry: item.podCountryCode || '',
+        coreNonCore: item.coreFlag === 'CORE' ? 'CORE' : (item.coreFlag === 'NON_CORE' ? 'NON CORE' : ''),
+        category: item.category || '',
+        cargoReadyDate: item.cargoReadyDate,
+        firstQuotationSent: item.offers?.[0]?.sentDate,
+        firstOfferOceanFrg: item.offers?.find((o: any) => o.offerType === 'OCEAN')?.priceText,
+        firstOfferAirFrgKg: item.offers?.find((o: any) => o.offerType === 'AIR')?.priceText,
+        remark: item.remark,
+      }));
+      
+      return mappedRecords;
     } catch (error) {
       console.error('[dataService] Fetch error:', error);
       throw error;

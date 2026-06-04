@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>✅ POD Country映射修复验证</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .container {
+      background: white;
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    h1 {
+      color: #667eea;
+      margin: 0 0 8px 0;
+      font-size: 28px;
+    }
+    .subtitle {
+      color: #64748b;
+      font-size: 14px;
+      margin: 0 0 24px 0;
+    }
+    .status-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin: 16px 0;
+    }
+    .status-card h3 {
+      margin: 0 0 8px 0;
+      font-size: 18px;
+    }
+    .status-card p {
+      margin: 4px 0;
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    .test-section {
+      background: #f8fafc;
+      border-left: 4px solid #667eea;
+      padding: 16px;
+      margin: 16px 0;
+      border-radius: 0 8px 8px 0;
+    }
+    .test-section h4 {
+      margin: 0 0 12px 0;
+      color: #1e293b;
+      font-size: 16px;
+    }
+    .test-item {
+      display: flex;
+      align-items: start;
+      margin: 8px 0;
+      padding: 12px;
+      background: white;
+      border-radius: 6px;
+      border: 1px solid #e2e8f0;
+    }
+    .test-item .icon {
+      font-size: 20px;
+      margin-right: 12px;
+      flex-shrink: 0;
+    }
+    .test-item .content {
+      flex: 1;
+    }
+    .test-item .label {
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 4px;
+    }
+    .test-item .description {
+      font-size: 13px;
+      color: #64748b;
+      line-height: 1.5;
+    }
+    .success {
+      color: #10b981;
+    }
+    .error {
+      color: #ef4444;
+    }
+    .warning {
+      color: #f59e0b;
+    }
+    .button-group {
+      display: flex;
+      gap: 12px;
+      margin: 20px 0;
+    }
+    button {
+      flex: 1;
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 14px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    button:hover {
+      background: #5568d3;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    .code-block {
+      background: #1e293b;
+      color: #10b981;
+      padding: 16px;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      overflow-x: auto;
+      margin: 12px 0;
+      line-height: 1.6;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-left: 8px;
+    }
+    .badge.success {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    .badge.error {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>✅ POD Country 映射修复验证</h1>
+    <p class="subtitle">验证所有数据连接和自动映射功能是否正常工作</p>
+
+    <div class="status-card">
+      <h3>🎯 核心修复内容</h3>
+      <p>✓ 添加 <code>getAllCountries()</code> 返回完整国家列表（包括CN）</p>
+      <p>✓ 分离 <code>salesCountries</code> 和 <code>allCountries</code> 两个数据源</p>
+      <p>✓ POD Country 映射使用完整国家列表，不再遗漏任何国家</p>
+      <p>✓ Console调试日志帮助诊断问题</p>
+    </div>
+
+    <div class="test-section">
+      <h4>📋 测试清单</h4>
+      
+      <div class="test-item">
+        <div class="icon">1️⃣</div>
+        <div class="content">
+          <div class="label">POD Country 自动映射 - 中国港口</div>
+          <div class="description">
+            打开 New Enquiry → 选择 POD = "Shanghai, CN"<br>
+            <strong>预期结果:</strong> "目的港国家" 显示 "CHINA" ✅<br>
+            <strong>Console:</strong> Looking for country CN, found: {value: "CN", label: "CHINA"}
+          </div>
+        </div>
+      </div>
+
+      <div class="test-item">
+        <div class="icon">2️⃣</div>
+        <div class="content">
+          <div class="label">POD Country 自动映射 - 多国港口</div>
+          <div class="description">
+            选择 POD = "Le Havre (FR) + Hamburg (DE)"<br>
+            <strong>预期结果:</strong> "目的港国家" 显示 "FRANCE, GERMANY" ✅
+          </div>
+        </div>
+      </div>
+
+      <div class="test-item">
+        <div class="icon">3️⃣</div>
+        <div class="content">
+          <div class="label">销售国家和Sales PIC级联</div>
+          <div class="description">
+            选择销售国家 = "FRANCE"<br>
+            <strong>预期结果:</strong> Sales PIC 自动加载法国销售人员 ✅
+          </div>
+        </div>
+      </div>
+
+      <div class="test-item">
+        <div class="icon">4️⃣</div>
+        <div class="content">
+          <div class="label">Enquiry 创建并显示在列表</div>
+          <div class="description">
+            填写完整表单并提交<br>
+            <strong>MOCK模式:</strong> 不刷新页面时数据存在<br>
+            <strong>真实数据库:</strong> 刷新后数据仍存在 ✅
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="button-group">
+      <button onclick="openNewEnquiry()">🚀 打开 New Enquiry</button>
+      <button onclick="openEnquiryList()">📋 查看 Enquiry 列表</button>
+    </div>
+
+    <div class="test-section">
+      <h4>🔍 如何查看调试日志</h4>
+      <div style="background: white; padding: 16px; border-radius: 8px; margin-top: 12px;">
+        <ol style="margin: 0; padding-left: 20px; line-height: 2;">
+          <li>按 <kbd>F12</kbd> 打开浏览器开发者工具</li>
+          <li>切换到 <strong>Console</strong> 标签</li>
+          <li>在 New Enquiry 页面选择 POD</li>
+          <li>查看类似以下的日志输出：</li>
+        </ol>
+        <div class="code-block">
+updatePodCountries called with: [1]
+Available ports: (9) [{…}, {…}, ...]
+Available allCountries: (7) [{value: "FR", label: "FRANCE"}, {value: "CN", label: "CHINA"}, ...]
+Selected PODs: [{value: 1, portCode: "CNSHA", countryCode: "CN"}]
+Country codes: ["CN"]
+Looking for country CN, found: {value: "CN", label: "CHINA"} ✅
+Final country names: CHINA ✅
+        </div>
+      </div>
+    </div>
+
+    <div class="test-section" style="border-left-color: #f59e0b;">
+      <h4>🔧 连接真实数据库（可选）</h4>
+      <p style="margin: 8px 0; color: #64748b; font-size: 14px;">
+        当前使用 MOCK 数据模式。如需连接MySQL数据库，请按以下步骤操作：
+      </p>
+      <div style="background: white; padding: 16px; border-radius: 8px; margin-top: 12px;">
+        <p style="margin: 0 0 8px 0; font-weight: 600;">步骤1: 验证后端服务</p>
+        <div class="code-block">
+# 检查后端是否运行
+curl http://localhost:8888/api/master/countries
+
+# 应返回类似: [{"value":"FR","label":"FRANCE"}, ...]
+        </div>
+
+        <p style="margin: 16px 0 8px 0; font-weight: 600;">步骤2: 修改配置文件</p>
+        <div class="code-block">
+# 编辑文件: logitrack-pro/services/api.ts
+# 找到 line 39，修改为:
+const USE_MOCK_DATA = false; // 改为 false
+        </div>
+
+        <p style="margin: 16px 0 8px 0; font-weight: 600;">步骤3: 重启前端服务</p>
+        <div class="code-block">
+# 停止当前服务 (Ctrl+C)
+# 重新启动
+cd logitrack-pro && npm run dev
+        </div>
+      </div>
+    </div>
+
+    <div class="status-card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+      <h3>✅ 修复总结</h3>
+      <p><strong>问题1:</strong> POD Country 无法映射中国港口 → 已修复，增加完整国家列表</p>
+      <p><strong>问题2:</strong> 销售国家和 PIC 未连接数据库 → 已准备，关闭MOCK模式即可连接</p>
+      <p><strong>问题3:</strong> POL/POD 未连接数据库 → 已准备，关闭MOCK模式即可连接</p>
+      <p><strong>问题4:</strong> Enquiry 创建后不显示 → MOCK模式下正常，真实DB需关闭MOCK</p>
+    </div>
+
+    <div style="text-align: center; margin-top: 24px; color: #64748b; font-size: 13px;">
+      <p>详细说明请查看: <strong>DATA_CONNECTION_FIX.md</strong></p>
+      <p>测试时间: <span id="timestamp"></span></p>
+    </div>
+  </div>
+
+  <script>
+    // 显示当前时间
+    document.getElementById('timestamp').textContent = new Date().toLocaleString('zh-CN');
+
+    function openNewEnquiry() {
+      window.open('http://localhost:3000', '_blank');
+      setTimeout(() => {
+        alert('✅ 即将打开主页面\n\n请点击 "New Enquiry" 按钮开始测试\n\n记得打开 Console (F12) 查看调试日志！');
+      }, 100);
+    }
+
+    function openEnquiryList() {
+      window.open('http://localhost:3000', '_blank');
+      setTimeout(() => {
+        alert('✅ 即将打开主页面\n\n主页面默认显示 Enquiry Management 列表\n\n提交新 Enquiry 后，在此处验证是否显示');
+      }, 100);
+    }
+  </script>
+</body>
+</html>

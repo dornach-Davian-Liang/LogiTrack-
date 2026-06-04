@@ -1,0 +1,21 @@
+// filepath: repository/EnquiryRouteGroupRepository.java
+package com.logitrack.backend.repository;
+
+import com.logitrack.backend.entity.EnquiryRouteGroup;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface EnquiryRouteGroupRepository extends JpaRepository<EnquiryRouteGroup, Long> {
+    
+    List<EnquiryRouteGroup> findByEnquiryIdOrderByGroupIndex(Long enquiryId);
+
+    /**
+     * 批量查询多个询价ID的路由组（避免 N+1）
+     */
+    List<EnquiryRouteGroup> findByEnquiryIdInOrderByGroupIndex(java.util.Collection<Long> enquiryIds);
+    
+    void deleteByEnquiryId(Long enquiryId);
+}

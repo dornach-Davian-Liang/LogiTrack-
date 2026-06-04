@@ -1,98 +1,865 @@
 package com.logitrack.backend.service;
 
-import com.logitrack.backend.entity.EnquiryRecord;
-import com.logitrack.backend.repository.EnquiryRepository;
+import com.logitrack.backend.dto.ReferencePreview;
+import com.logitrack.backend.entity.*;
+import com.logitrack.backend.repository.*;
+import com.logitrack.backend.specification.EnquirySpecification;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.util.CellRangeAddressList;
+import org.apache.poi.xssf.usermodel.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Optional;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.stream.Collectors;
 
+/**
+ * 询价核心业务服务 v3
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class EnquiryService {
     
     private final EnquiryRepository enquiryRepository;
+    private final ProductRepository productRepository;
+    private final EnquiryPortService enquiryPortService;
+    private final EnquiryPolRepository enquiryPolRepository;
+    private final EnquiryPodRepository enquiryPodRepository;
+    private final EnquiryRouteGroupRepository routeGroupRepository;
+    private final EnquiryRouteGroupPolRepository routeGroupPolRepository;
+    private final EnquiryRouteGroupPodRepository routeGroupPodRepository;
+    private final SalesPicRepository salesPicRepository;
+    private final SalesOfficeRepository salesOfficeRepository;
+    private final PortRepository portRepository;
+    private final SalesCountryRepository salesCountryRepository;
+    private final LostReasonRepository lostReasonRepository;
+    private final CancelledReasonRepository cancelledReasonRepository;
     
-    /**
-     * Get all enquiry records
-     */
-    public List<EnquiryRecord> getAllEnquiries() {
-        log.debug("Fetching all enquiry records");
-        return enquiryRepository.findAll();
+    // ═══════════════════════════════════
+    // 查询方法
+    // ═══════════════════════════════════
+    
+    public List<Enquiry> getAllEnquiries() {
+        List<Enquiry> enquiries = enquiryRepository.findAll();
+        batchLoadTransientData(enquiries);
+        return enquiries;
     }
     
-    /**
-     * Get enquiry by ID
-     */
-    public Optional<EnquiryRecord> getEnquiryById(String id) {
-        log.debug("Fetching enquiry with id: {}", id);
-        return enquiryRepository.findById(id);
+    public Page<Enquiry> getEnquiries(Pageable pageable) {
+        Page<Enquiry> page = enquiryRepository.findAll(pageable);
+        batchLoadTransientData(page.getContent());
+        enrichWithDerivedFields(page.getContent());
+        return page;
     }
     
+    public Page<Enquiry> searchEnquiries(String keyword, Pageable pageable) {
+        Page<Enquiry> page = enquiryRepository.searchEnquiries(keyword, pageable);
+        batchLoadTransientData(page.getContent());
+        return page;
+    }
+
     /**
-     * Get enquiry by reference number
+     * 带多条件筛选的分页查询
      */
-    public Optional<EnquiryRecord> getEnquiryByReferenceNumber(String referenceNumber) {
-        log.debug("Fetching enquiry with reference number: {}", referenceNumber);
-        return enquiryRepository.findByReferenceNumber(referenceNumber);
+    public Page<Enquiry> getEnquiriesFiltered(
+            String keyword, String status, String productCode,
+            String cargoTypeCode, String salesCountryCode,
+            String assignedCnOffice, String coreNonCore,
+            String dateFrom, String dateTo,
+            Integer polPortId, Integer podPortId,
+            String createdDateFrom, String createdDateTo,
+            String createdBy,
+            Pageable pageable) {
+        Specification<Enquiry> spec = EnquirySpecification.withFilters(
+                keyword, status, productCode, cargoTypeCode,
+                salesCountryCode, assignedCnOffice, coreNonCore,
+                dateFrom, dateTo, polPortId, podPortId,
+                createdDateFrom, createdDateTo, createdBy);
+        Page<Enquiry> page = enquiryRepository.findAll(spec, pageable);
+        batchLoadTransientData(page.getContent());
+        enrichWithDerivedFields(page.getContent());
+        return page;
+    }
+
+    public Optional<Enquiry> getEnquiryById(Long id) {
+        Optional<Enquiry> enquiry = enquiryRepository.findById(id);
+        enquiry.ifPresent(this::loadTransientData);
+        return enquiry;
     }
     
-    /**
-     * Create new enquiry record
-     */
-    @Transactional
-    public EnquiryRecord createEnquiry(EnquiryRecord enquiryRecord) {
-        log.info("Creating new enquiry record: {}", enquiryRecord.getReferenceNumber());
-        enquiryRecord.setId(null); // Ensure new ID is generated
-        return enquiryRepository.save(enquiryRecord);
+    public Optional<Enquiry> getEnquiryByRefNumber(String refNumber) {
+        return enquiryRepository.findByRefNumber(refNumber);
     }
     
-    /**
-     * Update existing enquiry record
-     */
-    @Transactional
-    public EnquiryRecord updateEnquiry(String id, EnquiryRecord enquiryRecord) {
-        log.info("Updating enquiry record with id: {}", id);
-        
-        return enquiryRepository.findById(id)
-            .map(existing -> {
-                enquiryRecord.setId(id); // Preserve the ID
-                return enquiryRepository.save(enquiryRecord);
-            })
-            .orElseThrow(() -> new RuntimeException("Enquiry record not found with id: " + id));
-    }
-    
-    /**
-     * Delete enquiry record
-     */
-    @Transactional
-    public void deleteEnquiry(String id) {
-        log.info("Deleting enquiry record with id: {}", id);
-        
-        if (!enquiryRepository.existsById(id)) {
-            throw new RuntimeException("Enquiry record not found with id: " + id);
-        }
-        
-        enquiryRepository.deleteById(id);
-    }
-    
-    /**
-     * Get enquiries by status
-     */
-    public List<EnquiryRecord> getEnquiriesByStatus(String status) {
-        log.debug("Fetching enquiries with status: {}", status);
+    public List<Enquiry> getEnquiriesByStatus(Enquiry.EnquiryStatus status) {
         return enquiryRepository.findByStatus(status);
     }
     
+    public long countByStatus(Enquiry.EnquiryStatus status) {
+        return enquiryRepository.countByStatus(status);
+    }
+    
+    // ═══════════════════════════════════
+    // Reference Number 生成
+    // ═══════════════════════════════════
+    
+    private String resolveProductAbbr(String productCode) {
+        if (productCode == null) return "X";
+        return productRepository.findById(productCode)
+                .map(Product::getAbbr)
+                .orElse("X");
+    }
+
+    private String buildRefNumber(String refMonth, int seq, String abbr, int serialNumber) {
+        return String.format("CN%s%03d-%s%s",
+                refMonth, seq, abbr,
+                serialNumber > 0 ? String.valueOf(serialNumber) : "");
+    }
+
+    public ReferencePreview getNextReference(LocalDate date, String productCode) {
+        LocalDate effectiveDate = date != null ? date : LocalDate.now();
+        String refMonth = effectiveDate.format(DateTimeFormatter.ofPattern("yyMM"));
+        String abbr = resolveProductAbbr(productCode);
+        Integer maxSeq = enquiryRepository.findMaxMonthlySequence(refMonth);
+        int nextSeq = (maxSeq == null ? 0 : maxSeq) + 1;
+        String refNumber = buildRefNumber(refMonth, nextSeq, abbr, 0);
+        return new ReferencePreview(refNumber, refMonth, nextSeq, 0, abbr);
+    }
+
+    public ReferencePreview getNextIncreaseReference(Long enquiryId) {
+        Enquiry source = enquiryRepository.findById(enquiryId)
+                .orElseThrow(() -> new RuntimeException("Enquiry not found: " + enquiryId));
+        String refMonth = source.getReferenceMonth();
+        Integer monthlySequence = source.getMonthlySequence();
+        String abbr = source.getProductAbbr() != null ? source.getProductAbbr() : resolveProductAbbr(source.getProductCode());
+        Integer maxSerial = enquiryRepository.findMaxSerialNumber(refMonth, monthlySequence, abbr);
+        int nextSerial = (maxSerial == null ? 0 : maxSerial) + 1;
+        String refNumber = buildRefNumber(refMonth, monthlySequence, abbr, nextSerial);
+        return new ReferencePreview(refNumber, refMonth, monthlySequence, nextSerial, abbr);
+    }
+    
+    // ═══════════════════════════════════
+    // 创建询价
+    // ═══════════════════════════════════
+    
+    @Transactional
+    public Enquiry createEnquiry(Enquiry enquiry) {
+        log.info("Creating new enquiry v3");
+        enquiry.setId(null);
+        
+        // 默认值处理
+        if (enquiry.getEnquiryCreatedDate() == null) {
+            enquiry.setEnquiryCreatedDate(LocalDateTime.now());
+        }
+        if (enquiry.getEnquiryReceivedDate() == null) {
+            enquiry.setEnquiryReceivedDate(LocalDate.now());
+        }
+        if (enquiry.getStatus() == null) {
+            enquiry.setStatus(Enquiry.EnquiryStatus.New);
+        }
+        
+        // Cargo Ready Date 逻辑
+        if (enquiry.getHasSpecificCargoReadyDate() == null) {
+            enquiry.setHasSpecificCargoReadyDate(false);
+        }
+        if (!enquiry.getHasSpecificCargoReadyDate() || enquiry.getCargoReadyDate() == null) {
+            enquiry.setCargoReadyDate(enquiry.getEnquiryCreatedDate().toLocalDate());
+        }
+        
+        // OfferType 自动同步 = CargoType
+        if (enquiry.getOfferType() == null && enquiry.getCargoTypeCode() != null) {
+            try {
+                enquiry.setOfferType(Enquiry.OfferType.fromString(enquiry.getCargoTypeCode()));
+            } catch (IllegalArgumentException ignored) {}
+        }
+        
+        // Reference Number 生成
+        String refMonth = enquiry.getEnquiryCreatedDate().format(DateTimeFormatter.ofPattern("yyMM"));
+        enquiry.setReferenceMonth(refMonth);
+        if (enquiry.getSerialNumber() == null) enquiry.setSerialNumber(0);
+        
+        String abbr = resolveProductAbbr(enquiry.getProductCode());
+        enquiry.setProductAbbr(abbr);
+        
+        boolean isIncrease = enquiry.getMonthlySequence() != null
+                && enquiry.getSerialNumber() != null
+                && enquiry.getSerialNumber() > 0;
+        
+        if (isIncrease) {
+            int seq = enquiry.getMonthlySequence();
+            Integer maxSerial = enquiryRepository.findMaxSerialNumber(refMonth, seq, abbr);
+            int nextSerial = (maxSerial == null ? 0 : maxSerial) + 1;
+            enquiry.setSerialNumber(nextSerial);
+            enquiry.setRefNumber(buildRefNumber(refMonth, seq, abbr, nextSerial));
+        } else {
+            // 使用 FOR UPDATE 悲观锁，防止并发请求读到相同的 maxSeq（双击/多用户同时新建）
+            Integer maxSeq = enquiryRepository.findMaxMonthlySequenceForUpdate(refMonth);
+            int nextSeq = (maxSeq == null ? 0 : maxSeq) + 1;
+            enquiry.setMonthlySequence(nextSeq);
+            enquiry.setSerialNumber(0);
+            enquiry.setRefNumber(buildRefNumber(refMonth, nextSeq, abbr, 0));
+        }
+        log.info("Generated ref number: {}", enquiry.getRefNumber());
+        
+        // ═══ 重要: 先保存 Enquiry (不含 offers) ═══
+        // 暂存 offers 和 containerRows，先保存 enquiry 和 route groups 拿到真实ID
+        List<Offer> pendingOffers = enquiry.getOffers() != null ? new ArrayList<>(enquiry.getOffers()) : new ArrayList<>();
+        enquiry.setOffers(new ArrayList<>());
+        
+        List<EnquiryContainerLine> pendingContainerRows = enquiry.getContainerRows() != null ? new ArrayList<>(enquiry.getContainerRows()) : new ArrayList<>();
+        enquiry.setContainerRows(new ArrayList<>());
+        
+        // 保存 Enquiry（无 offers/containerRows）
+        Enquiry saved = enquiryRepository.save(enquiry);
+        
+        // 保存多港口关联（普通模式）
+        if (enquiry.getPolIds() != null && !enquiry.getPolIds().isEmpty()) {
+            enquiryPortService.savePolIds(saved.getId(), enquiry.getPolIds());
+        }
+        if (enquiry.getPodIds() != null && !enquiry.getPodIds().isEmpty()) {
+            enquiryPortService.savePodIds(saved.getId(), enquiry.getPodIds());
+        }
+        
+        // ═══ 保存混合模式 RouteGroups 并构建 groupIndex→真实ID 的映射 ═══
+        Map<Integer, Long> groupIndexToIdMap = new HashMap<>();
+        if (enquiry.getRouteGroups() != null && !enquiry.getRouteGroups().isEmpty()) {
+            List<EnquiryRouteGroup> savedGroups = saveRouteGroupsAndReturn(saved.getId(), enquiry.getRouteGroups());
+            for (EnquiryRouteGroup sg : savedGroups) {
+                groupIndexToIdMap.put(sg.getGroupIndex(), sg.getId());
+            }
+            log.info("Route group mapping: {}", groupIndexToIdMap);
+        }
+        
+        // ═══ 回填 offers 的 routeGroupId，然后保存 ═══
+        if (!pendingOffers.isEmpty()) {
+            for (Offer offer : pendingOffers) {
+                offer.setId(null);
+                offer.setEnquiry(saved);
+                if (offer.getSequenceNo() == null) offer.setSequenceNo(1);
+                if (offer.getIsLatest() == null) offer.setIsLatest(true);
+                
+                if (offer.getPriceLines() != null) {
+                    for (OfferPriceLine line : offer.getPriceLines()) {
+                        line.setId(null);
+                        line.setOffer(offer);
+                        
+                        // 用 sortOrder（携带 groupIndex）回填真实的 routeGroupId
+                        if (line.getRouteGroupId() == null && line.getSubMode() != null && !groupIndexToIdMap.isEmpty()) {
+                            Integer sortOrder = line.getSortOrder();
+                            if (sortOrder != null && groupIndexToIdMap.containsKey(sortOrder)) {
+                                line.setRouteGroupId(groupIndexToIdMap.get(sortOrder));
+                            }
+                        }
+                        
+                        if (line.getContainerDetails() != null) {
+                            for (OfferContainerDetail cd : line.getContainerDetails()) {
+                                cd.setId(null);
+                                cd.setPriceLine(line);
+                            }
+                        }
+                    }
+                }
+            }
+            saved.setOffers(pendingOffers);
+            saved = enquiryRepository.save(saved);
+        }
+        
+        // ═══ 保存容器行 (FCL/BUYER-CONSOL) ═══
+        if (!pendingContainerRows.isEmpty()) {
+            for (EnquiryContainerLine row : pendingContainerRows) {
+                row.setId(null);
+                row.setEnquiry(saved);
+            }
+            saved.setContainerRows(pendingContainerRows);
+            saved = enquiryRepository.save(saved);
+        }
+        
+        loadTransientData(saved);
+        return saved;
+    }
+    
+    // ═══════════════════════════════════
+    // 更新询价
+    // ═══════════════════════════════════
+    
+    @Transactional
+    public Enquiry updateEnquiry(Long id, Enquiry enquiry) {
+        log.info("Updating enquiry v3: {}", id);
+        return enquiryRepository.findById(id)
+            .map(existing -> {
+                // ── 将新值复制到 existing（managed entity）上，保留 JPA 集合引用 ──
+                if (enquiry.getRefNumber() != null) existing.setRefNumber(enquiry.getRefNumber());
+                if (enquiry.getReferenceMonth() != null) existing.setReferenceMonth(enquiry.getReferenceMonth());
+                if (enquiry.getMonthlySequence() != null) existing.setMonthlySequence(enquiry.getMonthlySequence());
+                if (enquiry.getSerialNumber() != null) existing.setSerialNumber(enquiry.getSerialNumber());
+                if (enquiry.getProductCode() != null) existing.setProductCode(enquiry.getProductCode());
+                if (enquiry.getProductAbbr() != null) existing.setProductAbbr(enquiry.getProductAbbr());
+                if (enquiry.getCargoTypeCode() != null) existing.setCargoTypeCode(enquiry.getCargoTypeCode());
+                if (enquiry.getStatus() != null) existing.setStatus(enquiry.getStatus());
+                if (enquiry.getSalesCountryCode() != null) existing.setSalesCountryCode(enquiry.getSalesCountryCode());
+                if (enquiry.getSalesPicId() != null) existing.setSalesPicId(enquiry.getSalesPicId());
+                if (enquiry.getSalesOfficeId() != null) existing.setSalesOfficeId(enquiry.getSalesOfficeId());
+                if (enquiry.getAssignedCnOffice() != null) existing.setAssignedCnOffice(enquiry.getAssignedCnOffice());
+                if (enquiry.getEnquiryReceivedDate() != null) existing.setEnquiryReceivedDate(enquiry.getEnquiryReceivedDate());
+                if (enquiry.getEnquiryCreatedDate() != null) existing.setEnquiryCreatedDate(enquiry.getEnquiryCreatedDate());
+                if (enquiry.getCargoReadyDate() != null) existing.setCargoReadyDate(enquiry.getCargoReadyDate());
+                if (enquiry.getHasSpecificCargoReadyDate() != null) existing.setHasSpecificCargoReadyDate(enquiry.getHasSpecificCargoReadyDate());
+                existing.setCoreNonCore(enquiry.getCoreNonCore());
+                existing.setCategory(enquiry.getCategory());
+                existing.setCommodity(enquiry.getCommodity());
+                existing.setVolumeCbm(enquiry.getVolumeCbm());
+                existing.setQuantity(enquiry.getQuantity());
+                existing.setUom(enquiry.getUom());
+                existing.setHazardousSpecialEquipment(enquiry.getHazardousSpecialEquipment());
+                existing.setIsOversizeCargo(enquiry.getIsOversizeCargo());
+                existing.setExwLocation(enquiry.getExwLocation());
+                existing.setPodCountry(enquiry.getPodCountry());
+                existing.setRemark(enquiry.getRemark());
+                existing.setCargoReadyDateDetails(enquiry.getCargoReadyDateDetails());
+                existing.setOfferType(enquiry.getOfferType());
+                if (enquiry.getCancelledReason() != null) existing.setCancelledReason(enquiry.getCancelledReason());
+                if (enquiry.getCancelledReasonText() != null) existing.setCancelledReasonText(enquiry.getCancelledReasonText());
+                if (enquiry.getLostReason() != null) existing.setLostReason(enquiry.getLostReason());
+                if (enquiry.getLostReasonText() != null) existing.setLostReasonText(enquiry.getLostReasonText());
+                if (enquiry.getUpdatedBy() != null) existing.setUpdatedBy(enquiry.getUpdatedBy());
+                
+                // ── 更新港口关联 ──
+                if (enquiry.getPolIds() != null) {
+                    enquiryPortService.savePolIds(existing.getId(), enquiry.getPolIds());
+                }
+                if (enquiry.getPodIds() != null) {
+                    enquiryPortService.savePodIds(existing.getId(), enquiry.getPodIds());
+                }
+                
+                // ── Offers + RouteGroups 处理（顺序关键：先删 offers → 再删 route groups → 再建） ──
+                List<Offer> pendingOffers = new ArrayList<>();
+                boolean hasNewOffers = enquiry.getOffers() != null && !enquiry.getOffers().isEmpty();
+                if (hasNewOffers) {
+                    pendingOffers.addAll(enquiry.getOffers());
+                }
+                
+                // Step 1: 清空旧 offers（释放 route_group_id FK 引用）
+                if (hasNewOffers) {
+                    existing.getOffers().clear();
+                    enquiryRepository.saveAndFlush(existing); // 确保 DELETE offer_price_line 执行完
+                }
+                
+                // Step 2: 删旧 route groups → 建新的 → 拿真实 ID
+                Map<Integer, Long> groupIndexToIdMap = new HashMap<>();
+                if (enquiry.getRouteGroups() != null) {
+                    routeGroupRepository.deleteByEnquiryId(existing.getId());
+                    routeGroupRepository.flush();
+                    if (!enquiry.getRouteGroups().isEmpty()) {
+                        List<EnquiryRouteGroup> savedGroups = saveRouteGroupsAndReturn(existing.getId(), enquiry.getRouteGroups());
+                        for (EnquiryRouteGroup sg : savedGroups) {
+                            groupIndexToIdMap.put(sg.getGroupIndex(), sg.getId());
+                        }
+                    }
+                }
+                
+                // Step 3: 添加新 offers，回填 routeGroupId
+                if (!pendingOffers.isEmpty()) {
+                    for (Offer offer : pendingOffers) {
+                        offer.setId(null);
+                        offer.setEnquiry(existing);
+                        if (offer.getPriceLines() != null) {
+                            for (var line : offer.getPriceLines()) {
+                                line.setId(null);
+                                line.setOffer(offer);
+                                // 更新模式：route groups 已被删除重建，
+                                // 所以所有旧的 routeGroupId 都已失效，必须用 sortOrder 重新映射
+                                if (!groupIndexToIdMap.isEmpty() && line.getSortOrder() != null) {
+                                    Long realId = groupIndexToIdMap.get(line.getSortOrder());
+                                    line.setRouteGroupId(realId);
+                                } else {
+                                    line.setRouteGroupId(null);
+                                }
+                                if (line.getContainerDetails() != null) {
+                                    line.getContainerDetails().forEach(cd -> {
+                                        cd.setId(null);
+                                        cd.setPriceLine(line);
+                                    });
+                                }
+                            }
+                        }
+                        existing.getOffers().add(offer);
+                    }
+                }
+                
+                // ── 更新容器行 (FCL/BUYER-CONSOL) ──
+                if (enquiry.getContainerRows() != null) {
+                    existing.getContainerRows().clear();
+                    enquiryRepository.saveAndFlush(existing);
+                    for (EnquiryContainerLine row : enquiry.getContainerRows()) {
+                        row.setId(null);
+                        row.setEnquiry(existing);
+                        existing.getContainerRows().add(row);
+                    }
+                }
+                
+                Enquiry updated = enquiryRepository.save(existing);
+                loadTransientData(updated);
+                return updated;
+            })
+            .orElseThrow(() -> new RuntimeException("Enquiry not found: " + id));
+    }
+    
+    // ═══════════════════════════════════
+    // 状态变更
+    // ═══════════════════════════════════
+    
+    @Transactional
+    public Enquiry changeStatus(Long id, String newStatus, String reason, String reasonText) {
+        log.info("Changing status of enquiry {} to {}", id, newStatus);
+        Enquiry enquiry = enquiryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Enquiry not found: " + id));
+        
+        Enquiry.EnquiryStatus targetStatus = Enquiry.EnquiryStatus.fromString(newStatus);
+        
+        // 状态流转校验
+        validateStatusTransition(enquiry.getStatus(), targetStatus);
+        
+        enquiry.setStatus(targetStatus);
+        
+        switch (targetStatus) {
+            case Cancelled:
+                if (reason == null || reason.isBlank()) {
+                    throw new RuntimeException("Cancelled reason is required");
+                }
+                enquiry.setCancelledReason(reason);
+                enquiry.setCancelledReasonText(reasonText);
+                // 清除 lost reason
+                enquiry.setLostReason(null);
+                enquiry.setLostReasonText(null);
+                break;
+            case Lost:
+                if (reason == null || reason.isBlank()) {
+                    throw new RuntimeException("Lost reason is required");
+                }
+                enquiry.setLostReason(reason);
+                enquiry.setLostReasonText(reasonText);
+                // 清除 cancelled reason
+                enquiry.setCancelledReason(null);
+                enquiry.setCancelledReasonText(null);
+                break;
+            default:
+                // 转到 New / Quoted & Pending / Secured 时，清除两种 reason
+                enquiry.setCancelledReason(null);
+                enquiry.setCancelledReasonText(null);
+                enquiry.setLostReason(null);
+                enquiry.setLostReasonText(null);
+                break;
+        }
+        
+        return enquiryRepository.save(enquiry);
+    }
+    
+    private void validateStatusTransition(Enquiry.EnquiryStatus from, Enquiry.EnquiryStatus to) {
+        if (from == to) {
+            throw new RuntimeException("Status is already: " + from);
+        }
+        
+        // 任意状态 → Cancelled 始终允许
+        if (to == Enquiry.EnquiryStatus.Cancelled) return;
+        
+        // 有效流转规则
+        switch (from) {
+            case New:
+                // New → Quoted & Pending
+                if (to != Enquiry.EnquiryStatus.Quoted_Pending) {
+                    throw new RuntimeException("Invalid transition: " + from + " → " + to);
+                }
+                break;
+            case Quoted_Pending:
+                // Quoted & Pending → Secured / Lost
+                if (to != Enquiry.EnquiryStatus.Secured && to != Enquiry.EnquiryStatus.Lost) {
+                    throw new RuntimeException("Invalid transition: " + from + " → " + to);
+                }
+                break;
+            case Secured:
+                // Secured → Lost (允许)
+                if (to != Enquiry.EnquiryStatus.Lost) {
+                    throw new RuntimeException("Invalid transition: " + from + " → " + to);
+                }
+                break;
+            case Lost:
+                // Lost → New / Quoted & Pending (允许重新激活)
+                if (to != Enquiry.EnquiryStatus.New && to != Enquiry.EnquiryStatus.Quoted_Pending) {
+                    throw new RuntimeException("Invalid transition: " + from + " → " + to);
+                }
+                break;
+            case Cancelled:
+                // Cancelled → New / Quoted & Pending (允许重新激活)
+                if (to != Enquiry.EnquiryStatus.New && to != Enquiry.EnquiryStatus.Quoted_Pending) {
+                    throw new RuntimeException("Invalid transition: " + from + " → " + to);
+                }
+                break;
+            default:
+                throw new RuntimeException("Cannot change status from: " + from);
+        }
+    }
+    
+    // ═══════════════════════════════════
+    // 删除
+    // ═══════════════════════════════════
+    
+    @Transactional
+    public void deleteEnquiry(Long id) {
+        log.info("Deleting enquiry: {}", id);
+        if (!enquiryRepository.existsById(id)) {
+            throw new RuntimeException("Enquiry not found: " + id);
+        }
+        enquiryRepository.deleteById(id);
+    }
+    
+    // ═══════════════════════════════════
+    // 内部辅助方法
+    // ═══════════════════════════════════
+    
     /**
-     * Get enquiries by booking confirmation status
+     * 加载 Transient 数据（polIds, podIds, routeGroups）- 用于单条记录
      */
-    public List<EnquiryRecord> getEnquiriesByBookingStatus(String bookingStatus) {
-        log.debug("Fetching enquiries with booking status: {}", bookingStatus);
-        return enquiryRepository.findByBookingConfirmed(bookingStatus);
+    private void loadTransientData(Enquiry enquiry) {
+        if (enquiry.getId() == null) return;
+        enquiry.setPolIds(enquiryPortService.getPolIds(enquiry.getId()));
+        enquiry.setPodIds(enquiryPortService.getPodIds(enquiry.getId()));
+        
+        // 加载 Route Groups
+        List<EnquiryRouteGroup> groups = routeGroupRepository.findByEnquiryIdOrderByGroupIndex(enquiry.getId());
+        groups.forEach(g -> {
+            g.setPolIds(routeGroupPolRepository.findByRouteGroupId(g.getId())
+                    .stream().map(EnquiryRouteGroupPol::getPortId).collect(Collectors.toList()));
+            g.setPodIds(routeGroupPodRepository.findByRouteGroupId(g.getId())
+                    .stream().map(EnquiryRouteGroupPod::getPortId).collect(Collectors.toList()));
+        });
+        enquiry.setRouteGroups(groups);
+    }
+
+    /**
+     * 批量加载 Transient 数据（polIds, podIds, routeGroups）- 避免 N+1 问题
+     */
+    private void batchLoadTransientData(List<Enquiry> enquiries) {
+        if (enquiries == null || enquiries.isEmpty()) return;
+        List<Long> ids = enquiries.stream()
+                .filter(e -> e.getId() != null)
+                .map(Enquiry::getId)
+                .collect(Collectors.toList());
+        if (ids.isEmpty()) return;
+
+        // 批量查询 POL
+        Map<Long, List<Integer>> polMap = enquiryPolRepository
+                .findByEnquiryIdIn(ids).stream()
+                .collect(Collectors.groupingBy(
+                        EnquiryPol::getEnquiryId,
+                        Collectors.mapping(EnquiryPol::getPortId, Collectors.toList())));
+
+        // 批量查询 POD
+        Map<Long, List<Integer>> podMap = enquiryPodRepository
+                .findByEnquiryIdIn(ids).stream()
+                .collect(Collectors.groupingBy(
+                        EnquiryPod::getEnquiryId,
+                        Collectors.mapping(EnquiryPod::getPortId, Collectors.toList())));
+
+        // 批量查询 RouteGroups
+        List<EnquiryRouteGroup> allGroups = routeGroupRepository.findByEnquiryIdInOrderByGroupIndex(ids);
+        Map<Long, List<EnquiryRouteGroup>> groupMap = allGroups.stream()
+                .collect(Collectors.groupingBy(EnquiryRouteGroup::getEnquiryId));
+
+        // 批量查询 RouteGroup POL / POD
+        if (!allGroups.isEmpty()) {
+            List<Long> groupIds = allGroups.stream().map(EnquiryRouteGroup::getId).collect(Collectors.toList());
+            Map<Long, List<Integer>> rgPolMap = routeGroupPolRepository.findByRouteGroupIdIn(groupIds).stream()
+                    .collect(Collectors.groupingBy(
+                            EnquiryRouteGroupPol::getRouteGroupId,
+                            Collectors.mapping(EnquiryRouteGroupPol::getPortId, Collectors.toList())));
+            Map<Long, List<Integer>> rgPodMap = routeGroupPodRepository.findByRouteGroupIdIn(groupIds).stream()
+                    .collect(Collectors.groupingBy(
+                            EnquiryRouteGroupPod::getRouteGroupId,
+                            Collectors.mapping(EnquiryRouteGroupPod::getPortId, Collectors.toList())));
+            allGroups.forEach(g -> {
+                g.setPolIds(rgPolMap.getOrDefault(g.getId(), Collections.emptyList()));
+                g.setPodIds(rgPodMap.getOrDefault(g.getId(), Collections.emptyList()));
+            });
+        }
+
+        // 赋值到各询价
+        for (Enquiry e : enquiries) {
+            if (e.getId() == null) continue;
+            e.setPolIds(polMap.getOrDefault(e.getId(), Collections.emptyList()));
+            e.setPodIds(podMap.getOrDefault(e.getId(), Collections.emptyList()));
+            e.setRouteGroups(groupMap.getOrDefault(e.getId(), Collections.emptyList()));
+        }
+    }
+
+    /**
+     * 批量填充派生显示字段（salesPicName, salesOfficeName, firstPolName, firstPodName）
+     * 使用批量查询避免 N+1 问题
+     */
+    private void enrichWithDerivedFields(List<Enquiry> enquiries) {
+        if (enquiries == null || enquiries.isEmpty()) return;
+
+        // 1. 批量查询 SalesPic 名称
+        Set<Integer> picIds = new HashSet<>();
+        Set<Integer> officeIds = new HashSet<>();
+        Set<Integer> allPortIds = new HashSet<>();
+
+        for (Enquiry e : enquiries) {
+            if (e.getSalesPicId() != null) picIds.add(e.getSalesPicId());
+            if (e.getSalesOfficeId() != null) officeIds.add(e.getSalesOfficeId());
+            if (e.getPolIds() != null) allPortIds.addAll(e.getPolIds());
+            if (e.getPodIds() != null) allPortIds.addAll(e.getPodIds());
+        }
+
+        Map<Integer, String> picNameMap = picIds.isEmpty() ? Collections.emptyMap() :
+                salesPicRepository.findAllById(picIds).stream()
+                        .collect(Collectors.toMap(SalesPic::getId, SalesPic::getName));
+
+        Map<Integer, String> officeNameMap = officeIds.isEmpty() ? Collections.emptyMap() :
+                salesOfficeRepository.findAllById(officeIds).stream()
+                        .collect(Collectors.toMap(SalesOffice::getId, SalesOffice::getName));
+
+        Map<Integer, String> portNameMap = allPortIds.isEmpty() ? Collections.emptyMap() :
+                portRepository.findAllById(allPortIds).stream()
+                        .collect(Collectors.toMap(Port::getId,
+                                p -> p.getPortCode() + " - " + p.getPortName()));
+
+        for (Enquiry e : enquiries) {
+            if (e.getSalesPicId() != null)
+                e.setSalesPicName(picNameMap.get(e.getSalesPicId()));
+            if (e.getSalesOfficeId() != null)
+                e.setSalesOfficeName(officeNameMap.get(e.getSalesOfficeId()));
+            List<Integer> pols = e.getPolIds();
+            if (pols != null && !pols.isEmpty())
+                e.setPolName(portNameMap.get(pols.get(0)));
+            List<Integer> pods = e.getPodIds();
+            if (pods != null && !pods.isEmpty())
+                e.setPodName(portNameMap.get(pods.get(0)));
+        }
+    }
+    
+    /**
+     * 保存混合模式 Route Groups（返回已保存的列表，含真实 ID）
+     */
+    private List<EnquiryRouteGroup> saveRouteGroupsAndReturn(Long enquiryId, List<EnquiryRouteGroup> groups) {
+        List<EnquiryRouteGroup> savedList = new ArrayList<>();
+        for (EnquiryRouteGroup group : groups) {
+            group.setId(null);
+            group.setEnquiryId(enquiryId);
+            EnquiryRouteGroup savedGroup = routeGroupRepository.save(group);
+            savedList.add(savedGroup);
+
+            // 保存 POLs
+            if (group.getPolIds() != null) {
+                group.getPolIds().forEach(portId -> {
+                    EnquiryRouteGroupPol pol = new EnquiryRouteGroupPol();
+                    pol.setRouteGroupId(savedGroup.getId());
+                    pol.setPortId(portId);
+                    routeGroupPolRepository.save(pol);
+                });
+            }
+
+            // 保存 PODs
+            if (group.getPodIds() != null) {
+                group.getPodIds().forEach(portId -> {
+                    EnquiryRouteGroupPod pod = new EnquiryRouteGroupPod();
+                    pod.setRouteGroupId(savedGroup.getId());
+                    pod.setPortId(portId);
+                    routeGroupPodRepository.save(pod);
+                });
+            }
+        }
+        return savedList;
+    }
+
+    /**
+     * 保存混合模式 Route Groups（void 版本，用于 update）
+     */
+    private void saveRouteGroups(Long enquiryId, List<EnquiryRouteGroup> groups) {
+        for (EnquiryRouteGroup group : groups) {
+            group.setId(null);
+            group.setEnquiryId(enquiryId);
+            EnquiryRouteGroup savedGroup = routeGroupRepository.save(group);
+            
+            // 保存 POLs
+            if (group.getPolIds() != null) {
+                group.getPolIds().forEach(portId -> {
+                    EnquiryRouteGroupPol pol = new EnquiryRouteGroupPol();
+                    pol.setRouteGroupId(savedGroup.getId());
+                    pol.setPortId(portId);
+                    routeGroupPolRepository.save(pol);
+                });
+            }
+            
+            // 保存 PODs
+            if (group.getPodIds() != null) {
+                group.getPodIds().forEach(portId -> {
+                    EnquiryRouteGroupPod pod = new EnquiryRouteGroupPod();
+                    pod.setRouteGroupId(savedGroup.getId());
+                    pod.setPortId(portId);
+                    routeGroupPodRepository.save(pod);
+                });
+            }
+        }
+    }
+
+    // ═══════════════════════════════════
+    // Excel 导出
+    // ═══════════════════════════════════
+
+    /**
+     * 导出询价数据为 Excel（含 Lost/Cancelled Reason 下拉验证）
+     */
+    public byte[] exportToExcel(
+            String keyword, String status, String cargoTypeCode,
+            String salesCountryCode, String assignedCnOffice, String coreNonCore,
+            String dateFrom, String dateTo, Integer polPortId, Integer podPortId,
+            String createdDateFrom, String createdDateTo) throws IOException {
+
+        // 1. 查询全量（带过滤，无分页）
+        Specification<Enquiry> spec = EnquirySpecification.withFilters(
+                keyword, status, null, cargoTypeCode,
+                salesCountryCode, assignedCnOffice, coreNonCore,
+                dateFrom, dateTo, polPortId, podPortId,
+                createdDateFrom, createdDateTo, null);
+        List<Enquiry> enquiries = enquiryRepository.findAll(spec, Sort.by(Sort.Direction.DESC, "id"));
+        batchLoadTransientData(enquiries);
+        enrichWithDerivedFields(enquiries);
+
+        // 2. 加载 Reason 字典
+        List<LostReason> lostReasons = lostReasonRepository.findAllByOrderBySortOrderAsc();
+        List<CancelledReason> cancelledReasons = cancelledReasonRepository.findAllByOrderBySortOrderAsc();
+        Map<String, String> salesCountryNameMap = salesCountryRepository.findByIsActiveTrueOrderBySortOrderAsc().stream()
+            .collect(Collectors.toMap(SalesCountry::getCode, SalesCountry::getName));
+        Map<String, String> lostLabelMap = lostReasons.stream()
+                .collect(Collectors.toMap(LostReason::getCode, LostReason::getLabel));
+        Map<String, String> cancelledLabelMap = cancelledReasons.stream()
+                .collect(Collectors.toMap(CancelledReason::getCode, CancelledReason::getLabel));
+
+        // 3. 构建 Workbook
+        try (XSSFWorkbook wb = new XSSFWorkbook()) {
+            // 隐藏字典 sheet
+            XSSFSheet dictSheet = wb.createSheet("_dict");
+            Row dictHeader = dictSheet.createRow(0);
+            dictHeader.createCell(0).setCellValue("Lost Reason");
+            dictHeader.createCell(1).setCellValue("Cancelled Reason");
+            int maxDictRows = Math.max(lostReasons.size(), cancelledReasons.size());
+            for (int i = 0; i < maxDictRows; i++) {
+                Row dr = dictSheet.createRow(i + 1);
+                if (i < lostReasons.size()) dr.createCell(0).setCellValue(lostReasons.get(i).getLabel());
+                if (i < cancelledReasons.size()) dr.createCell(1).setCellValue(cancelledReasons.get(i).getLabel());
+            }
+            wb.setSheetHidden(wb.getSheetIndex("_dict"), true);
+
+            // 主数据 sheet
+            XSSFSheet sheet = wb.createSheet("Enquiries");
+            // 列顺序：Status 后紧跟 Lost Reason / Cancelled Reason
+            // idx: 0  1  2  3      4           5                 6~
+            String[] headers = {
+                "Reference Number", "Product Type", "Cargo Type", "Status",
+                "Lost Reason", "Cancelled Reason",
+                "Sales Country", "Sales PIC", "Sales Office", "Assigned CN Office",
+                "Sender Email", "Core/Non-Core", "POL", "POD", "POD Country",
+                "Commodity", "Cargo Type(Detail)", "Volume (CBM)", "Quantity", "UOM",
+                "Is Oversize", "Cargo Ready Date", "Remark", "Offer Type",
+                "Received Date", "Created Date", "Offers Count", "Latest Offer Date"
+            };
+            Row headerRow = sheet.createRow(0);
+            for (int i = 0; i < headers.length; i++) {
+                headerRow.createCell(i).setCellValue(headers[i]);
+            }
+
+            final int COL_LOST = 4;
+            final int COL_CANCELLED = 5;
+
+            for (int ri = 0; ri < enquiries.size(); ri++) {
+                Enquiry e = enquiries.get(ri);
+                Row row = sheet.createRow(ri + 1);
+                row.createCell(0).setCellValue(nvl(e.getRefNumber()));
+                row.createCell(1).setCellValue(nvl(e.getProductCode()));
+                row.createCell(2).setCellValue(nvl(e.getCargoTypeCode()));
+                row.createCell(3).setCellValue(e.getStatus() != null ? e.getStatus().toJsonValue() : "");
+                // Lost Reason: code → label
+                row.createCell(COL_LOST).setCellValue(
+                    e.getLostReason() != null ? lostLabelMap.getOrDefault(e.getLostReason(), e.getLostReason()) : "");
+                // Cancelled Reason: code → label
+                row.createCell(COL_CANCELLED).setCellValue(
+                    e.getCancelledReason() != null ? cancelledLabelMap.getOrDefault(e.getCancelledReason(), e.getCancelledReason()) : "");
+                row.createCell(6).setCellValue(
+                    e.getSalesCountryCode() != null
+                        ? salesCountryNameMap.getOrDefault(e.getSalesCountryCode(), e.getSalesCountryCode())
+                        : "");
+                row.createCell(7).setCellValue(nvl(e.getSalesPicName()));
+                row.createCell(8).setCellValue(nvl(e.getSalesOfficeName()));
+                row.createCell(9).setCellValue(nvl(e.getAssignedCnOffice()));
+                row.createCell(10).setCellValue(nvl(e.getSenderEmail()));
+                row.createCell(11).setCellValue(e.getCoreNonCore() != null ? e.getCoreNonCore().toJsonValue() : "");
+                row.createCell(12).setCellValue(nvl(e.getPolName()));
+                row.createCell(13).setCellValue(nvl(e.getPodName()));
+                row.createCell(14).setCellValue(nvl(e.getPodCountry()));
+                row.createCell(15).setCellValue(nvl(e.getCommodity()));
+                row.createCell(16).setCellValue(nvl(e.getCargoTypeCode()));
+                row.createCell(17).setCellValue(e.getVolumeCbm() != null ? e.getVolumeCbm().toPlainString() : "");
+                row.createCell(18).setCellValue(e.getQuantity() != null ? e.getQuantity().toPlainString() : "");
+                row.createCell(19).setCellValue(nvl(e.getUom()));
+                row.createCell(20).setCellValue(Boolean.TRUE.equals(e.getIsOversizeCargo()) ? "Yes" : "No");
+                row.createCell(21).setCellValue(e.getCargoReadyDate() != null ? e.getCargoReadyDate().toString() : "");
+                row.createCell(22).setCellValue(nvl(e.getRemark()));
+                row.createCell(23).setCellValue(e.getOfferType() != null ? e.getOfferType().toJsonValue() : "");
+                row.createCell(24).setCellValue(e.getEnquiryReceivedDate() != null ? e.getEnquiryReceivedDate().toString() : "");
+                row.createCell(25).setCellValue(e.getEnquiryCreatedDate() != null ? e.getEnquiryCreatedDate().toString().substring(0, 10) : "");
+                // offersCount / latestOfferDate from offers relationship
+                List<Offer> offers = e.getOffers();
+                row.createCell(26).setCellValue(offers != null ? String.valueOf(offers.size()) : "0");
+                if (offers != null && !offers.isEmpty()) {
+                    offers.stream()
+                        .map(Offer::getCreatedAt)
+                        .filter(Objects::nonNull)
+                        .max(Comparator.naturalOrder())
+                        .ifPresent(d -> row.createCell(27).setCellValue(d.toString().substring(0, 10)));
+                }
+            }
+
+            // 数据验证下拉
+            if (!enquiries.isEmpty()) {
+                int lastRow = enquiries.size();
+                DataValidationHelper dvHelper = sheet.getDataValidationHelper();
+                if (!lostReasons.isEmpty()) {
+                    CellRangeAddressList lostRange = new CellRangeAddressList(1, lastRow, COL_LOST, COL_LOST);
+                    DataValidationConstraint lostDvc = dvHelper.createFormulaListConstraint(
+                            "_dict!$A$2:$A$" + (lostReasons.size() + 1));
+                    DataValidation lostDv = dvHelper.createValidation(lostDvc, lostRange);
+                    lostDv.setSuppressDropDownArrow(true);
+                    sheet.addValidationData(lostDv);
+                }
+                if (!cancelledReasons.isEmpty()) {
+                    CellRangeAddressList cancelledRange = new CellRangeAddressList(1, lastRow, COL_CANCELLED, COL_CANCELLED);
+                    DataValidationConstraint cancelledDvc = dvHelper.createFormulaListConstraint(
+                            "_dict!$B$2:$B$" + (cancelledReasons.size() + 1));
+                    DataValidation cancelledDv = dvHelper.createValidation(cancelledDvc, cancelledRange);
+                    cancelledDv.setSuppressDropDownArrow(true);
+                    sheet.addValidationData(cancelledDv);
+                }
+            }
+
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            wb.write(out);
+            return out.toByteArray();
+        }
+    }
+
+    private static String nvl(String s) {
+        return s != null ? s : "";
     }
 }

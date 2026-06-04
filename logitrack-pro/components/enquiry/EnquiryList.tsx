@@ -1,0 +1,854 @@
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Search, Filter, Eye, Edit, Copy, Trash2, Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, TrendingUp, X, Download, Calendar } from 'lucide-react';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import * as XLSX from 'xlsx';
+import { Enquiry, EnquiryListItem, EnquiryStatus, SelectOption, PortSelectOption } from '../../types';
+import { enquiryApi, masterDataApi } from '../../services/api';
+
+interface EnquiryListProps {
+  onViewDetail: (enquiry: Enquiry) => void;
+  onEdit: (enquiry: Enquiry) => void;
+  onNewEnquiry: () => void;
+  canCreate: boolean;
+  canManage: boolean;
+}
+
+export const EnquiryList: React.FC<EnquiryListProps> = ({ onViewDetail, onEdit, onNewEnquiry, canCreate, canManage }) => {
+  const [enquiries, setEnquiries] = useState<EnquiryListItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Filters
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<EnquiryStatus[]>([]);
+  const [productTypeFilter, setProductTypeFilter] = useState<string[]>([]);
+  const [cargoTypeFilter, setCargoTypeFilter] = useState<string[]>([]);
+  const [officeFilter, setOfficeFilter] = useState<string[]>([]);
+  const [polFilter, setPolFilter] = useState<number | null>(null);
+  const [podFilter, setPodFilter] = useState<number | null>(null);
+  const [polLabel, setPolLabel] = useState('');
+  const [podLabel, setPodLabel] = useState('');
+  const [createdDateFrom, setCreatedDateFrom] = useState<Date | null>(null);
+  const [createdDateTo, setCreatedDateTo] = useState<Date | null>(null);
+  const [autoFillOnly, setAutoFillOnly] = useState(false);
+
+  // Export state
+  const [isExporting, setIsExporting] = useState(false);
+
+  // Office options
+  const [officeOptions, setOfficeOptions] = useState<SelectOption[]>([]);
+
+  // Product type options
+  const [productOptions, setProductOptions] = useState<SelectOption[]>([]);
+
+  // Port search state for POL/POD filters
+  const [polSearchTerm, setPolSearchTerm] = useState('');
+  const [podSearchTerm, setPodSearchTerm] = useState('');
+  const [polSearchResults, setPolSearchResults] = useState<PortSelectOption[]>([]);
+  const [podSearchResults, setPodSearchResults] = useState<PortSelectOption[]>([]);
+  const [showPolDropdown, setShowPolDropdown] = useState(false);
+  const [showPodDropdown, setShowPodDropdown] = useState(false);
+  const [showOfficeDropdown, setShowOfficeDropdown] = useState(false);
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+  const [showCargoDropdown, setShowCargoDropdown] = useState(false);
+  const [showProductDropdown, setShowProductDropdown] = useState(false);
+  const polRef = useRef<HTMLDivElement>(null);
+  const podRef = useRef<HTMLDivElement>(null);
+  const officeRef = useRef<HTMLDivElement>(null);
+  const statusRef = useRef<HTMLDivElement>(null);
+  const cargoRef = useRef<HTMLDivElement>(null);
+  const productRef = useRef<HTMLDivElement>(null);
+  
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // Load office options on mount
+  useEffect(() => {
+    masterDataApi.getCnOffices().then(setOfficeOptions).catch(() => {});
+    masterDataApi.getProducts().then((prods) =>
+      setProductOptions(prods.map((p) => ({ value: p.code, label: p.name || p.code })))
+    ).catch(() => {});
+  }, []);
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (polRef.current && !polRef.current.contains(e.target as Node)) setShowPolDropdown(false);
+      if (podRef.current && !podRef.current.contains(e.target as Node)) setShowPodDropdown(false);
+      if (officeRef.current && !officeRef.current.contains(e.target as Node)) setShowOfficeDropdown(false);
+      if (statusRef.current && !statusRef.current.contains(e.target as Node)) setShowStatusDropdown(false);
+      if (cargoRef.current && !cargoRef.current.contains(e.target as Node)) setShowCargoDropdown(false);
+      if (productRef.current && !productRef.current.contains(e.target as Node)) setShowProductDropdown(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  // Debounced port search
+  const searchPortsDebounced = useCallback((term: string, setter: (r: PortSelectOption[]) => void) => {
+    if (term.length < 2) { setter([]); return; }
+    const timer = setTimeout(async () => {
+      try {
+        // Search all port types (SEA + AIR)
+        const [seaResults, airResults] = await Promise.all([
+          masterDataApi.searchPorts('SEA', term),
+          masterDataApi.searchPorts('AIR', term),
+        ]);
+        setter([...seaResults, ...airResults]);
+      } catch { setter([]); }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    const cleanup = searchPortsDebounced(polSearchTerm, setPolSearchResults);
+    return cleanup;
+  }, [polSearchTerm]);
+
+  useEffect(() => {
+    const cleanup = searchPortsDebounced(podSearchTerm, setPodSearchResults);
+    return cleanup;
+  }, [podSearchTerm]);
+
+  useEffect(() => {
+    fetchEnquiries();
+  }, [currentPage, pageSize, searchTerm, statusFilter, productTypeFilter, cargoTypeFilter, officeFilter, polFilter, podFilter, createdDateFrom, createdDateTo, autoFillOnly]);
+
+  const fetchEnquiries = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await enquiryApi.list({
+        page: Math.max(0, currentPage - 1),
+        pageSize,
+        search: searchTerm || undefined,
+        status: statusFilter.length > 0 ? statusFilter : undefined,
+        productCode: productTypeFilter.length > 0 ? productTypeFilter : undefined,
+        cargoType: cargoTypeFilter.length > 0 ? cargoTypeFilter : undefined,
+        assignedCnOffice: officeFilter.length > 0 ? officeFilter.join(',') : undefined,
+        polPortId: polFilter || undefined,
+        podPortId: podFilter || undefined,
+        createdDateFrom: createdDateFrom ? createdDateFrom.toISOString().split('T')[0] : undefined,
+        createdDateTo: createdDateTo ? createdDateTo.toISOString().split('T')[0] : undefined,
+        createdBy: autoFillOnly ? 'email-ai-bot' : undefined,
+      });
+      console.log('[EnquiryList] API response:', {
+        totalElements: response.totalElements,
+        totalPages: response.totalPages,
+        contentLength: response.content?.length,
+        firstItem: response.content?.[0]
+      });
+      setEnquiries(response.content);
+      setTotalPages(response.totalPages);
+    } catch (err) {
+      setError('Failed to load enquiries');
+      console.error('[EnquiryList] Error loading enquiries:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this enquiry?')) return;
+    
+    try {
+      await enquiryApi.delete(id);
+      fetchEnquiries();
+    } catch (err) {
+      alert('Failed to delete enquiry');
+      console.error(err);
+    }
+  };
+
+  /** 深度清理子记录的 ID，确保 copy/increase 创建全新记录 */
+  const cleanChildIds = (enquiryData: any) => {
+    // 清理 route groups
+    if (enquiryData.routeGroups) {
+      enquiryData.routeGroups = enquiryData.routeGroups.map((rg: any, idx: number) => ({
+        ...rg,
+        id: undefined,
+        enquiryId: undefined,
+        groupIndex: rg.groupIndex ?? idx,
+      }));
+    }
+    // 清理 offers → priceLines → containerDetails
+    if (enquiryData.offers) {
+      enquiryData.offers = enquiryData.offers.map((offer: any) => ({
+        ...offer,
+        id: undefined,
+        priceLines: (offer.priceLines || []).map((pl: any) => ({
+          ...pl,
+          id: undefined,
+          routeGroupId: undefined, // 新建时由后端回填
+          containerDetails: (pl.containerDetails || []).map((cd: any) => ({
+            ...cd,
+            id: undefined,
+          })),
+        })),
+      }));
+    }
+    return enquiryData;
+  };
+
+  const handleCopy = async (enquiry: EnquiryListItem) => {
+    try {
+      console.log('[handleCopy] enquiry:', enquiry);
+      if (!enquiry.id) {
+        alert('Invalid enquiry: missing ID');
+        console.error('[handleCopy] enquiry missing id:', enquiry);
+        return;
+      }
+      
+      // ✅ 先加载完整的Enquiry数据（包含polIds/podIds等）
+      const fullEnquiry = await enquiryApi.getById(enquiry.id);
+      
+      const today = new Date().toISOString().split('T')[0];
+      const copied = cleanChildIds({
+        ...fullEnquiry,
+        id: undefined,
+        refNumber: undefined,
+        status: 'New' as EnquiryStatus,
+        enquiryReceivedDate: today,
+        enquiryCreatedDate: today,
+      });
+      onEdit(copied as Enquiry);
+    } catch (err) {
+      alert('Failed to copy enquiry');
+      console.error('[handleCopy] error:', err);
+    }
+  };
+
+  const handleIncrease = async (enquiry: EnquiryListItem) => {
+    try {
+      console.log('[handleIncrease] enquiry:', enquiry);
+      if (!enquiry.id) {
+        alert('Invalid enquiry: missing ID');
+        console.error('[handleIncrease] enquiry missing id:', enquiry);
+        return;
+      }
+      
+      // ✅ 先加载完整的Enquiry数据（包含polIds/podIds等）
+      const fullEnquiry = await enquiryApi.getById(enquiry.id);
+      const preview = await enquiryApi.getIncreaseReference(enquiry.id);
+      const copied = cleanChildIds({
+        ...fullEnquiry,
+        id: undefined,
+        refNumber: preview.referenceNumber,
+        monthlySequence: preview.monthlySequence,
+        serialNumber: preview.serialNumber,  // > 0 tells backend this is an increase
+        productAbbr: preview.productAbbr,
+        status: 'New' as EnquiryStatus,
+        enquiryReceivedDate: new Date().toISOString().split('T')[0],
+        enquiryCreatedDate: fullEnquiry.enquiryCreatedDate,
+      });
+      onEdit(copied as Enquiry);
+    } catch (err) {
+      alert('Failed to generate increase reference');
+      console.error('[handleIncrease] error:', err);
+    }
+  };
+
+  const handleExportXlsx = async () => {
+    setIsExporting(true);
+    try {
+      const params = new URLSearchParams();
+      if (searchTerm) params.set('keyword', searchTerm);
+      if (statusFilter.length > 0) params.set('status', statusFilter.join(','));
+      if (productTypeFilter.length > 0) params.set('productCode', productTypeFilter.join(','));
+      if (cargoTypeFilter.length > 0) params.set('cargoTypeCode', cargoTypeFilter.join(','));
+      if (officeFilter.length > 0) params.set('assignedCnOffice', officeFilter.join(','));
+      if (polFilter) params.set('polPortId', String(polFilter));
+      if (podFilter) params.set('podPortId', String(podFilter));
+      if (createdDateFrom) params.set('createdDateFrom', createdDateFrom.toISOString().split('T')[0]);
+      if (createdDateTo) params.set('createdDateTo', createdDateTo.toISOString().split('T')[0]);
+
+      const response = await fetch(`/api/enquiries/export-xlsx?${params.toString()}`);
+      if (!response.ok) throw new Error(`Export failed: ${response.status}`);
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const today = new Date().toISOString().split('T')[0];
+      a.download = `Enquiries_Export_${today}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('Failed to export data');
+      console.error('[handleExportXlsx] error:', err);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const getStatusColor = (status: EnquiryStatus) => {
+    switch (status) {
+      case 'New': return 'bg-blue-100 text-blue-800';
+      case 'Quoted & Pending': return 'bg-yellow-100 text-yellow-800';
+      case 'Secured': return 'bg-green-100 text-green-800';
+      case 'Lost': return 'bg-red-100 text-red-800';
+      case 'Cancelled': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold text-gray-900">Enquiry Management</h1>
+        <div className="flex gap-2">
+          <button
+            onClick={handleExportXlsx}
+            disabled={isExporting}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            {isExporting ? 'Exporting...' : 'Export XLSX'}
+          </button>
+          <button
+            onClick={() => { setAutoFillOnly(!autoFillOnly); setCurrentPage(1); }}
+            className={`inline-flex items-center px-4 py-2 border text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${
+              autoFillOnly
+                ? 'border-indigo-500 bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+            }`}
+            title="Show only AI auto-filled enquiries"
+          >
+            🤖 AI 自动{autoFillOnly ? ' ✕' : ''}
+          </button>
+          {canCreate && (
+            <button
+              onClick={onNewEnquiry}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              New Enquiry
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-white shadow rounded-lg p-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          {/* Row 1: Search, Status, ProductType, CargoType, PageSize */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by reference or keyword..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            />
+          </div>
+
+          <div ref={statusRef} className="relative">
+            <button
+              type="button"
+              onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+              className={`w-full text-left rounded-md border shadow-sm px-3 py-2 text-sm focus:border-indigo-500 focus:ring-indigo-500 ${statusFilter.length > 0 ? 'bg-indigo-50 border-indigo-300' : 'border-gray-300'}`}
+            >
+              {statusFilter.length === 0 ? 'All Status' : `${statusFilter.length} status selected`}
+            </button>
+            {showStatusDropdown && (
+              <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                {(['New', 'Quoted & Pending', 'Secured', 'Lost', 'Cancelled'] as EnquiryStatus[]).map(s => (
+                  <label key={s} className="flex items-center px-3 py-2 text-sm hover:bg-indigo-50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={statusFilter.includes(s)}
+                      onChange={(ev) => {
+                        if (ev.target.checked) {
+                          setStatusFilter([...statusFilter, s]);
+                        } else {
+                          setStatusFilter(statusFilter.filter(v => v !== s));
+                        }
+                        setCurrentPage(1);
+                      }}
+                      className="mr-2 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    {s}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Product Type multi-select */}
+          <div ref={productRef} className="relative">
+            <button
+              type="button"
+              onClick={() => setShowProductDropdown(!showProductDropdown)}
+              className={`w-full text-left rounded-md border shadow-sm px-3 py-2 text-sm focus:border-indigo-500 focus:ring-indigo-500 ${productTypeFilter.length > 0 ? 'bg-indigo-50 border-indigo-300' : 'border-gray-300'}`}
+            >
+              {productTypeFilter.length === 0 ? 'All Product Types' : `${productTypeFilter.length} type(s) selected`}
+            </button>
+            {showProductDropdown && (
+              <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                {productOptions.map(p => (
+                  <label key={String(p.value)} className="flex items-center px-3 py-2 text-sm hover:bg-indigo-50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={productTypeFilter.includes(String(p.value))}
+                      onChange={(ev) => {
+                        const val = String(p.value);
+                        if (ev.target.checked) {
+                          setProductTypeFilter([...productTypeFilter, val]);
+                        } else {
+                          setProductTypeFilter(productTypeFilter.filter(v => v !== val));
+                        }
+                        setCurrentPage(1);
+                      }}
+                      className="mr-2 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    {p.label}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div ref={cargoRef} className="relative">
+            <button
+              type="button"
+              onClick={() => setShowCargoDropdown(!showCargoDropdown)}
+              className={`w-full text-left rounded-md border shadow-sm px-3 py-2 text-sm focus:border-indigo-500 focus:ring-indigo-500 ${cargoTypeFilter.length > 0 ? 'bg-indigo-50 border-indigo-300' : 'border-gray-300'}`}
+            >
+              {cargoTypeFilter.length === 0 ? 'All Cargo Types' : `${cargoTypeFilter.length} type(s) selected`}
+            </button>
+            {showCargoDropdown && (
+              <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                {['FCL', 'LCL', 'AIR', 'BUYER-CONSOL'].map(c => (
+                  <label key={c} className="flex items-center px-3 py-2 text-sm hover:bg-indigo-50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={cargoTypeFilter.includes(c)}
+                      onChange={(ev) => {
+                        if (ev.target.checked) {
+                          setCargoTypeFilter([...cargoTypeFilter, c]);
+                        } else {
+                          setCargoTypeFilter(cargoTypeFilter.filter(v => v !== c));
+                        }
+                        setCurrentPage(1);
+                      }}
+                      className="mr-2 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    {c}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <select
+            value={pageSize}
+            onChange={(e) => setPageSize(Number(e.target.value))}
+            className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+          >
+            <option value="10">10 per page</option>
+            <option value="20">20 per page</option>
+            <option value="50">50 per page</option>
+          </select>
+        </div>
+
+        {/* Row 2: Office (multi-select), POL, POD filters */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
+          {/* Office Multi-Select Filter */}
+          <div ref={officeRef} className="relative">
+            <button
+              type="button"
+              onClick={() => setShowOfficeDropdown(!showOfficeDropdown)}
+              className={`w-full text-left rounded-md border shadow-sm px-3 py-2 text-sm focus:border-indigo-500 focus:ring-indigo-500 ${officeFilter.length > 0 ? 'bg-indigo-50 border-indigo-300' : 'border-gray-300'}`}
+            >
+              {officeFilter.length === 0 ? 'All Offices' : `${officeFilter.length} office(s) selected`}
+            </button>
+            {showOfficeDropdown && (
+              <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                {officeOptions.map(o => (
+                  <label
+                    key={String(o.value)}
+                    className="flex items-center px-3 py-2 text-sm hover:bg-indigo-50 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={officeFilter.includes(String(o.value))}
+                      onChange={(ev) => {
+                        const val = String(o.value);
+                        if (ev.target.checked) {
+                          setOfficeFilter([...officeFilter, val]);
+                        } else {
+                          setOfficeFilter(officeFilter.filter(v => v !== val));
+                        }
+                        setCurrentPage(1);
+                      }}
+                      className="mr-2 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    {o.label}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* POL Search Filter */}
+          <div ref={polRef} className="relative">
+            <div className="flex">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  placeholder={polLabel || "Filter by POL..."}
+                  value={polSearchTerm}
+                  onChange={(e) => { setPolSearchTerm(e.target.value); setShowPolDropdown(true); }}
+                  onFocus={() => { if (polSearchTerm.length >= 2) setShowPolDropdown(true); }}
+                  className={`w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm ${polFilter ? 'pr-8 bg-indigo-50 border-indigo-300' : ''}`}
+                />
+                {polFilter && (
+                  <button
+                    type="button"
+                    onClick={() => { setPolFilter(null); setPolLabel(''); setPolSearchTerm(''); setCurrentPage(1); }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+            {showPolDropdown && polSearchResults.length > 0 && (
+              <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                {polSearchResults.map(port => (
+                  <button
+                    key={String(port.value)}
+                    type="button"
+                    onClick={() => {
+                      setPolFilter(Number(port.value));
+                      setPolLabel(port.label);
+                      setPolSearchTerm('');
+                      setShowPolDropdown(false);
+                      setCurrentPage(1);
+                    }}
+                    className="block w-full text-left px-3 py-2 text-sm hover:bg-indigo-50 hover:text-indigo-700 border-b border-gray-50 last:border-0"
+                  >
+                    <span className="font-medium">{port.portCode}</span>
+                    <span className="text-gray-500 ml-1">- {port.label.replace(port.portCode + ' - ', '')}</span>
+                    <span className="text-xs text-gray-400 ml-1 uppercase">({port.portType})</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* POD Search Filter */}
+          <div ref={podRef} className="relative">
+            <div className="flex">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  placeholder={podLabel || "Filter by POD..."}
+                  value={podSearchTerm}
+                  onChange={(e) => { setPodSearchTerm(e.target.value); setShowPodDropdown(true); }}
+                  onFocus={() => { if (podSearchTerm.length >= 2) setShowPodDropdown(true); }}
+                  className={`w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm ${podFilter ? 'pr-8 bg-indigo-50 border-indigo-300' : ''}`}
+                />
+                {podFilter && (
+                  <button
+                    type="button"
+                    onClick={() => { setPodFilter(null); setPodLabel(''); setPodSearchTerm(''); setCurrentPage(1); }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+            {showPodDropdown && podSearchResults.length > 0 && (
+              <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                {podSearchResults.map(port => (
+                  <button
+                    key={String(port.value)}
+                    type="button"
+                    onClick={() => {
+                      setPodFilter(Number(port.value));
+                      setPodLabel(port.label);
+                      setPodSearchTerm('');
+                      setShowPodDropdown(false);
+                      setCurrentPage(1);
+                    }}
+                    className="block w-full text-left px-3 py-2 text-sm hover:bg-indigo-50 hover:text-indigo-700 border-b border-gray-50 last:border-0"
+                  >
+                    <span className="font-medium">{port.portCode}</span>
+                    <span className="text-gray-500 ml-1">- {port.label.replace(port.portCode + ' - ', '')}</span>
+                    <span className="text-xs text-gray-400 ml-1 uppercase">({port.portType})</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Row 3: Created Date Range Filter */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
+            <DatePicker
+              selected={createdDateFrom}
+              onChange={(date: Date | null) => { setCreatedDateFrom(date); setCurrentPage(1); }}
+              placeholderText="Created From"
+              dateFormat="yyyy/MM/dd"
+              isClearable
+              className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-gray-400 text-sm flex-shrink-0">—</span>
+            <DatePicker
+              selected={createdDateTo}
+              onChange={(date: Date | null) => { setCreatedDateTo(date); setCurrentPage(1); }}
+              placeholderText="Created To"
+              dateFormat="yyyy/MM/dd"
+              isClearable
+              minDate={createdDateFrom || undefined}
+              className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+            />
+          </div>
+        </div>
+
+        {/* Active filter tags */}
+        {(officeFilter.length > 0 || polFilter || podFilter || createdDateFrom || createdDateTo) && (
+          <div className="flex flex-wrap gap-2 mt-3">
+            {officeFilter.map(office => (
+              <span key={office} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-teal-100 text-teal-800">
+                Office: {officeOptions.find(o => String(o.value) === office)?.label || office}
+                <button onClick={() => { setOfficeFilter(officeFilter.filter(v => v !== office)); setCurrentPage(1); }} className="hover:text-red-500"><X className="w-3 h-3" /></button>
+              </span>
+            ))}
+            {polFilter && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-800">
+                POL: {polLabel}
+                <button onClick={() => { setPolFilter(null); setPolLabel(''); setCurrentPage(1); }} className="hover:text-red-500"><X className="w-3 h-3" /></button>
+              </span>
+            )}
+            {podFilter && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-purple-100 text-purple-800">
+                POD: {podLabel}
+                <button onClick={() => { setPodFilter(null); setPodLabel(''); setCurrentPage(1); }} className="hover:text-red-500"><X className="w-3 h-3" /></button>
+              </span>
+            )}
+            {(createdDateFrom || createdDateTo) && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-orange-100 text-orange-800">
+                Created: {createdDateFrom ? createdDateFrom.toISOString().split('T')[0] : '...'} ~ {createdDateTo ? createdDateTo.toISOString().split('T')[0] : '...'}
+                <button onClick={() => { setCreatedDateFrom(null); setCreatedDateTo(null); setCurrentPage(1); }} className="hover:text-red-500"><X className="w-3 h-3" /></button>
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Table */}
+      <div className="bg-white shadow rounded-lg overflow-hidden">
+        {isLoading ? (
+          <div className="p-8 text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+            <p className="mt-2 text-gray-500">Loading enquiries...</p>
+          </div>
+        ) : error ? (
+          <div className="p-8 text-center text-red-600">
+            <p>{error}</p>
+            <button onClick={fetchEnquiries} className="mt-2 text-indigo-600 hover:underline">
+              Retry
+            </button>
+          </div>
+        ) : enquiries.length === 0 ? (
+          <div className="p-8 text-center text-gray-500">
+            <p>No enquiries found</p>
+            {canCreate && (
+              <button onClick={onNewEnquiry} className="mt-2 text-indigo-600 hover:underline">
+                Create your first enquiry
+              </button>
+            )}
+          </div>
+        ) : (
+          <>
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Reference
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Product Type
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Cargo Type
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Assigned CN Office
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Created Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Created By
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {enquiries.map((enquiry) => (
+                  <tr key={enquiry.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {enquiry.refNumber}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {enquiry.productCode || enquiry.productAbbr || '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {enquiry.cargoTypeCode}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(enquiry.status)}`}>
+                        {enquiry.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {enquiry.assignedCnOffice || '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {String(enquiry.enquiryCreatedDate || '').substring(0, 10)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {enquiry.createdBy === 'email-ai-bot'
+                        ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700" title="Auto-filled by email-ai-automation">🤖 AI 自动</span>
+                        : enquiry.createdBy
+                          ? <span className="text-gray-600">👤 {enquiry.createdBy}</span>
+                          : <span className="text-gray-400">-</span>
+                      }
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => onViewDetail(enquiry as any)}
+                          className="text-indigo-600 hover:text-indigo-900"
+                          title="View Details"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        {canManage && (
+                          <>
+                            <button
+                              onClick={() => onEdit(enquiry as any)}
+                              className="text-blue-600 hover:text-blue-900"
+                              title="Edit"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleCopy(enquiry)}
+                              className="text-green-600 hover:text-green-900"
+                              title="Copy"
+                            >
+                              <Copy className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleIncrease(enquiry)}
+                              className="text-teal-600 hover:text-teal-900"
+                              title="Increase"
+                            >
+                              <TrendingUp className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(enquiry.id!)}
+                              className="text-red-600 hover:text-red-900"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* Pagination */}
+            <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+              <div className="flex-1 flex justify-between sm:hidden">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+              <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm text-gray-700">
+                    Page <span className="font-medium">{currentPage}</span> of{' '}
+                    <span className="font-medium">{totalPages}</span>
+                  </p>
+                </div>
+                <div>
+                  <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                    <button
+                      onClick={() => setCurrentPage(1)}
+                      disabled={currentPage === 1}
+                      className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                      title="First Page"
+                    >
+                      <ChevronsLeft className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="relative inline-flex items-center px-2 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                      title="Previous Page"
+                    >
+                      <ChevronLeft className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                      className="relative inline-flex items-center px-2 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                      title="Next Page"
+                    >
+                      <ChevronRight className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={() => setCurrentPage(totalPages)}
+                      disabled={currentPage === totalPages}
+                      className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                      title="Last Page"
+                    >
+                      <ChevronsRight className="h-5 w-5" />
+                    </button>
+                  </nav>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default EnquiryList;

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Enquiry List API</title>
+    <script>
+        async function testEnquiryList() {
+            const resultsDiv = document.getElementById('results');
+            try {
+                resultsDiv.innerHTML = 'Loading...';
+                const response = await fetch('http://localhost:8888/api/enquiries?page=0&size=5');
+                const data = await response.json();
+                resultsDiv.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                document.getElementById('count').textContent = 'Found ' + data.content.length + ' records';
+            } catch (error) {
+                resultsDiv.innerHTML = '<div style="color:red">Error: ' + error.message + '</div>';
+            }
+        }
+        
+        async function testSaveEnquiry() {
+            const resultsDiv = document.getElementById('saveResults');
+            try {
+                resultsDiv.innerHTML = 'Saving...';
+                
+                const testData = {
+                    salesCountryCode: "FR",
+                    productCode: "SEA",
+                    cargoTypeCode: "FCL",
+                    salesPicId: 1,
+                    polId: 1,
+                    podId: 5,
+                    status: "New",
+                    bookingConfirmed: "Pending",
+                    cnPricingAdmin: "admin",
+                    assignedCnOfficeCode: "SHANGHAI"
+                };
+                
+                const response = await fetch('http://localhost:8888/api/enquiries', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(testData)
+                });
+                
+                const result = await response.json();
+                resultsDiv.innerHTML = '<pre>' + JSON.stringify(result, null, 2) + '</pre>';
+            } catch (error) {
+                resultsDiv.innerHTML = '<div style="color:red">Error: ' + error.message + '</div>';
+            }
+        }
+    </script>
+</head>
+<body>
+    <h1>Enquiry List API Test</h1>
+    <button onclick="testEnquiryList()">Test List API</button>
+    <div id="count"></div>
+    <div id="results"></div>
+    
+    <h2>Test Save Enquiry</h2>
+    <button onclick="testSaveEnquiry()">Test Save API</button>
+    <div id="saveResults"></div>
+</body>
+</html>

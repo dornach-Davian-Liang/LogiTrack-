@@ -20,9 +20,11 @@ const ProductIcon = ({ type }: { type: string }) => {
 
 const StatusBadge = ({ status }: { status: string }) => {
   let color = 'bg-gray-100 text-gray-800';
-  if (status === 'Quoted') color = 'bg-blue-100 text-blue-800';
-  if (status === 'New') color = 'bg-green-100 text-green-800';
-  if (status === 'Pending') color = 'bg-yellow-100 text-yellow-800';
+  if (status === 'New') color = 'bg-blue-100 text-blue-800';
+  if (status === 'Quoted & Pending') color = 'bg-yellow-100 text-yellow-800';
+  if (status === 'Secured') color = 'bg-green-100 text-green-800';
+  if (status === 'Lost') color = 'bg-red-100 text-red-800';
+  if (status === 'Cancelled') color = 'bg-gray-200 text-gray-600';
   return (
     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${color} whitespace-nowrap`}>
       {status}
@@ -42,11 +44,10 @@ const Table: React.FC<TableProps> = ({ data, onEdit, onCopy }) => {
             <tr>
               <th className={`${thClass} sticky left-0 bg-gray-50 z-20 shadow-r`}>Actions</th>
               <th className={thClass}>Enquiry Date</th>
-              <th className={thClass}>Issue Date</th>
+              <th className={thClass}>Created Date</th>
               <th className={thClass}>Ref Number</th>
               <th className={thClass}>Product</th>
               <th className={thClass}>Status</th>
-              <th className={thClass}>CN Admin</th>
               <th className={thClass}>Sales Country</th>
               <th className={thClass}>Sales Office</th>
               <th className={thClass}>Sales PIC</th>
@@ -55,7 +56,6 @@ const Table: React.FC<TableProps> = ({ data, onEdit, onCopy }) => {
               <th className={thClass}>Volume (CBM)</th>
               <th className={thClass}>Qty</th>
               <th className={thClass}>Unit</th>
-              <th className={thClass}>TEU</th>
               <th className={thClass}>Commodity</th>
               <th className={thClass}>Haz/Special</th>
               <th className={thClass}>POL</th>
@@ -70,10 +70,7 @@ const Table: React.FC<TableProps> = ({ data, onEdit, onCopy }) => {
               <th className={thClass}>1st Air</th>
               <th className={thClass}>Latest Ocean</th>
               <th className={thClass}>Latest Air</th>
-              <th className={thClass}>Booking</th>
               <th className={thClass}>Remark</th>
-              <th className={thClass}>Rejected Reason</th>
-              <th className={thClass}>Actual Reason</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -100,7 +97,7 @@ const Table: React.FC<TableProps> = ({ data, onEdit, onCopy }) => {
                 </td>
 
                 <td className={tdClass}>{item.enquiryReceivedDate}</td>
-                <td className={tdClass}>{item.issueDate}</td>
+                <td className={tdClass}>{item.enquiryCreatedDate}</td>
                 <td className={`${tdClass} font-medium text-indigo-600`}>{item.referenceNumber}</td>
                 <td className={tdClass}>
                    <div className="flex items-center gap-2">
@@ -110,7 +107,6 @@ const Table: React.FC<TableProps> = ({ data, onEdit, onCopy }) => {
                 </td>
                 <td className={tdClass}><StatusBadge status={item.status} /></td>
                 
-                <td className={tdClass}>{item.cnPricingAdmin}</td>
                 <td className={tdClass}>{item.salesCountry}</td>
                 <td className={tdClass}>{item.salesOffice}</td>
                 <td className={tdClass}>{item.salesPic}</td>
@@ -120,41 +116,29 @@ const Table: React.FC<TableProps> = ({ data, onEdit, onCopy }) => {
                 <td className={tdClass}>{item.volumeCbm}</td>
                 <td className={tdClass}>{item.quantity}</td>
                 <td className={tdClass}>{item.quantityUnit}</td>
-                <td className={tdClass}>{item.quantityTeu || '-'}</td>
                 <td className={tdClass} title={item.commodity}>{item.commodity}</td>
-                <td className={tdClass} title={item.specialRequirements}>{item.specialRequirements || '-'}</td>
+                <td className={tdClass} title={item.hazSpecialEquipment}>{item.hazSpecialEquipment || '-'}</td>
 
                 <td className={tdClass}>{item.pol}</td>
                 <td className={tdClass}>{item.pod}</td>
                 <td className={tdClass}>{item.podCountry}</td>
 
                 <td className={tdClass}>
-                    <span className={`text-xs font-medium ${item.isCore === 'CORE' ? 'text-green-600 bg-green-50 px-1 rounded' : 'text-gray-500'}`}>
-                        {item.isCore}
+                    <span className={`text-xs font-medium ${item.coreNonCore === 'Core' ? 'text-green-600 bg-green-50 px-1 rounded' : 'text-gray-500'}`}>
+                        {item.coreNonCore}
                     </span>
                 </td>
                 <td className={tdClass} title={item.category}>{item.category}</td>
                 
                 <td className={tdClass}>{item.cargoReadyDate || '-'}</td>
-                <td className={tdClass} title={item.additionalRequirement}>{item.additionalRequirement || '-'}</td>
-                <td className={tdClass}>{item.firstQuotationSentDate || '-'}</td>
-                <td className={tdClass}>{item.firstOfferOcean || '-'}</td>
-                <td className={tdClass}>{item.firstOfferAir || '-'}</td>
-                <td className={tdClass}>{item.latestOfferOcean || '-'}</td>
-                <td className={tdClass}>{item.latestOfferAir || '-'}</td>
+                <td className={tdClass} title={item.cargoReadyDateDetails}>{item.cargoReadyDateDetails || '-'}</td>
+                <td className={tdClass}>{item.firstQuotationSent || '-'}</td>
+                <td className={tdClass}>{item.firstOfferOceanFrg || '-'}</td>
+                <td className={tdClass}>{item.firstOfferAirFrgKg || '-'}</td>
+                <td className={tdClass}>{item.latestOfferOceanFrg || '-'}</td>
+                <td className={tdClass}>{item.latestOfferAirFrgKg || '-'}</td>
                 
-                <td className={tdClass}>
-                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        item.bookingConfirmed === 'Yes' ? 'bg-green-100 text-green-800' : 
-                        item.bookingConfirmed === 'Rejected' ? 'bg-red-100 text-red-800' : 
-                        item.bookingConfirmed === 'Pending' ? 'bg-yellow-100 text-yellow-800' : 'text-gray-400'
-                     }`}>
-                      {item.bookingConfirmed || '-'}
-                    </span>
-                </td>
                 <td className={tdClass} title={item.remark}>{item.remark || '-'}</td>
-                <td className={tdClass} title={item.rejectedReason}>{item.rejectedReason || '-'}</td>
-                <td className={tdClass} title={item.actualReason}>{item.actualReason || '-'}</td>
               </tr>
             ))}
           </tbody>
